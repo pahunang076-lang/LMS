@@ -1,0 +1,19 @@
+<section class="qr-scanner-root">
+  <header class="qr-header">
+    <h4 class="qr-title">{{ title }}</h4>
+    <p class="qr-hint" *ngIf="hint">{{ hint }}</p>
+  </header>
+
+  <div [id]="elementId" class="qr-scanner-host"></div>
+
+  <div class="qr-status" *ngIf="lastResult">
+    <span
+      class="qr-status-icon"
+      [class.qr-status-icon--success]="hasScanSuccess"
+    >
+      ✔
+    </span>
+    <span class="qr-status-text">Last scanned: {{ lastResult }}</span>
+  </div>
+</section>
+

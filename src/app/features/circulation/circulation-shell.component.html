@@ -1,0 +1,333 @@
+<section class="circulation-root" *ngIf="vm$ | async as vm">
+  <header class="header">
+    <div>
+      <h2>Borrow &amp; Return</h2>
+      <p class="subtitle">
+        Track borrowed books, due dates, and returns.
+      </p>
+    </div>
+  </header>
+
+  <div class="mode-toggle">
+    <button
+      type="button"
+      class="mode-btn"
+      [class.mode-btn--active]="mode === 'manual'"
+      (click)="setMode('manual')"
+    >
+      Manual form
+    </button>
+    <button
+      type="button"
+      class="mode-btn"
+      [class.mode-btn--active]="mode === 'qrBorrow'"
+      (click)="setMode('qrBorrow')"
+    >
+      Borrow via QR
+    </button>
+    <button
+      type="button"
+      class="mode-btn"
+      [class.mode-btn--active]="mode === 'qrReturn'"
+      (click)="setMode('qrReturn')"
+    >
+      Return via QR
+    </button>
+  </div>
+
+  <div class="columns" *ngIf="mode === 'manual'">
+    <section class="column">
+      <h3>New borrowing</h3>
+      <p class="section-subtitle">
+        Create a borrowing record for the current user.
+      </p>
+
+      <form
+        [formGroup]="borrowForm"
+        (ngSubmit)="createBorrow(vm.user?.uid, vm.books, vm.active)"
+        class="form"
+      >
+        <label>
+          <span>Book</span>
+          <select formControlName="bookId">
+            <option value="" disabled>Select a book</option>
+            <option
+              *ngFor="let book of vm.books"
+              [value]="book.id"
+              [disabled]="book.quantityAvailable <= 0"
+            >
+              {{ book.title }} ({{ book.quantityAvailable }} available)
+            </option>
+          </select>
+        </label>
+
+        <label>
+          <span>Due date</span>
+          <input type="date" formControlName="dueDate" />
+        </label>
+
+        <button type="submit" class="btn btn-primary">
+          Create borrowing
+        </button>
+      </form>
+    </section>
+
+    <section class="column">
+      <h3>Current borrowings</h3>
+
+      <table class="table" *ngIf="vm.active.length > 0; else noActive">
+        <thead>
+          <tr>
+            <th>Book</th>
+            <th>Borrowed at</th>
+            <th>Due at</th>
+            <th>Status</th>
+            <th>Fine</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let borrow of vm.active">
+            <td>{{ borrow.bookTitle }}</td>
+            <td>{{ asDate(borrow.borrowedAt) | date: 'short' }}</td>
+            <td>{{ asDate(borrow.dueAt) | date: 'shortDate' }}</td>
+            <td>{{ borrow.status | titlecase }}</td>
+            <td>
+              {{ borrow.fineAmount | currency }}
+            </td>
+            <td>
+              <button
+                type="button"
+                class="btn btn-small"
+                (click)="markReturned(borrow)"
+              >
+                Mark returned
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #noActive>
+        <p class="muted">No active borrowings.</p>
+      </ng-template>
+    </section>
+  </div>
+
+  <!-- Borrow via QR -->
+  <section class="qr-section" *ngIf="mode === 'qrBorrow'">
+    <div class="qr-layout">
+      <div class="qr-column">
+        <h3>Borrow via QR</h3>
+        <p class="section-subtitle">
+          Optionally scan a student QR ID, then scan a book QR to start a borrowing.
+        </p>
+
+        <app-qr-scanner
+          title="Student QR (optional)"
+          hint="Scan the student QR ID first if available."
+          (scanned)="onStudentQrScanned($event)"
+          (scanError)="onScannerError($event)"
+        ></app-qr-scanner>
+
+        <div class="scan-pill" *ngIf="scannedStudentId">
+          <span class="scan-pill-icon">✔</span>
+          <span>Student ID: {{ scannedStudentId }}</span>
+        </div>
+
+        <app-qr-scanner
+          class="qr-scanner-spacing"
+          title="Book QR"
+          hint="Scan the book QR code to fetch its details."
+          (scanned)="onBookQrScannedForBorrow($event, vm.books)"
+          (scanError)="onScannerError($event)"
+        ></app-qr-scanner>
+
+        <div class="scan-pill" *ngIf="scannedBook">
+          <span class="scan-pill-icon">✔</span>
+          <div class="scan-pill-details">
+            <div class="scan-pill-title">{{ scannedBook.title }}</div>
+            <div class="scan-pill-sub">
+              {{ scannedBook.author }} ·
+              {{ scannedBook.quantityAvailable }} copies available
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="qr-column">
+        <h3>Borrow details</h3>
+        <p class="section-subtitle">
+          Choose a due date and confirm the transaction.
+        </p>
+
+        <form
+          [formGroup]="qrBorrowForm"
+          (ngSubmit)="openBorrowConfirm(vm.user?.uid, vm.active)"
+          class="form"
+        >
+          <label>
+            <span>Due date</span>
+            <input type="date" formControlName="dueDate" />
+          </label>
+
+          <button
+            type="submit"
+            class="btn btn-primary"
+            [disabled]="!scannedBook"
+          >
+            Review &amp; confirm borrow
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Return via QR -->
+  <section class="qr-section" *ngIf="mode === 'qrReturn'">
+    <h3>Return via QR</h3>
+    <p class="section-subtitle">
+      Scan a book QR to look up the active borrowing and confirm its return.
+    </p>
+
+    <div class="qr-layout">
+      <div class="qr-column">
+        <app-qr-scanner
+          title="Book QR"
+          hint="Scan the borrowed book QR code."
+          (scanned)="onBookQrScannedForReturnWithBooks($event, vm.active, vm.books)"
+          (scanError)="onScannerError($event)"
+        ></app-qr-scanner>
+      </div>
+
+      <div class="qr-column">
+        <div *ngIf="scannedBorrowForReturn; else noBorrowSelected">
+          <h4>Matched borrowing</h4>
+          <p>
+            <strong>{{ scannedBorrowForReturn.bookTitle }}</strong>
+          </p>
+          <p>
+            Borrowed at:
+            {{ asDate(scannedBorrowForReturn.borrowedAt) | date: 'short' }}
+          </p>
+          <p>
+            Due at:
+            {{ asDate(scannedBorrowForReturn.dueAt) | date: 'shortDate' }}
+          </p>
+          <p>Status: {{ scannedBorrowForReturn.status | titlecase }}</p>
+        </div>
+
+        <ng-template #noBorrowSelected>
+          <p class="muted">
+            Scan a book QR to see its active borrowing details.
+          </p>
+        </ng-template>
+      </div>
+    </div>
+  </section>
+
+  <div class="feedback" *ngIf="qrError || qrSuccessMessage">
+    <p class="feedback-error" *ngIf="qrError">{{ qrError }}</p>
+    <p class="feedback-success" *ngIf="qrSuccessMessage">
+      {{ qrSuccessMessage }}
+    </p>
+  </div>
+
+  <!-- Borrow confirmation modal -->
+  <div class="dialog-backdrop" *ngIf="showBorrowConfirm && scannedBook">
+    <div class="dialog">
+      <h3>Confirm borrow</h3>
+      <p>
+        You are about to borrow:
+        <strong>{{ scannedBook.title }}</strong>
+      </p>
+      <p *ngIf="scannedStudentId">
+        For student ID:
+        <strong>{{ scannedStudentId }}</strong>
+      </p>
+      <p>
+        Due date:
+        <strong>{{ qrBorrowForm.get('dueDate')?.value }}</strong>
+      </p>
+
+      <div class="dialog-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="cancelBorrowConfirm()"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="confirmQrBorrow(vm.user?.uid)"
+        >
+          Confirm borrow
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Return confirmation modal -->
+  <div
+    class="dialog-backdrop"
+    *ngIf="showReturnConfirm && scannedBorrowForReturn"
+  >
+    <div class="dialog">
+      <h3>Confirm return</h3>
+      <p>
+        Mark
+        <strong>{{ scannedBorrowForReturn.bookTitle }}</strong>
+        as returned?
+      </p>
+
+      <div class="dialog-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="cancelReturnConfirm()"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="confirmQrReturn()"
+        >
+          Confirm return
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <section class="history">
+    <h3>Borrowing history</h3>
+
+    <table class="table" *ngIf="vm.history.length > 0; else noHistory">
+      <thead>
+        <tr>
+          <th>Book</th>
+          <th>Borrowed at</th>
+          <th>Returned at</th>
+          <th>Status</th>
+          <th>Fine</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let borrow of vm.history">
+          <td>{{ borrow.bookTitle }}</td>
+          <td>{{ asDate(borrow.borrowedAt) | date: 'short' }}</td>
+          <td>{{ asDate(borrow.returnedAt) | date: 'short' }}</td>
+          <td>{{ borrow.status | titlecase }}</td>
+          <td>{{ borrow.fineAmount | currency }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ng-template #noHistory>
+      <p class="muted">No borrowing history yet.</p>
+    </ng-template>
+  </section>
+</section>
+

@@ -1,0 +1,131 @@
+<section class="reports-root">
+  <header class="header">
+    <div>
+      <h2>Reports</h2>
+      <p class="subtitle">
+        Analyze borrowing trends, peak hours, user activity, and visit purposes.
+      </p>
+    </div>
+
+    <form [formGroup]="rangeForm" class="range-form">
+      <select formControlName="type">
+        <option value="daily">Daily</option>
+        <option value="weekly">Weekly</option>
+        <option value="monthly">Monthly</option>
+      </select>
+      <input type="date" formControlName="date" />
+    </form>
+  </header>
+
+  <section class="cards">
+    <article class="card" *ngIf="borrows$ | async as borrows">
+      <h3>Total borrows</h3>
+      <p class="value">{{ borrows.length }}</p>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="exportBorrowsCsv(borrows)"
+        [disabled]="!borrows.length"
+      >
+        Export borrows CSV
+      </button>
+    </article>
+
+    <article class="card" *ngIf="entries$ | async as entries">
+      <h3>Total visits</h3>
+      <p class="value">{{ entries.length }}</p>
+      <button
+        type="button"
+        class="btn btn-secondary"
+        (click)="exportEntriesCsv(entries)"
+        [disabled]="!entries.length"
+      >
+        Export visits CSV
+      </button>
+    </article>
+  </section>
+
+  <section class="grid">
+    <article class="panel" *ngIf="topBooks$ | async as topBooks">
+      <h3>Most borrowed books</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let book of topBooks">
+            <td>{{ book.title }}</td>
+            <td>{{ book.count }}</td>
+          </tr>
+          <tr *ngIf="topBooks.length === 0">
+            <td colspan="2" class="muted">No borrowing data.</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="panel" *ngIf="userActivity$ | async as users">
+      <h3>User activity</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Visits</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of users">
+            <td>{{ u.name }}</td>
+            <td>{{ u.visits }}</td>
+          </tr>
+          <tr *ngIf="users.length === 0">
+            <td colspan="2" class="muted">No visit data.</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="panel" *ngIf="visitPurposes$ | async as purposes">
+      <h3>Visit purposes</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Purpose</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of purposes">
+            <td>{{ p.purpose }}</td>
+            <td>{{ p.count }}</td>
+          </tr>
+          <tr *ngIf="purposes.length === 0">
+            <td colspan="2" class="muted">No purpose data.</td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="panel" *ngIf="peakHours$ | async as hours">
+      <h3>Peak hours</h3>
+      <div class="bar-chart">
+        <div
+          class="bar-wrapper"
+          *ngFor="let count of hours; let i = index"
+        >
+          <div
+            class="bar"
+            [style.height.%]="count * 10"
+          ></div>
+          <div class="bar-label" *ngIf="i % 3 === 0">
+            {{ i }}
+          </div>
+        </div>
+      </div>
+    </article>
+  </section>
+</section>
+

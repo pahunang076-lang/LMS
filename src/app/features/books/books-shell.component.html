@@ -1,0 +1,199 @@
+<section class="books-root">
+  <header class="header">
+    <div>
+      <h2>Book Management</h2>
+      <p class="subtitle">
+        Add, edit, and manage books in the library collection.
+      </p>
+    </div>
+
+    <button type="button" class="btn btn-primary" (click)="openCreateDialog()">
+      + Add book
+    </button>
+  </header>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      placeholder="Search by title, author, or category..."
+      (input)="onSearch($any($event.target).value)"
+    />
+
+    <select
+      (change)="onStatusFilterChange($any($event.target).value)"
+      aria-label="Filter by availability"
+    >
+      <option value="all">All statuses</option>
+      <option value="available">Available</option>
+      <option value="unavailable">Unavailable</option>
+    </select>
+  </div>
+
+  <div class="table-wrapper">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Title</th>
+          <th>Author</th>
+          <th>Category</th>
+          <th>ISBN</th>
+          <th>Available</th>
+          <th>Status</th>
+          <th class="actions-col">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngIf="books$ | async as books">
+          <tr
+            *ngFor="let book of books
+              | slice: 0:books.length
+              | filterBooks: searchTerm():statusFilter()"
+          >
+            <td>{{ book.title }}</td>
+            <td>{{ book.author }}</td>
+            <td>{{ book.category }}</td>
+            <td>{{ book.isbn }}</td>
+            <td>
+              {{ book.quantityAvailable }} / {{ book.quantityTotal }}
+            </td>
+            <td>
+              <span
+                class="badge"
+                [class.badge-success]="book.status === 'available'"
+                [class.badge-danger]="book.status === 'unavailable'"
+              >
+                {{ book.status | titlecase }}
+              </span>
+            </td>
+            <td class="actions-col">
+              <button
+                type="button"
+                class="btn btn-small"
+                (click)="openEditDialog(book)"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                class="btn btn-small"
+                (click)="openQrDialog(book)"
+                title="Show QR code for this book"
+              >
+                QR
+              </button>
+              <button
+                type="button"
+                class="btn btn-small btn-danger"
+                (click)="delete(book)"
+              >
+                Delete
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="books.length === 0">
+            <td colspan="7" class="empty-state">
+              No books found. Click “Add book” to create one.
+            </td>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Dialog -->
+  <div class="dialog-backdrop" *ngIf="isDialogOpen()">
+    <div class="dialog">
+      <h3>{{ editingBook() ? 'Edit book' : 'Add book' }}</h3>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
+        <label>
+          <span>Title</span>
+          <input type="text" formControlName="title" />
+        </label>
+
+        <label>
+          <span>Author</span>
+          <input type="text" formControlName="author" />
+        </label>
+
+        <label>
+          <span>Category</span>
+          <input type="text" formControlName="category" />
+        </label>
+
+        <label>
+          <span>ISBN</span>
+          <input type="text" formControlName="isbn" />
+        </label>
+
+        <label>
+          <span>Total quantity</span>
+          <input type="number" formControlName="quantityTotal" />
+        </label>
+
+        <label>
+          <span>Available</span>
+          <input type="number" formControlName="quantityAvailable" />
+        </label>
+
+        <label>
+          <span>Status</span>
+          <select formControlName="status">
+            <option value="available">Available</option>
+            <option value="unavailable">Unavailable</option>
+          </select>
+        </label>
+
+        <label class="full-width">
+          <span>Description</span>
+          <textarea formControlName="description" rows="3"></textarea>
+        </label>
+
+        <div class="dialog-actions full-width">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeDialog()"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- QR dialog -->
+  <div class="dialog-backdrop" *ngIf="qrBook()">
+    <div class="dialog dialog--qr">
+      <h3>Book QR code</h3>
+      <p class="subtitle">
+        Scan this QR to borrow or return this book quickly.
+      </p>
+
+      <div class="qr-preview" *ngIf="qrBook() as b">
+        <app-qr-code
+          [value]="b.id || b.isbn"
+          [size]="220"
+        ></app-qr-code>
+        <div class="qr-meta">
+          <div class="qr-title">{{ b.title }}</div>
+          <div class="qr-author">{{ b.author }}</div>
+          <div class="qr-id">Encoded ID: {{ b.id || b.isbn }}</div>
+        </div>
+      </div>
+
+      <div class="dialog-actions full-width">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="closeQrDialog()"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+

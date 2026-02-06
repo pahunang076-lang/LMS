@@ -1,0 +1,104 @@
+<section class="dashboard-root">
+  <header class="header">
+    <div>
+      <h2>Library Dashboard</h2>
+      <p class="subtitle">
+        Real-time overview of library activity and visits today.
+      </p>
+    </div>
+  </header>
+
+  <section class="cards">
+    <article class="card">
+      <h3>Total visits today</h3>
+      <p class="value">
+        {{ totalVisitsToday$ | async }}
+      </p>
+    </article>
+
+    <article class="card">
+      <h3>Currently inside</h3>
+      <p class="value">
+        {{ currentlyInside$ | async }}
+      </p>
+    </article>
+
+    <article class="card">
+      <h3>Last entry time</h3>
+      <p class="value small">
+        <ng-container *ngIf="lastEntryTime$ | async as last; else noLast">
+          {{ last | date: 'shortTime' }}
+        </ng-container>
+        <ng-template #noLast>—</ng-template>
+      </p>
+    </article>
+  </section>
+
+  <section class="charts">
+    <div class="chart">
+      <h3>Today by hour</h3>
+      <div class="bar-chart" *ngIf="hourlyTraffic$ | async as hours">
+        <div
+          class="bar-wrapper"
+          *ngFor="let count of hours; let i = index"
+        >
+          <div
+            class="bar"
+            [style.height.%]="count * 10"
+            [attr.aria-label]="'Hour ' + i + ': ' + count + ' visits'"
+          ></div>
+          <div class="bar-label" *ngIf="i % 3 === 0">
+            {{ i }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart">
+      <h3>Visit purposes (today)</h3>
+      <ul class="purpose-list" *ngIf="purposeDistribution$ | async as dist">
+        <li *ngFor="let key of (dist | keyvalue)">
+          <span class="purpose-label">{{ key.key }}</span>
+          <span class="purpose-value">{{ key.value }}</span>
+        </li>
+        <li *ngIf="(dist | keyvalue).length === 0" class="muted">
+          No visits logged today yet.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="recent">
+    <div class="recent-header">
+      <h3>Recent entry logs</h3>
+      <button type="button" class="btn btn-secondary">
+        Export CSV (client-side)
+      </button>
+    </div>
+
+    <table class="table" *ngIf="recentLogs$ | async as logs">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Purpose</th>
+          <th>Time in</th>
+          <th>Time out</th>
+          <th>Duration (min)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let log of logs">
+          <td>{{ log.name }}</td>
+          <td>{{ log.purpose }}</td>
+          <td>{{ asDate(log.timeIn) | date: 'short' }}</td>
+          <td>{{ asDate(log.timeOut) | date: 'short' }}</td>
+          <td>{{ log.durationMinutes ?? '-' }}</td>
+          <td>{{ log.status }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</section>
+
+

@@ -1,0 +1,23 @@
+.qr-code-root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-code-root--empty {
+  min-width: 160px;
+  min-height: 160px;
+  border-radius: 0.75rem;
+  border: 1px dashed #d1d5db;
+  color: #9ca3af;
+  font-size: 0.8rem;
+}
+
+.qr-image {
+  display: block;
+}
+
+.qr-empty-text {
+  padding: 0.75rem;
+}
+

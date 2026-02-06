@@ -1,0 +1,104 @@
+<section class="entry-root">
+  <header class="header">
+    <div>
+      <h2>Library Entry &amp; Exit</h2>
+      <p class="subtitle">
+        Log visits, track who is currently inside, and manage checkouts.
+      </p>
+    </div>
+    <div class="stats">
+      <div class="stat">
+        <span class="stat-label">Currently inside</span>
+        <span class="stat-value">{{ insideCount$ | async }}</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="columns">
+    <section class="column">
+      <h3>Log your visit</h3>
+      <form [formGroup]="form" class="form">
+        <label>
+          <span>Purpose of visit</span>
+          <select formControlName="purpose">
+            <option value="Study">Study</option>
+            <option value="Borrow/Return">Borrow/Return</option>
+            <option value="Research">Research</option>
+            <option value="Others">Others</option>
+          </select>
+        </label>
+
+        <div class="buttons">
+          <button type="button" class="btn btn-primary" (click)="checkIn()">
+            Check in
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="checkOut()">
+            Check out
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="column">
+      <h3>Currently inside</h3>
+      <table class="table" *ngIf="inside$ | async as inside; else noneInside">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Purpose</th>
+            <th>Time in</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of inside">
+            <td>{{ log.name }}</td>
+            <td>{{ log.purpose }}</td>
+            <td>{{ asDate(log.timeIn) | date: 'shortTime' }}</td>
+            <td>
+              <button
+                type="button"
+                class="btn btn-small"
+                (click)="forceCheckout(log)"
+              >
+                Force checkout
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #noneInside>
+        <p class="muted">No one is currently inside.</p>
+      </ng-template>
+    </section>
+  </div>
+
+  <section class="recent">
+    <h3>Recent entry logs</h3>
+
+    <table class="table" *ngIf="recentLogs$ | async as recent">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Purpose</th>
+          <th>Time in</th>
+          <th>Time out</th>
+          <th>Duration (min)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let log of recent">
+          <td>{{ log.name }}</td>
+          <td>{{ log.purpose }}</td>
+          <td>{{ asDate(log.timeIn) | date: 'short' }}</td>
+          <td>{{ asDate(log.timeOut) | date: 'short' }}</td>
+          <td>{{ log.durationMinutes ?? '-' }}</td>
+          <td>{{ log.status }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</section>
+

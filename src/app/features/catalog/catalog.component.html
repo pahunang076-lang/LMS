@@ -1,0 +1,63 @@
+<section class="catalog-root">
+  <header class="header">
+    <div>
+      <h2>Book Catalog</h2>
+      <p class="subtitle">
+        Search the library collection and see real-time availability.
+      </p>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <input
+      type="search"
+      placeholder="Search by title, author, or category..."
+      (input)="onSearch($any($event.target).value)"
+    />
+
+    <select
+      (change)="onStatusFilterChange($any($event.target).value)"
+      aria-label="Filter by availability"
+    >
+      <option value="all">All statuses</option>
+      <option value="available">Available</option>
+      <option value="unavailable">Unavailable</option>
+    </select>
+  </div>
+
+  <div class="cards" *ngIf="books$ | async as books">
+    <article
+      class="card"
+      *ngFor="let book of books | filterBooks: searchTerm():statusFilter()"
+    >
+      <header class="card-header">
+        <h3>{{ book.title }}</h3>
+        <span
+          class="badge"
+          [class.badge-success]="book.status === 'available'"
+          [class.badge-danger]="book.status === 'unavailable'"
+        >
+          {{ book.status | titlecase }}
+        </span>
+      </header>
+      <p class="author">{{ book.author }}</p>
+      <p class="meta">
+        <span class="meta-item">{{ book.category }}</span>
+        <span class="meta-item">ISBN: {{ book.isbn }}</span>
+      </p>
+      <p class="availability">
+        Available:
+        <strong>{{ book.quantityAvailable }} / {{ book.quantityTotal }}</strong>
+      </p>
+      <p class="description" *ngIf="book.description">
+        {{ book.description }}
+      </p>
+    </article>
+
+    <p class="empty" *ngIf="books.length === 0">
+      No books found.
+    </p>
+  </div>
+</section>
+
+
