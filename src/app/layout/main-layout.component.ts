@@ -32,6 +32,8 @@ export class MainLayoutComponent {
     'librarian',
   ]);
 
+  readonly isAdmin$ = this.authService.hasRole(['admin']);
+
   readonly isStudent$ = this.authService.hasRole(['student']);
 
   readonly isLoading = computed(() => this.authService.isLoading());

@@ -1,10 +1,63 @@
 <section class="qr-scanner-root">
   <header class="qr-header">
-    <h4 class="qr-title">{{ title }}</h4>
-    <p class="qr-hint" *ngIf="hint">{{ hint }}</p>
+    <div class="qr-header-top">
+      <div>
+        <h4 class="qr-title">{{ title }}</h4>
+        <p class="qr-hint" *ngIf="hint">{{ hint }}</p>
+      </div>
+      <button
+        *ngIf="availableCameras.length > 1"
+        type="button"
+        class="btn btn-camera-selector"
+        (click)="toggleCameraSelector()"
+        title="Switch camera"
+      >
+        <span class="camera-icon">📷</span>
+        Switch Camera
+      </button>
+    </div>
+    <div class="qr-camera-selector" *ngIf="showCameraSelector && availableCameras.length > 1">
+      <label class="camera-selector-label">Select Camera:</label>
+      <select
+        class="camera-select"
+        [value]="selectedCameraId || ''"
+        (change)="switchCamera($any($event.target).value)"
+      >
+        <option *ngFor="let camera of availableCameras" [value]="camera.deviceId">
+          {{ camera.label }}
+        </option>
+      </select>
+    </div>
   </header>
 
-  <div [id]="elementId" class="qr-scanner-host"></div>
+  <div class="qr-scanner-host">
+    <div class="qr-scanner-wrapper" *ngIf="!errorMessage">
+      <video
+        #videoElement
+        class="qr-video"
+        autoplay
+        playsinline
+        muted
+        [class.hidden]="isInitializing"
+      ></video>
+      
+      <div class="qr-scanner-overlay" *ngIf="!isInitializing">
+        <div class="qr-scanner-box"></div>
+      </div>
+
+      <div class="qr-scanner-loading" *ngIf="isInitializing">
+        <div class="loading-spinner"></div>
+        <p>Initializing camera...</p>
+      </div>
+    </div>
+
+    <div class="qr-scanner-error" *ngIf="errorMessage">
+      <p class="error-text">{{ errorMessage }}</p>
+      <button type="button" class="btn btn-primary" (click)="initializeScanner()">
+        Retry
+      </button>
+    </div>
+  </div>
 
   <div class="qr-status" *ngIf="lastResult">
     <span

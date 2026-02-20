@@ -92,6 +92,17 @@
         </a>
 
         <a
+          routerLink="/users"
+          routerLinkActive="active"
+          class="nav-link"
+          title="User Management"
+          *ngIf="isAdmin$ | async"
+        >
+          <span class="nav-icon" aria-hidden="true">👥</span>
+          <span class="nav-label">User Management</span>
+        </a>
+
+        <a
           routerLink="/entry-logs"
           routerLinkActive="active"
           class="nav-link"

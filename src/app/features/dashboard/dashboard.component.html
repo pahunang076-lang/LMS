@@ -1,103 +1,218 @@
 <section class="dashboard-root">
   <header class="header">
-    <div>
-      <h2>Library Dashboard</h2>
-      <p class="subtitle">
-        Real-time overview of library activity and visits today.
-      </p>
+    <div class="header-content">
+      <div>
+        <h1 class="page-title">Library Dashboard</h1>
+        <p class="subtitle">
+          Real-time overview of library activity and visits today
+        </p>
+      </div>
+      <div class="header-badge">
+        <span class="badge-text">Live</span>
+        <span class="badge-dot"></span>
+      </div>
     </div>
   </header>
 
-  <section class="cards">
-    <article class="card">
-      <h3>Total visits today</h3>
-      <p class="value">
-        {{ totalVisitsToday$ | async }}
-      </p>
+  <section class="stats-grid">
+    <article class="stat-card stat-card-primary">
+      <div class="stat-card-header">
+        <div class="stat-icon stat-icon-primary">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card-body">
+        <h3 class="stat-label">Total Visits Today</h3>
+        <p class="stat-value">
+          {{ totalVisitsToday$ | async }}
+        </p>
+        <p class="stat-change positive">
+          <span class="change-icon">↑</span>
+          <span>Today's activity</span>
+        </p>
+      </div>
     </article>
 
-    <article class="card">
-      <h3>Currently inside</h3>
-      <p class="value">
-        {{ currentlyInside$ | async }}
-      </p>
+    <article class="stat-card stat-card-success">
+      <div class="stat-card-header">
+        <div class="stat-icon stat-icon-success">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card-body">
+        <h3 class="stat-label">Currently Inside</h3>
+        <p class="stat-value">
+          {{ currentlyInside$ | async }}
+        </p>
+        <p class="stat-change">
+          <span class="change-icon">👥</span>
+          <span>Active visitors</span>
+        </p>
+      </div>
     </article>
 
-    <article class="card">
-      <h3>Last entry time</h3>
-      <p class="value small">
-        <ng-container *ngIf="lastEntryTime$ | async as last; else noLast">
-          {{ last | date: 'shortTime' }}
-        </ng-container>
-        <ng-template #noLast>—</ng-template>
-      </p>
+    <article class="stat-card stat-card-info">
+      <div class="stat-card-header">
+        <div class="stat-icon stat-icon-info">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-card-body">
+        <h3 class="stat-label">Last Entry Time</h3>
+        <p class="stat-value stat-value-small">
+          <ng-container *ngIf="lastEntryTime$ | async as last; else noLast">
+            {{ last | date: 'shortTime' }}
+          </ng-container>
+          <ng-template #noLast>—</ng-template>
+        </p>
+        <p class="stat-change">
+          <span class="change-icon">🕐</span>
+          <span>Most recent</span>
+        </p>
+      </div>
     </article>
   </section>
 
-  <section class="charts">
-    <div class="chart">
-      <h3>Today by hour</h3>
-      <div class="bar-chart" *ngIf="hourlyTraffic$ | async as hours">
-        <div
-          class="bar-wrapper"
-          *ngFor="let count of hours; let i = index"
-        >
-          <div
-            class="bar"
-            [style.height.%]="count * 10"
-            [attr.aria-label]="'Hour ' + i + ': ' + count + ' visits'"
-          ></div>
-          <div class="bar-label" *ngIf="i % 3 === 0">
-            {{ i }}
+  <section class="analytics-section">
+    <div class="chart-card chart-card-large">
+      <div class="chart-header">
+        <div>
+          <h3 class="chart-title">Today by Hour</h3>
+          <p class="chart-subtitle">Visitor traffic throughout the day</p>
+        </div>
+      </div>
+      <div class="chart-body">
+        <div class="bar-chart-container" *ngIf="hourlyTraffic$ | async as hours">
+          <div class="bar-chart">
+            <div
+              class="bar-wrapper"
+              *ngFor="let count of hours; let i = index"
+            >
+              <div class="bar-container">
+                <div
+                  class="bar"
+                  [style.height.%]="Math.max(count * 10, count > 0 ? 5 : 0)"
+                  [attr.aria-label]="'Hour ' + i + ': ' + count + ' visits'"
+                  [title]="'Hour ' + i + ': ' + count + ' visits'"
+                ></div>
+                <span class="bar-value" *ngIf="count > 0">{{ count }}</span>
+              </div>
+              <div class="bar-label" *ngIf="i % 3 === 0 || i === hours.length - 1">
+                {{ i }}:00
+              </div>
+            </div>
+          </div>
+          <div class="chart-footer">
+            <div class="chart-legend">
+              <span class="legend-item">
+                <span class="legend-dot"></span>
+                <span>Visits per hour</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="chart">
-      <h3>Visit purposes (today)</h3>
-      <ul class="purpose-list" *ngIf="purposeDistribution$ | async as dist">
-        <li *ngFor="let key of (dist | keyvalue)">
-          <span class="purpose-label">{{ key.key }}</span>
-          <span class="purpose-value">{{ key.value }}</span>
-        </li>
-        <li *ngIf="(dist | keyvalue).length === 0" class="muted">
-          No visits logged today yet.
-        </li>
-      </ul>
+    <div class="chart-card chart-card-small">
+      <div class="chart-header">
+        <div>
+          <h3 class="chart-title">Visit Purposes</h3>
+          <p class="chart-subtitle">Distribution for today</p>
+        </div>
+      </div>
+      <div class="chart-body">
+        <ul class="purpose-list" *ngIf="purposeDistribution$ | async as dist">
+          <li *ngFor="let key of (dist | keyvalue)" class="purpose-item">
+            <div class="purpose-content">
+              <span class="purpose-label">{{ key.key }}</span>
+              <div class="purpose-bar-container">
+                <div class="purpose-bar" [style.width.%]="getPurposePercentage(key.value, dist)"></div>
+              </div>
+            </div>
+            <span class="purpose-value">{{ key.value }}</span>
+          </li>
+          <li *ngIf="(dist | keyvalue).length === 0" class="purpose-empty">
+            <span class="empty-icon">📊</span>
+            <span>No visits logged today yet</span>
+          </li>
+        </ul>
+      </div>
     </div>
   </section>
 
-  <section class="recent">
-    <div class="recent-header">
-      <h3>Recent entry logs</h3>
-      <button type="button" class="btn btn-secondary">
-        Export CSV (client-side)
-      </button>
-    </div>
+  <section class="recent-section">
+    <div class="recent-card">
+      <div class="recent-header">
+        <div>
+          <h3 class="recent-title">Recent Entry Logs</h3>
+          <p class="recent-subtitle">Latest visitor activity</p>
+        </div>
+        <button type="button" class="btn btn-export">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span>Export CSV</span>
+        </button>
+      </div>
 
-    <table class="table" *ngIf="recentLogs$ | async as logs">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Purpose</th>
-          <th>Time in</th>
-          <th>Time out</th>
-          <th>Duration (min)</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let log of logs">
-          <td>{{ log.name }}</td>
-          <td>{{ log.purpose }}</td>
-          <td>{{ asDate(log.timeIn) | date: 'short' }}</td>
-          <td>{{ asDate(log.timeOut) | date: 'short' }}</td>
-          <td>{{ log.durationMinutes ?? '-' }}</td>
-          <td>{{ log.status }}</td>
-        </tr>
-      </tbody>
-    </table>
+      <div class="table-container">
+        <table class="table" *ngIf="recentLogs$ | async as logs">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Purpose</th>
+              <th>Time In</th>
+              <th>Time Out</th>
+              <th>Duration</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let log of logs" class="table-row">
+              <td class="table-cell-name">
+                <span class="name-avatar">{{ getInitials(log.name) }}</span>
+                <span>{{ log.name }}</span>
+              </td>
+              <td>
+                <span class="purpose-badge">{{ log.purpose }}</span>
+              </td>
+              <td class="table-cell-time">{{ asDate(log.timeIn) | date: 'short' }}</td>
+              <td class="table-cell-time">{{ asDate(log.timeOut) | date: 'short' }}</td>
+              <td>
+                <span class="duration-badge">{{ log.durationMinutes ?? '-' }} min</span>
+              </td>
+              <td>
+                <span class="status-badge" [class.status-active]="log.status === 'Inside'" [class.status-completed]="log.status === 'Left'">
+                  {{ log.status }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="logs.length === 0" class="table-empty">
+              <td colspan="6">
+                <div class="empty-state">
+                  <span class="empty-icon">📋</span>
+                  <span>No recent logs available</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </section>
 </section>
 

@@ -1,0 +1,217 @@
+<section class="users-root">
+  <header class="header">
+    <div class="header-content">
+      <div>
+        <h1 class="page-title">User Management</h1>
+        <p class="subtitle">
+          Create and manage user accounts for the library system
+        </p>
+      </div>
+      <button type="button" class="btn btn-primary" (click)="openCreateDialog()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"></line>
+          <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+        <span>Create User</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="table-container">
+    <div class="table-wrapper">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Student ID</th>
+            <th>Status</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngIf="users$ | async as users">
+            <tr *ngFor="let user of users" class="table-row">
+              <td class="user-name-cell">
+                <span class="user-avatar">{{ getInitials(user.name) }}</span>
+                <span>{{ user.name }}</span>
+              </td>
+              <td>{{ user.email }}</td>
+              <td>
+                <span class="badge badge-info">{{ user.role | titlecase }}</span>
+              </td>
+              <td>{{ user.studentId || '-' }}</td>
+              <td>
+                <span
+                  class="badge"
+                  [class.badge-success]="user.isActive !== false"
+                  [class.badge-danger]="user.isActive === false"
+                >
+                  {{ user.isActive !== false ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              <td class="actions-col">
+                <button
+                  type="button"
+                  class="btn btn-small"
+                  (click)="openQrDialog(user)"
+                  title="Show QR code for this user"
+                >
+                  QR Code
+                </button>
+              </td>
+            </tr>
+
+            <tr *ngIf="users.length === 0" class="table-empty">
+              <td colspan="6">
+                <div class="empty-state">
+                  <span class="empty-icon">👥</span>
+                  <span>No users found. Click "Create User" to add one.</span>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create User Dialog -->
+  <div class="dialog-backdrop" *ngIf="isDialogOpen()" (click)="closeDialog()">
+    <div class="dialog" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>Create User Account</h3>
+        <button type="button" class="btn-close" (click)="closeDialog()" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
+        <label class="form-field">
+          <span class="form-label">Name <span class="required">*</span></span>
+          <input type="text" formControlName="name" class="form-input" placeholder="Enter full name" />
+          <span
+            class="error"
+            *ngIf="
+              form.controls.name.touched && form.controls.name.invalid
+            "
+          >
+            Name is required.
+          </span>
+        </label>
+
+        <label class="form-field">
+          <span class="form-label">Email <span class="required">*</span></span>
+          <input type="email" formControlName="email" class="form-input" placeholder="Enter email address" />
+          <span
+            class="error"
+            *ngIf="
+              form.controls.email.touched && form.controls.email.invalid
+            "
+          >
+            Valid email is required.
+          </span>
+        </label>
+
+        <label class="form-field">
+          <span class="form-label">Password <span class="required">*</span></span>
+          <input type="password" formControlName="password" class="form-input" placeholder="Minimum 6 characters" />
+          <span
+            class="error"
+            *ngIf="
+              form.controls.password.touched && form.controls.password.invalid
+            "
+          >
+            Password must be at least 6 characters.
+          </span>
+        </label>
+
+        <label class="form-field">
+          <span class="form-label">Role <span class="required">*</span></span>
+          <select formControlName="role" class="form-select">
+            <option value="student">Student</option>
+            <option value="librarian">Librarian</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+
+        <label class="form-field">
+          <span class="form-label">Student ID (optional)</span>
+          <input type="text" formControlName="studentId" class="form-input" placeholder="Enter student ID" />
+        </label>
+
+        <div class="dialog-actions full-width">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            (click)="closeDialog()"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">Create User</button>
+        </div>
+
+        <p
+          *ngIf="createError()"
+          class="error-message full-width"
+        >
+          {{ createError() }}
+        </p>
+
+        <p
+          *ngIf="createSuccess()"
+          class="success-message full-width"
+        >
+          User account created successfully!
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- QR Dialog -->
+  <div class="dialog-backdrop" *ngIf="qrUser()" (click)="closeQrDialog()">
+    <div class="dialog dialog--qr" (click)="$event.stopPropagation()">
+      <div class="dialog-header">
+        <h3>User QR Code</h3>
+        <button type="button" class="btn-close" (click)="closeQrDialog()" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <p class="subtitle" style="padding: 0 1.75rem; margin: 0 0 1.5rem 0; color: #6b7280; font-size: 0.9rem;">
+        This QR code can be used for login. Share it with the user.
+      </p>
+
+      <div class="qr-preview" *ngIf="qrUser() as u">
+        <div class="qr-code-wrapper">
+          <app-qr-code [value]="u.qrCode" [size]="240"></app-qr-code>
+        </div>
+        <div class="qr-meta">
+          <div class="qr-title">{{ u.name }}</div>
+          <div class="qr-email">{{ u.email }}</div>
+          <div class="qr-role">{{ u.role | titlecase }}</div>
+          <div class="qr-id">
+            <span class="qr-id-label">QR Code:</span>
+            <span class="qr-id-value">{{ u.qrCode }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dialog-actions full-width">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="closeQrDialog()"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

@@ -46,12 +46,23 @@ export class AuthService {
         email: 'admin@example.edu',
         role: 'admin',
         studentId: null,
+        qrCode: AuthService.generateUniqueQrCode(),
         createdAt: new Date().toISOString(),
         lastLoginAt: new Date().toISOString(),
         isActive: true,
         password: 'admin123',
       };
       AuthService.saveUsersToStorage([defaultAdmin]);
+    } else {
+      // Ensure all existing users have QR codes (migration)
+      const needsUpdate = users.some((u) => !u.qrCode);
+      if (needsUpdate) {
+        const updatedUsers = users.map((u) => ({
+          ...u,
+          qrCode: u.qrCode || AuthService.generateUniqueQrCode(),
+        }));
+        AuthService.saveUsersToStorage(updatedUsers);
+      }
     }
   }
 
@@ -77,8 +88,20 @@ export class AuthService {
       }
 
       const { password: _pw, ...user } = match;
-      this.currentUserSubject.next(user);
-      AuthService.saveCurrentUserToStorage(user);
+      
+      // Update last login time
+      const updatedMatch = {
+        ...match,
+        lastLoginAt: new Date().toISOString(),
+      };
+      const updatedUsers = users.map((u) =>
+        u.uid === match.uid ? updatedMatch : u
+      );
+      AuthService.saveUsersToStorage(updatedUsers);
+      
+      const updatedUser = { ...user, lastLoginAt: updatedMatch.lastLoginAt };
+      this.currentUserSubject.next(updatedUser);
+      AuthService.saveCurrentUserToStorage(updatedUser);
     } finally {
       this.loadingSignal.set(false);
     }
@@ -116,6 +139,131 @@ export class AuthService {
     return this.currentUser$.pipe(
       map((user) => !!user && allowedRoles.includes(user.role))
     );
+  }
+
+  /**
+   * Login using QR code.
+   * This is for development/demo only and is NOT secure.
+   */
+  async loginWithQrCode(qrCode: string): Promise<void> {
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
+
+    try {
+      const users = AuthService.loadUsersFromStorage();
+      const match = users.find((u) => u.qrCode === qrCode && u.isActive !== false);
+
+      if (!match) {
+        this.errorSignal.set('Invalid QR code.');
+        throw new Error('Invalid QR code');
+      }
+
+      const { password: _pw, ...user } = match;
+      
+      // Update last login time
+      const updatedMatch = {
+        ...match,
+        lastLoginAt: new Date().toISOString(),
+      };
+      const updatedUsers = users.map((u) =>
+        u.uid === match.uid ? updatedMatch : u
+      );
+      AuthService.saveUsersToStorage(updatedUsers);
+      
+      const updatedUser = { ...user, lastLoginAt: updatedMatch.lastLoginAt };
+      this.currentUserSubject.next(updatedUser);
+      AuthService.saveCurrentUserToStorage(updatedUser);
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+
+  /**
+   * Create a new user account (admin only).
+   * This is for development/demo only and is NOT secure.
+   */
+  async createUser(userData: {
+    name: string;
+    email: string;
+    password: string;
+    role: UserRole;
+    studentId?: string | null;
+  }): Promise<AppUser> {
+    const current = this.currentUserSubject.value;
+    if (!current || current.role !== 'admin') {
+      this.errorSignal.set('Only administrators can create user accounts.');
+      throw new Error('Unauthorized');
+    }
+
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
+
+    try {
+      const users = AuthService.loadUsersFromStorage();
+
+      // Check if email already exists
+      const emailTaken = users.some((u) => u.email === userData.email);
+      if (emailTaken) {
+        this.errorSignal.set('That email address is already in use.');
+        throw new Error('Email already in use');
+      }
+
+      // Generate unique UID
+      const uid = `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+      // Generate unique QR code
+      let qrCode = AuthService.generateUniqueQrCode();
+      // Ensure QR code is unique
+      while (users.some((u) => u.qrCode === qrCode)) {
+        qrCode = AuthService.generateUniqueQrCode();
+      }
+
+      const newUser: StoredUser = {
+        uid,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        studentId: userData.studentId ?? null,
+        qrCode,
+        password: userData.password,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: null,
+        isActive: true,
+      };
+
+      users.push(newUser);
+      AuthService.saveUsersToStorage(users);
+
+      const { password: _pw, ...appUser } = newUser;
+      return appUser;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+
+  /**
+   * Get all users (admin only).
+   */
+  getAllUsers(): Observable<AppUser[]> {
+    return this.currentUser$.pipe(
+      map((current) => {
+        if (!current || current.role !== 'admin') {
+          return [];
+        }
+        const users = AuthService.loadUsersFromStorage();
+        return users.map(({ password: _pw, ...user }) => user);
+      })
+    );
+  }
+
+  /**
+   * Generate a unique QR code string.
+   */
+  private static generateUniqueQrCode(): string {
+    // Generate a unique identifier: timestamp + random string
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 15);
+    return `LMS-${timestamp}-${random}`.toUpperCase();
   }
 
   /**

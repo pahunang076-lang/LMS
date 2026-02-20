@@ -1,19 +1,25 @@
 <section class="catalog-root">
   <header class="header">
     <div>
-      <h2>Book Catalog</h2>
+      <h1 class="page-title">Book Catalog</h1>
       <p class="subtitle">
-        Search the library collection and see real-time availability.
+        Search the library collection and see real-time availability
       </p>
     </div>
   </header>
 
   <div class="toolbar">
-    <input
-      type="search"
-      placeholder="Search by title, author, or category..."
-      (input)="onSearch($any($event.target).value)"
-    />
+    <div class="search-wrapper">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+      <input
+        type="search"
+        placeholder="Search by title, author, or category..."
+        (input)="onSearch($any($event.target).value)"
+      />
+    </div>
 
     <select
       (change)="onStatusFilterChange($any($event.target).value)"

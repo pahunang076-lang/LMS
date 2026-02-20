@@ -21,7 +21,34 @@
       </div>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="submit()" class="form" novalidate>
+    <!-- Login Mode Toggle -->
+    <div class="login-mode-toggle">
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="loginMode() === 'email'"
+        (click)="setLoginMode('email')"
+      >
+        Email & Password
+      </button>
+      <button
+        type="button"
+        class="toggle-btn"
+        [class.active]="loginMode() === 'qr'"
+        (click)="setLoginMode('qr')"
+      >
+        QR Code
+      </button>
+    </div>
+
+    <!-- Email/Password Login Form -->
+    <form
+      *ngIf="loginMode() === 'email'"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+      class="form"
+      novalidate
+    >
       <label class="field">
         <span class="label">Email</span>
         <div class="control">
@@ -130,6 +157,16 @@
         </button>
       </div>
     </form>
+
+    <!-- QR Code Login -->
+    <div *ngIf="loginMode() === 'qr'" class="qr-login-container">
+      <app-qr-scanner
+        title="Scan your QR code to login"
+        hint="Position your QR code in front of the camera"
+        (scanned)="onQrScanned($event)"
+        (scanError)="onQrScanError($event)"
+      ></app-qr-scanner>
+    </div>
 
     <p class="error global-error" *ngIf="error()">
       {{ error() }}

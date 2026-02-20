@@ -1,9 +1,9 @@
 <section class="entry-root">
   <header class="header">
     <div>
-      <h2>Library Entry &amp; Exit</h2>
+      <h1 class="page-title">Library Entry &amp; Exit</h1>
       <p class="subtitle">
-        Log visits, track who is currently inside, and manage checkouts.
+        Log visits, track who is currently inside, and manage checkouts
       </p>
     </div>
     <div class="stats">
@@ -51,7 +51,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let log of inside">
+          <tr *ngFor="let log of inside" class="table-row">
             <td>{{ log.name }}</td>
             <td>{{ log.purpose }}</td>
             <td>{{ asDate(log.timeIn) | date: 'shortTime' }}</td>
@@ -88,16 +88,16 @@
           <th>Status</th>
         </tr>
       </thead>
-      <tbody>
-        <tr *ngFor="let log of recent">
-          <td>{{ log.name }}</td>
-          <td>{{ log.purpose }}</td>
-          <td>{{ asDate(log.timeIn) | date: 'short' }}</td>
-          <td>{{ asDate(log.timeOut) | date: 'short' }}</td>
-          <td>{{ log.durationMinutes ?? '-' }}</td>
-          <td>{{ log.status }}</td>
-        </tr>
-      </tbody>
+        <tbody>
+          <tr *ngFor="let log of recent" class="table-row">
+            <td>{{ log.name }}</td>
+            <td>{{ log.purpose }}</td>
+            <td>{{ asDate(log.timeIn) | date: 'short' }}</td>
+            <td>{{ asDate(log.timeOut) | date: 'short' }}</td>
+            <td>{{ log.durationMinutes ?? '-' }}</td>
+            <td>{{ log.status }}</td>
+          </tr>
+        </tbody>
     </table>
   </section>
 </section>

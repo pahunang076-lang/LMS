@@ -73,6 +73,43 @@
   font-size: 0.95rem;
 }
 
+.login-mode-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+  background: rgba(148, 163, 184, 0.12);
+  border-radius: 0.75rem;
+  padding: 0.25rem;
+}
+
+.toggle-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.toggle-btn:hover {
+  color: #475569;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.toggle-btn.active {
+  background: #ffffff;
+  color: #4f46e5;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15);
+}
+
+.qr-login-container {
+  margin-top: 0.5rem;
+}
+
 .form {
   display: flex;
   flex-direction: column;

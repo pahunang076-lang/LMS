@@ -8,11 +8,12 @@ import {
 } from '@angular/forms';
 import { take } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
+import { QrCodeComponent } from '../../shared/qr-code.component';
 
 @Component({
   selector: 'app-account-settings',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, QrCodeComponent],
   template: `
     <section class="account-settings">
       <header class="account-settings__header">
@@ -53,6 +54,21 @@ import { AuthService } from '../../core/services/auth.service';
             <span class="account-settings__value">
               {{ user.role | titlecase }}
             </span>
+          </div>
+
+          <div class="account-settings__qr-section">
+            <div class="account-settings__qr-header">
+              <span class="account-settings__label">Your QR Code</span>
+              <span class="account-settings__qr-hint">
+                Use this QR code to login quickly
+              </span>
+            </div>
+            <div class="account-settings__qr-display">
+              <app-qr-code [value]="user.qrCode" [size]="180"></app-qr-code>
+              <div class="account-settings__qr-code-text">
+                {{ user.qrCode }}
+              </div>
+            </div>
           </div>
 
           <div class="account-settings__actions">
@@ -165,6 +181,43 @@ import { AuthService } from '../../core/services/auth.service';
 
       .account-settings__message--success {
         color: #15803d;
+      }
+
+      .account-settings__qr-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+      }
+
+      .account-settings__qr-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-bottom: 1rem;
+      }
+
+      .account-settings__qr-hint {
+        font-size: 0.8rem;
+        color: #94a3b8;
+      }
+
+      .account-settings__qr-display {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .account-settings__qr-code-text {
+        font-size: 0.75rem;
+        color: #64748b;
+        font-family: monospace;
+        word-break: break-all;
+        text-align: center;
+        padding: 0.5rem;
+        background: rgba(148, 163, 184, 0.1);
+        border-radius: 0.375rem;
+        max-width: 100%;
       }
     `,
   ],

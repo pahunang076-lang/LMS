@@ -34,6 +34,12 @@ export class QrCodeComponent implements OnChanges {
   }
 
   private async generate(): Promise<void> {
+    // Skip generation in SSR environment
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      this.dataUrl = null;
+      return;
+    }
+
     const trimmed = (this.value ?? '').toString().trim();
     if (!trimmed) {
       this.dataUrl = null;
@@ -41,16 +47,60 @@ export class QrCodeComponent implements OnChanges {
     }
 
     try {
-      const qrcodeModule = await import('qrcode-generator');
-      const qrcodeFactory: any =
-        (qrcodeModule as any).default ?? (qrcodeModule as any);
+      const zxing = await import('@zxing/library');
+      const { QRCodeWriter, EncodeHintType, BarcodeFormat } = zxing;
 
-      const qr = qrcodeFactory(0, 'M');
-      qr.addData(trimmed);
-      qr.make();
+      // Create canvas element to render the QR code
+      const canvas = document.createElement('canvas');
+      canvas.width = this.size;
+      canvas.height = this.size;
 
-      // 0 margin for a compact code; caller can add padding via CSS.
-      this.dataUrl = qr.createDataURL(this.size, 0);
+      // Configure encoding hints
+      const hints = new Map();
+      hints.set(EncodeHintType.MARGIN, 0);
+      hints.set(EncodeHintType.ERROR_CORRECTION, 'M');
+
+      // Create writer and encode the data
+      const writer = new QRCodeWriter();
+      const bitMatrix = writer.encode(
+        trimmed,
+        BarcodeFormat.QR_CODE,
+        this.size,
+        this.size,
+        hints
+      );
+
+      // Draw the QR code on canvas
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Could not get canvas context');
+      }
+
+      // Fill white background
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, this.size, this.size);
+
+      // Draw QR code (black squares)
+      ctx.fillStyle = '#000000';
+      const width = bitMatrix.getWidth();
+      const height = bitMatrix.getHeight();
+      const cellSize = Math.min(this.size / width, this.size / height);
+
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          if (bitMatrix.get(x, y)) {
+            ctx.fillRect(
+              x * cellSize,
+              y * cellSize,
+              cellSize,
+              cellSize
+            );
+          }
+        }
+      }
+
+      // Convert canvas to data URL
+      this.dataUrl = canvas.toDataURL('image/png');
     } catch (err) {
       console.error('Failed to generate QR code', err);
       this.dataUrl = null;

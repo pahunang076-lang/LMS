@@ -6,6 +6,7 @@ export interface AppUser {
   email: string;
   role: UserRole;
   studentId?: string | null;
+  qrCode: string;
   createdAt?: unknown;
   lastLoginAt?: unknown;
   isActive?: boolean;

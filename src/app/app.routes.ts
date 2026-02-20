@@ -40,6 +40,15 @@ export const routes: Routes = [
         canActivate: [roleGuard],
         data: { roles: ['admin', 'librarian', 'student'] },
       },
+      {
+        path: 'users',
+        canActivate: [roleGuard],
+        data: { roles: ['admin'] },
+        loadComponent: () =>
+          import('./features/users/users-shell.component').then(
+            (m) => m.UsersShellComponent
+          ),
+      },
       // The following feature routes will be implemented in later steps.
       {
         path: 'books',
