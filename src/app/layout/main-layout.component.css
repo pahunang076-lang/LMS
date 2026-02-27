@@ -17,8 +17,8 @@
   grid-template-rows: auto 1fr;
   min-height: 100vh;
   background:
-    radial-gradient(900px 420px at 10% 0%, rgba(99, 102, 241, 0.22), transparent 60%),
-    radial-gradient(700px 380px at 100% 10%, rgba(79, 70, 229, 0.18), transparent 55%),
+    radial-gradient(900px 420px at 10% 0%, rgba(37, 38, 97, 0.22), transparent 60%),
+    radial-gradient(700px 380px at 100% 10%, rgba(58, 53, 151, 0.18), transparent 55%),
     #f6f7fb;
   color: var(--text);
 }
