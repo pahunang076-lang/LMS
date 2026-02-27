@@ -10,11 +10,13 @@ import { Book, BookStatus } from '../../core/models/book.model';
 import { Observable } from 'rxjs';
 import { FilterBooksPipe } from '../../shared/filter-books.pipe';
 import { QrCodeComponent } from '../../shared/qr-code.component';
+import { TableModule } from 'primeng/table';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
 @Component({
   selector: 'app-books-shell',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FilterBooksPipe, QrCodeComponent],
+  imports: [CommonModule, ReactiveFormsModule, FilterBooksPipe, QrCodeComponent, TableModule, ProgressSpinnerModule],
   templateUrl: './books-shell.component.html',
   styleUrl: './books-shell.component.css',
 })

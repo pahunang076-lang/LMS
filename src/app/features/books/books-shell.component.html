@@ -19,23 +19,17 @@
 
   <div class="toolbar">
     <div class="search-wrapper">
-      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2">
         <circle cx="11" cy="11" r="8"></circle>
         <path d="m21 21-4.35-4.35"></path>
       </svg>
-      <input
-        type="search"
-        placeholder="Search by title, author, or category..."
-        (input)="onSearch($any($event.target).value)"
-        class="search-input"
-      />
+      <input type="search" placeholder="Search by title, author, or category..."
+        (input)="onSearch($any($event.target).value)" class="search-input" />
     </div>
 
-    <select
-      (change)="onStatusFilterChange($any($event.target).value)"
-      aria-label="Filter by availability"
-      class="filter-select"
-    >
+    <select (change)="onStatusFilterChange($any($event.target).value)" aria-label="Filter by availability"
+      class="filter-select">
       <option value="all">All statuses</option>
       <option value="available">Available</option>
       <option value="unavailable">Unavailable</option>
@@ -43,27 +37,23 @@
   </div>
 
   <div class="table-container">
-    <div class="table-wrapper">
-    <table class="table">
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Author</th>
-          <th>Category</th>
-          <th>ISBN</th>
-          <th>Available</th>
-          <th>Status</th>
-          <th class="actions-col">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <ng-container *ngIf="books$ | async as books">
-          <tr
-            *ngFor="let book of books
-              | slice: 0:books.length
-              | filterBooks: searchTerm():statusFilter()"
-            class="table-row"
-          >
+    <ng-container *ngIf="books$ | async as books; else loading">
+      <p-table [value]="books | filterBooks: searchTerm():statusFilter()" [paginator]="true" [rows]="10"
+        [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} books"
+        [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
+          <tr>
+            <th pSortableColumn="title">Title <p-sortIcon field="title"></p-sortIcon></th>
+            <th pSortableColumn="author">Author <p-sortIcon field="author"></p-sortIcon></th>
+            <th pSortableColumn="category">Category <p-sortIcon field="category"></p-sortIcon></th>
+            <th pSortableColumn="isbn">ISBN <p-sortIcon field="isbn"></p-sortIcon></th>
+            <th pSortableColumn="quantityAvailable">Available <p-sortIcon field="quantityAvailable"></p-sortIcon></th>
+            <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-book>
+          <tr>
             <td class="table-cell-title">
               <div class="book-title-wrapper">
                 <span class="book-icon">📚</span>
@@ -83,33 +73,20 @@
               </span>
             </td>
             <td>
-              <span
-                class="status-badge"
-                [class.status-available]="book.status === 'available'"
-                [class.status-unavailable]="book.status === 'unavailable'"
-              >
+              <span class="status-badge" [class.status-available]="book.status === 'available'"
+                [class.status-unavailable]="book.status === 'unavailable'">
                 {{ book.status | titlecase }}
               </span>
             </td>
             <td class="actions-col">
               <div class="action-buttons">
-                <button
-                  type="button"
-                  class="btn-action btn-edit"
-                  (click)="openEditDialog(book)"
-                  title="Edit book"
-                >
+                <button type="button" class="btn-action btn-edit" (click)="openEditDialog(book)" title="Edit book">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                 </button>
-                <button
-                  type="button"
-                  class="btn-action btn-qr"
-                  (click)="openQrDialog(book)"
-                  title="Show QR code"
-                >
+                <button type="button" class="btn-action btn-qr" (click)="openQrDialog(book)" title="Show QR code">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="5" height="5"></rect>
                     <rect x="16" y="3" width="5" height="5"></rect>
@@ -121,12 +98,7 @@
                     <path d="M12 21h.01"></path>
                   </svg>
                 </button>
-                <button
-                  type="button"
-                  class="btn-action btn-delete"
-                  (click)="delete(book)"
-                  title="Delete book"
-                >
+                <button type="button" class="btn-action btn-delete" (click)="delete(book)" title="Delete book">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -135,16 +107,21 @@
               </div>
             </td>
           </tr>
-
-          <tr *ngIf="books.length === 0">
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
             <td colspan="7" class="empty-state">
               No books found. Click “Add book” to create one.
             </td>
           </tr>
-        </ng-container>
-      </tbody>
-      </table>
-    </div>
+        </ng-template>
+      </p-table>
+    </ng-container>
+    <ng-template #loading>
+      <div style="display: flex; justify-content: center; padding: 3rem;">
+        <p-progressSpinner></p-progressSpinner>
+      </div>
+    </ng-template>
   </div>
 
   <!-- Dialog -->
@@ -201,15 +178,12 @@
 
         <label class="form-field full-width">
           <span class="form-label">Description</span>
-          <textarea formControlName="description" rows="4" class="form-textarea" placeholder="Enter book description (optional)"></textarea>
+          <textarea formControlName="description" rows="4" class="form-textarea"
+            placeholder="Enter book description (optional)"></textarea>
         </label>
 
         <div class="dialog-actions full-width">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            (click)="closeDialog()"
-          >
+          <button type="button" class="btn btn-secondary" (click)="closeDialog()">
             Cancel
           </button>
           <button type="submit" class="btn btn-primary">Save</button>
@@ -236,10 +210,7 @@
 
       <div class="qr-preview" *ngIf="qrBook() as b">
         <div class="qr-code-wrapper">
-          <app-qr-code
-            [value]="b.id || b.isbn"
-            [size]="240"
-          ></app-qr-code>
+          <app-qr-code [value]="b.id || b.isbn" [size]="240"></app-qr-code>
         </div>
         <div class="qr-meta">
           <div class="qr-title">{{ b.title }}</div>
@@ -252,15 +223,10 @@
       </div>
 
       <div class="dialog-actions full-width">
-        <button
-          type="button"
-          class="btn btn-secondary"
-          (click)="closeQrDialog()"
-        >
+        <button type="button" class="btn btn-secondary" (click)="closeQrDialog()">
           Close
         </button>
       </div>
     </div>
   </div>
 </section>
-

@@ -5,6 +5,8 @@ import {
   ViewChild,
   computed,
   inject,
+  OnInit,
+  OnDestroy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -12,6 +14,7 @@ import {
   RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
+import { Subject, takeUntil } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
 
 @Component({
@@ -21,7 +24,7 @@ import { AuthService } from '../core/services/auth.service';
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.css',
 })
-export class MainLayoutComponent {
+export class MainLayoutComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
   private readonly sidebarCollapsedStorageKey = 'lms.sidebarCollapsed';
 
@@ -43,6 +46,9 @@ export class MainLayoutComponent {
   sidebarOpen = false;
   sidebarCollapsed = false;
   userMenuOpen = false;
+  isDarkMode = false;
+  private readonly destroy$ = new Subject<void>();
+  private currentUserId: string | null = null;
 
   constructor() {
     this.sidebarCollapsed =
@@ -50,7 +56,50 @@ export class MainLayoutComponent {
       window.localStorage.getItem(this.sidebarCollapsedStorageKey) === '1';
   }
 
+  ngOnInit(): void {
+    if (typeof window !== 'undefined') {
+      this.currentUser$.pipe(takeUntil(this.destroy$)).subscribe((user) => {
+        if (user) {
+          this.currentUserId = user.uid || (user as any).id;
+          const key = `lms.darkMode.${this.currentUserId}`;
+          const isDark = window.localStorage.getItem(key) === '1';
+          this.isDarkMode = isDark;
+
+          if (isDark) {
+            document.documentElement.classList.add('dark-mode');
+          } else {
+            document.documentElement.classList.remove('dark-mode');
+          }
+        } else {
+          this.currentUserId = null;
+          this.isDarkMode = false;
+          document.documentElement.classList.remove('dark-mode');
+        }
+      });
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  toggleDarkMode(): void {
+    if (typeof window !== 'undefined' && this.currentUserId) {
+      const html = document.documentElement;
+      html.classList.toggle('dark-mode');
+      this.isDarkMode = html.classList.contains('dark-mode');
+
+      const key = `lms.darkMode.${this.currentUserId}`;
+      window.localStorage.setItem(key, this.isDarkMode ? '1' : '0');
+    }
+  }
+
   async logout(): Promise<void> {
+    if (typeof window !== 'undefined') {
+      document.documentElement.classList.remove('dark-mode');
+      this.isDarkMode = false;
+    }
     await this.authService.logout();
   }
 

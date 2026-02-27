@@ -1,0 +1,271 @@
+
+
+{
+  "login": [
+    {
+      "LoginID": 1,
+      "email": "admin@gmail.com",
+      "password": "admin123",
+      "createdAt": "2026-01-01T08:00:00Z",
+      "id": "6620"
+    },
+    {
+      "LoginID": 2,
+      "email": "user@gmail.com",
+      "password": "user123",
+      "createdAt": "2026-01-02T10:30:00Z",
+      "id": "8921"
+    },
+    {
+      "LoginID": 3,
+      "email": "customer@example.com",
+      "password": "customer123",
+      "createdAt": "2026-01-03T14:15:00Z",
+      "id": "7fef"
+    }
+  ],
+  "users": [
+    {
+      "UserID": 1,
+      "LoginID": 1,
+      "firstName": "Juan",
+      "lastName": "Dela Cruz",
+      "middleName": "Santos",
+      "contactNumber": "09123456789",
+      "address": "123 Main St, Makati",
+      "role": "admin",
+      "createdAt": "2026-01-01T08:00:00Z",
+      "id": "fd92"
+    },
+    {
+      "UserID": 2,
+      "LoginID": 2,
+      "firstName": "Maria",
+      "lastName": "Garcia",
+      "middleName": "Lopez",
+      "contactNumber": "09987654321",
+      "address": "456 Oak Ave, Quezon City",
+      "role": "user",
+      "createdAt": "2026-01-02T10:30:00Z",
+      "id": "4a7a"
+    },
+    {
+      "UserID": 3,
+      "LoginID": 3,
+      "firstName": "Jose",
+      "lastName": "Rizal",
+      "middleName": "Mariano",
+      "contactNumber": "09555666777",
+      "address": "789 Pine Rd, Manila",
+      "role": "customer",
+      "createdAt": "2026-01-03T14:15:00Z",
+      "id": "285e"
+    }
+  ],
+  "products": [
+    {
+      "id": "2",
+      "ProductID": 2,
+      "name": "Wireless Mouse",
+      "description": "Ergonomic wireless mouse with USB receiver",
+      "imageUrl": "https://dummyimage.com/300x300/6c63ff/ffffff?text=Mouse",
+      "stock": 50,
+      "price": 1299,
+      "createdAt": "2026-01-05T10:15:00Z"
+    },
+    {
+      "id": "3",
+      "ProductID": 3,
+      "name": "USB-C Cable",
+      "description": "Fast charging USB-C cable, 2 meters",
+      "imageUrl": "https://dummyimage.com/300x300/6c63ff/ffffff?text=Cable",
+      "stock": 100,
+      "price": 499,
+      "createdAt": "2026-01-05T11:30:00Z"
+    },
+    {
+      "id": "4",
+      "ProductID": 4,
+      "name": "Mechanical Keyboard",
+      "description": "RGB Mechanical keyboard with Cherry MX switches",
+      "imageUrl": "https://dummyimage.com/300x300/6c63ff/ffffff?text=Keyboard",
+      "stock": 25,
+      "price": 4999,
+      "createdAt": "2026-01-05T12:45:00Z"
+    },
+    {
+      "id": "5",
+      "ProductID": 5,
+      "name": "4K Monitor",
+      "description": "32-inch 4K UHD monitor with HDR",
+      "imageUrl": "https://dummyimage.com/300x300/6c63ff/ffffff?text=Monitor",
+      "stock": 8,
+      "price": 24999,
+      "createdAt": "2026-01-05T14:00:00Z"
+    },
+    {
+      "id": "bdf3",
+      "name": "dsadsa",
+      "description": "dasdasd",
+      "imageUrl": "https://static.wikia.nocookie.net/boruto/images/d/dc/Naruto%27s_Sage_Mode.png/revision/latest/scale-to-width-down/985?cb=20170913004358",
+      "stock": 2,
+      "price": 23
+    }
+  ],
+  "orders": [
+    {
+      "OrderID": 1,
+      "userID": 3,
+      "totalAmount": 61298,
+      "orderDate": "2026-01-10T10:00:00Z",
+      "status": "delivered",
+      "id": "d3cf"
+    },
+    {
+      "OrderID": 2,
+      "userID": 2,
+      "totalAmount": 29998,
+      "orderDate": "2026-01-12T14:30:00Z",
+      "status": "shipped",
+      "id": "62c3"
+    },
+    {
+      "OrderID": 3,
+      "userID": 3,
+      "totalAmount": 6298,
+      "orderDate": "2026-01-15T09:15:00Z",
+      "status": "processing",
+      "id": "5503"
+    },
+    {
+      "id": "7d74",
+      "OrderID": 4,
+      "userID": 1,
+      "totalAmount": 5997,
+      "orderDate": "2026-02-09T06:58:45.470Z",
+      "status": "processing"
+    },
+    {
+      "id": "50ef",
+      "OrderID": 5,
+      "userID": 1,
+      "totalAmount": 1299,
+      "orderDate": "2026-02-09T06:59:23.256Z",
+      "status": "processing"
+    }
+  ],
+  "orderItems": [
+    {
+      "OrderItemID": 1,
+      "orderID": 1,
+      "productID": 1,
+      "quantity": 1,
+      "price": 59999,
+      "id": "e235"
+    },
+    {
+      "OrderItemID": 2,
+      "orderID": 1,
+      "productID": 2,
+      "quantity": 1,
+      "price": 1299,
+      "id": "fec6"
+    },
+    {
+      "OrderItemID": 3,
+      "orderID": 2,
+      "productID": 5,
+      "quantity": 1,
+      "price": 24999,
+      "id": "1afe"
+    },
+    {
+      "OrderItemID": 4,
+      "orderID": 2,
+      "productID": 4,
+      "quantity": 1,
+      "price": 4999,
+      "id": "e48c"
+    },
+    {
+      "OrderItemID": 5,
+      "orderID": 3,
+      "productID": 2,
+      "quantity": 2,
+      "price": 1299,
+      "id": "b9b1"
+    },
+    {
+      "OrderItemID": 6,
+      "orderID": 3,
+      "productID": 3,
+      "quantity": 4,
+      "price": 499,
+      "id": "4678"
+    },
+    {
+      "id": "1caf",
+      "orderID": 4,
+      "productID": 3,
+      "quantity": 2,
+      "price": 499
+    },
+    {
+      "id": "0d2f",
+      "orderID": 4,
+      "productID": 4,
+      "quantity": 1,
+      "price": 4999
+    },
+    {
+      "id": "33db",
+      "orderID": 5,
+      "productID": 2,
+      "quantity": 1,
+      "price": 1299
+    }
+  ],
+  "carts": [
+    {
+      "id": "1",
+      "CartID": 1,
+      "UserID": 1,
+      "items": [],
+      "totalAmount": 0,
+      "createdAt": "2026-02-18T11:54:58.726Z",
+      "updatedAt": "2026-02-18T11:54:58.726Z"
+    },
+    {
+      "id": "2",
+      "CartID": 2,
+      "UserID": 2,
+      "items": [
+        {
+          "ProductID": 5,
+          "name": "4K Monitor",
+          "price": 24999,
+          "quantity": 1,
+          "imageUrl": "https://dummyimage.com/300x300/6c63ff/ffffff?text=Monitor"
+        },
+        {
+          "ProductID": 2,
+          "name": "Wireless Mouse",
+          "price": 1299,
+          "quantity": 2,
+          "imageUrl": "https://dummyimage.com/300x300/6c63ff/ffffff?text=Mouse"
+        },
+        {
+          "ProductID": 3,
+          "name": "USB-C Cable",
+          "price": 499,
+          "quantity": 3,
+          "imageUrl": "https://dummyimage.com/300x300/6c63ff/ffffff?text=Cable"
+        }
+      ],
+      "totalAmount": 28294,
+      "createdAt": "2026-02-09T11:30:00Z",
+      "updatedAt": "2026-02-09T11:30:00Z"
+    }
+  ]
+}
+**/

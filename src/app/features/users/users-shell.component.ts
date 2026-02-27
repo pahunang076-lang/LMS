@@ -9,11 +9,14 @@ import { AuthService } from '../../core/services/auth.service';
 import { AppUser, UserRole } from '../../core/models/user.model';
 import { Observable } from 'rxjs';
 import { QrCodeComponent } from '../../shared/qr-code.component';
+import { TableModule } from 'primeng/table';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-users-shell',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, QrCodeComponent],
+  imports: [CommonModule, ReactiveFormsModule, QrCodeComponent, TableModule, ProgressSpinnerModule],
   templateUrl: './users-shell.component.html',
   styleUrl: './users-shell.component.css',
 })
@@ -76,10 +79,18 @@ export class UsersShellComponent {
         studentId: formValue.studentId || null,
       });
 
-      this.createSuccess.set(true);
-      setTimeout(() => {
-        this.closeDialog();
-      }, 1500);
+      const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+      });
+      Toast.fire({
+        icon: 'success',
+        title: 'User created successfully.',
+      });
+      this.closeDialog();
     } catch (error) {
       this.createError.set(
         (error as Error)?.message || 'Failed to create user account.'

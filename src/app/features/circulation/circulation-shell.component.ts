@@ -8,11 +8,13 @@ import { Book } from '../../core/models/book.model';
 import { Borrow } from '../../core/models/borrow.model';
 import { combineLatest, map, switchMap, filter } from 'rxjs';
 import { QrScannerComponent } from '../../shared/qr-scanner.component';
+import { TableModule } from 'primeng/table';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 
 @Component({
   selector: 'app-circulation-shell',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, QrScannerComponent],
+  imports: [CommonModule, ReactiveFormsModule, QrScannerComponent, TableModule, ProgressSpinnerModule],
   templateUrl: './circulation-shell.component.html',
   styleUrl: './circulation-shell.component.css',
 })

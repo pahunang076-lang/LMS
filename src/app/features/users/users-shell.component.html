@@ -18,63 +18,62 @@
   </header>
 
   <div class="table-container">
-    <div class="table-wrapper">
-      <table class="table">
-        <thead>
+    <ng-container *ngIf="users$ | async as users; else loading">
+      <p-table [value]="users" [paginator]="true" [rows]="10" [showCurrentPageReport]="true"
+        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} users"
+        [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-sm">
+        <ng-template pTemplate="header">
           <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Student ID</th>
-            <th>Status</th>
+            <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
+            <th pSortableColumn="email">Email <p-sortIcon field="email"></p-sortIcon></th>
+            <th pSortableColumn="role">Role <p-sortIcon field="role"></p-sortIcon></th>
+            <th pSortableColumn="studentId">Student ID <p-sortIcon field="studentId"></p-sortIcon></th>
+            <th pSortableColumn="isActive">Status <p-sortIcon field="isActive"></p-sortIcon></th>
             <th class="actions-col">Actions</th>
           </tr>
-        </thead>
-        <tbody>
-          <ng-container *ngIf="users$ | async as users">
-            <tr *ngFor="let user of users" class="table-row">
-              <td class="user-name-cell">
-                <span class="user-avatar">{{ getInitials(user.name) }}</span>
-                <span>{{ user.name }}</span>
-              </td>
-              <td>{{ user.email }}</td>
-              <td>
-                <span class="badge badge-info">{{ user.role | titlecase }}</span>
-              </td>
-              <td>{{ user.studentId || '-' }}</td>
-              <td>
-                <span
-                  class="badge"
-                  [class.badge-success]="user.isActive !== false"
-                  [class.badge-danger]="user.isActive === false"
-                >
-                  {{ user.isActive !== false ? 'Active' : 'Inactive' }}
-                </span>
-              </td>
-              <td class="actions-col">
-                <button
-                  type="button"
-                  class="btn btn-small"
-                  (click)="openQrDialog(user)"
-                  title="Show QR code for this user"
-                >
-                  QR Code
-                </button>
-              </td>
-            </tr>
-
-            <tr *ngIf="users.length === 0" class="table-empty">
-              <td colspan="6">
-                <div class="empty-state">
-                  <span class="empty-icon">👥</span>
-                  <span>No users found. Click "Create User" to add one.</span>
-                </div>
-              </td>
-            </tr>
-          </ng-container>
-        </tbody>
-      </table>
-    </div>
+        </ng-template>
+        <ng-template pTemplate="body" let-user>
+          <tr>
+            <td class="user-name-cell">
+              <span class="user-avatar">{{ getInitials(user.name) }}</span>
+              <span>{{ user.name }}</span>
+            </td>
+            <td>{{ user.email }}</td>
+            <td>
+              <span class="badge badge-info">{{ user.role | titlecase }}</span>
+            </td>
+            <td>{{ user.studentId || '-' }}</td>
+            <td>
+              <span class="badge" [class.badge-success]="user.isActive !== false"
+                [class.badge-danger]="user.isActive === false">
+                {{ user.isActive !== false ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td class="actions-col">
+              <button type="button" class="btn btn-small" (click)="openQrDialog(user)"
+                title="Show QR code for this user">
+                QR Code
+              </button>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td colspan="6">
+              <div class="empty-state">
+                <span class="empty-icon">👥</span>
+                <span>No users found. Click "Create User" to add one.</span>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </ng-container>
+    <ng-template #loading>
+      <div style="display: flex; justify-content: center; padding: 3rem;">
+        <p-progressSpinner></p-progressSpinner>
+      </div>
+    </ng-template>
   </div>
 
   <!-- Create User Dialog -->
@@ -94,12 +93,9 @@
         <label class="form-field">
           <span class="form-label">Name <span class="required">*</span></span>
           <input type="text" formControlName="name" class="form-input" placeholder="Enter full name" />
-          <span
-            class="error"
-            *ngIf="
+          <span class="error" *ngIf="
               form.controls.name.touched && form.controls.name.invalid
-            "
-          >
+            ">
             Name is required.
           </span>
         </label>
@@ -107,12 +103,9 @@
         <label class="form-field">
           <span class="form-label">Email <span class="required">*</span></span>
           <input type="email" formControlName="email" class="form-input" placeholder="Enter email address" />
-          <span
-            class="error"
-            *ngIf="
+          <span class="error" *ngIf="
               form.controls.email.touched && form.controls.email.invalid
-            "
-          >
+            ">
             Valid email is required.
           </span>
         </label>
@@ -120,12 +113,9 @@
         <label class="form-field">
           <span class="form-label">Password <span class="required">*</span></span>
           <input type="password" formControlName="password" class="form-input" placeholder="Minimum 6 characters" />
-          <span
-            class="error"
-            *ngIf="
+          <span class="error" *ngIf="
               form.controls.password.touched && form.controls.password.invalid
-            "
-          >
+            ">
             Password must be at least 6 characters.
           </span>
         </label>
@@ -145,27 +135,17 @@
         </label>
 
         <div class="dialog-actions full-width">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            (click)="closeDialog()"
-          >
+          <button type="button" class="btn btn-secondary" (click)="closeDialog()">
             Cancel
           </button>
           <button type="submit" class="btn btn-primary">Create User</button>
         </div>
 
-        <p
-          *ngIf="createError()"
-          class="error-message full-width"
-        >
+        <p *ngIf="createError()" class="error-message full-width">
           {{ createError() }}
         </p>
 
-        <p
-          *ngIf="createSuccess()"
-          class="success-message full-width"
-        >
+        <p *ngIf="createSuccess()" class="success-message full-width">
           User account created successfully!
         </p>
       </form>
@@ -204,11 +184,7 @@
       </div>
 
       <div class="dialog-actions full-width">
-        <button
-          type="button"
-          class="btn btn-secondary"
-          (click)="closeQrDialog()"
-        >
+        <button type="button" class="btn btn-secondary" (click)="closeQrDialog()">
           Close
         </button>
       </div>

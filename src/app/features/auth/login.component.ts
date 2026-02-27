@@ -63,6 +63,8 @@ export class LoginComponent {
   }
 
   setLoginMode(mode: 'email' | 'qr'): void {
+    // Clear any persisted error (e.g., QR scan errors) when switching modes
+    this.authService.clearError();
     this.loginMode.set(mode);
     this.form.reset();
   }
@@ -82,4 +84,3 @@ export class LoginComponent {
     console.error('QR scan error:', error);
   }
 }
-

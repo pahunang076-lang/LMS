@@ -1,3 +1,5 @@
+@import "primeicons/primeicons.css";
+
 /* Global layout reset */
 html,
 body {
@@ -10,3 +12,145 @@ body {
     Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* Dark Mode Global Overrides */
+.dark-mode {
+  background-color: var(--p-surface-ground) !important;
+  color: var(--p-text-color) !important;
+}
+
+.dark-mode .page-title,
+.dark-mode .dialog-header h3,
+.dark-mode .qr-title,
+.dark-mode .card-header h3,
+.dark-mode .column h3,
+.dark-mode .recent h3,
+.dark-mode .chart-title,
+.dark-mode .recent-title {
+  color: var(--p-text-color) !important;
+}
+
+.dark-mode .subtitle,
+.dark-mode .description,
+.dark-mode .author,
+.dark-mode .qr-email,
+.dark-mode .qr-author,
+.dark-mode .dialog-subtitle,
+.dark-mode .nav-section-title,
+.dark-mode .form label,
+.dark-mode .stat-label,
+.dark-mode .chart-subtitle,
+.dark-mode .recent-subtitle,
+.dark-mode .purpose-label,
+.dark-mode .bar-label,
+.dark-mode .legend-item {
+  color: var(--p-text-muted-color) !important;
+}
+
+.dark-mode .card,
+.dark-mode .dialog,
+.dark-mode .qr-code-wrapper,
+.dark-mode .table-wrapper,
+.dark-mode .column,
+.dark-mode .recent,
+.dark-mode .stat-card,
+.dark-mode .chart-card,
+.dark-mode .recent-card {
+  background: var(--p-surface-card) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+.dark-mode .toolbar input[type='search'],
+.dark-mode .toolbar select,
+.dark-mode .form-input,
+.dark-mode .form-select,
+.dark-mode .form-textarea,
+.dark-mode .form select {
+  background: var(--p-surface-ground) !important;
+  color: var(--p-text-color) !important;
+  border-color: var(--p-surface-300) !important;
+}
+
+.dark-mode .dialog-actions {
+  background: var(--p-surface-section) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+.dark-mode .btn-secondary,
+.dark-mode .btn-small,
+.dark-mode .btn-outline,
+.dark-mode .btn-export {
+  background: var(--p-surface-ground) !important;
+  color: var(--p-text-color) !important;
+  border-color: var(--p-surface-300) !important;
+}
+
+.dark-mode .btn-secondary:hover,
+.dark-mode .btn-small:hover,
+.dark-mode .btn-outline:hover,
+.dark-mode .btn-export:hover {
+  background: var(--p-surface-hover) !important;
+}
+
+.dark-mode .table td {
+  color: var(--p-text-color) !important;
+  border-bottom-color: var(--p-surface-200) !important;
+}
+
+.dark-mode .table thead,
+.dark-mode .table th {
+  background: var(--p-surface-section) !important;
+  color: var(--p-text-color) !important;
+  border-bottom-color: var(--p-surface-200) !important;
+}
+
+.dark-mode .table-row:hover {
+  background-color: var(--p-surface-hover) !important;
+}
+
+.dark-mode .empty-state,
+.dark-mode .empty,
+.dark-mode .muted,
+.dark-mode .qr-id-label,
+.dark-mode .purpose-empty,
+.dark-mode .table-cell-time {
+  color: var(--p-text-muted-color) !important;
+}
+
+.dark-mode .qr-id-value,
+.dark-mode .stat-value,
+.dark-mode .purpose-value {
+  color: var(--p-text-color) !important;
+}
+
+.dark-mode .layout-root {
+  background: var(--p-surface-ground) !important;
+  color: var(--p-text-color) !important;
+}
+
+.dark-mode .topbar {
+  background: rgba(18, 18, 18, 0.75) !important;
+  border-bottom: 1px solid var(--p-surface-200) !important;
+}
+
+.dark-mode .btn-icon {
+  background: var(--p-surface-100) !important;
+  color: var(--p-text-color) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+.dark-mode .btn-icon:hover {
+  background: var(--p-surface-200) !important;
+}
+
+.dark-mode .user-menu-panel {
+  background: var(--p-surface-card) !important;
+  border-color: var(--p-surface-200) !important;
+}
+
+.dark-mode .user-menu-item {
+  color: var(--p-text-color) !important;
+}
+
+.dark-mode .user-menu-item:hover {
+  background: var(--p-surface-hover) !important;
+}

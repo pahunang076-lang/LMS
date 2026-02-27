@@ -1,42 +1,20 @@
 <div class="layout-root" [class.sidebar-collapsed]="sidebarCollapsed">
-  <div
-    class="mobile-overlay"
-    [class.open]="sidebarOpen"
-    (click)="closeSidebar()"
-    aria-hidden="true"
-  ></div>
+  <div class="mobile-overlay" [class.open]="sidebarOpen" (click)="closeSidebar()" aria-hidden="true"></div>
 
-  <aside
-    class="sidebar"
-    [class.open]="sidebarOpen"
-    [class.collapsed]="sidebarCollapsed"
-  >
+  <aside class="sidebar" [class.open]="sidebarOpen" [class.collapsed]="sidebarCollapsed">
     <div class="sidebar-header">
       <a class="brand" routerLink="/catalog" (click)="closeSidebar()">
-        <img
-          src="/images/Library Management S.png"
-          alt="LMS logo"
-          class="brand-logo"
-        />
+        <img src="/images/Library Management S.png" alt="LMS logo" class="brand-logo" />
       </a>
 
       <div class="sidebar-actions">
-        <button
-          type="button"
-          class="btn-icon collapse-only-desktop"
-          (click)="toggleSidebarCollapsed()"
+        <button type="button" class="btn-icon collapse-only-desktop" (click)="toggleSidebarCollapsed()"
           [attr.aria-label]="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-          [attr.aria-expanded]="!sidebarCollapsed"
-        >
+          [attr.aria-expanded]="!sidebarCollapsed">
           <span aria-hidden="true">{{ sidebarCollapsed ? '»' : '«' }}</span>
         </button>
 
-        <button
-          type="button"
-          class="btn-icon close-only-mobile"
-          (click)="closeSidebar()"
-          aria-label="Close menu"
-        >
+        <button type="button" class="btn-icon close-only-mobile" (click)="closeSidebar()" aria-label="Close menu">
           ✕
         </button>
       </div>
@@ -46,23 +24,13 @@
       <div class="nav-section">
         <div class="nav-section-title">Library</div>
 
-        <a
-          routerLink="/catalog"
-          routerLinkActive="active"
-          class="nav-link"
-          title="Book Catalog"
-        >
+        <a routerLink="/catalog" routerLinkActive="active" class="nav-link" title="Book Catalog">
           <span class="nav-icon" aria-hidden="true">📖</span>
           <span class="nav-label">Book Catalog</span>
         </a>
 
-        <a
-          routerLink="/circulation"
-          routerLinkActive="active"
-          class="nav-link"
-          title="Borrow & Return"
-          *ngIf="(isAdminOrLibrarian$ | async) || (isStudent$ | async)"
-        >
+        <a routerLink="/circulation" routerLinkActive="active" class="nav-link" title="Borrow & Return"
+          *ngIf="(isAdminOrLibrarian$ | async) || (isStudent$ | async)">
           <span class="nav-icon" aria-hidden="true">📥</span>
           <span class="nav-label">Borrow &amp; Return</span>
         </a>
@@ -71,53 +39,28 @@
       <div class="nav-section" *ngIf="(isAdminOrLibrarian$ | async)">
         <div class="nav-section-title">Admin</div>
 
-        <a
-          routerLink="/dashboard"
-          routerLinkActive="active"
-          class="nav-link"
-          title="Dashboard"
-        >
+        <a routerLink="/dashboard" routerLinkActive="active" class="nav-link" title="Dashboard">
           <span class="nav-icon" aria-hidden="true">📊</span>
           <span class="nav-label">Dashboard</span>
         </a>
 
-        <a
-          routerLink="/books"
-          routerLinkActive="active"
-          class="nav-link"
-          title="Book Management"
-        >
+        <a routerLink="/books" routerLinkActive="active" class="nav-link" title="Book Management">
           <span class="nav-icon" aria-hidden="true">📚</span>
           <span class="nav-label">Book Management</span>
         </a>
 
-        <a
-          routerLink="/users"
-          routerLinkActive="active"
-          class="nav-link"
-          title="User Management"
-          *ngIf="isAdmin$ | async"
-        >
+        <a routerLink="/users" routerLinkActive="active" class="nav-link" title="User Management"
+          *ngIf="isAdmin$ | async">
           <span class="nav-icon" aria-hidden="true">👥</span>
           <span class="nav-label">User Management</span>
         </a>
 
-        <a
-          routerLink="/entry-logs"
-          routerLinkActive="active"
-          class="nav-link"
-          title="Entry Logs"
-        >
+        <a routerLink="/entry-logs" routerLinkActive="active" class="nav-link" title="Entry Logs">
           <span class="nav-icon" aria-hidden="true">🧾</span>
           <span class="nav-label">Entry Logs</span>
         </a>
 
-        <a
-          routerLink="/reports"
-          routerLinkActive="active"
-          class="nav-link"
-          title="Reports"
-        >
+        <a routerLink="/reports" routerLinkActive="active" class="nav-link" title="Reports">
           <span class="nav-icon" aria-hidden="true">📈</span>
           <span class="nav-label">Reports</span>
         </a>
@@ -128,18 +71,19 @@
   <div class="main">
     <header class="topbar">
       <div class="topbar-left">
-        <button
-          type="button"
-          class="btn-icon menu-only-mobile"
-          (click)="toggleSidebar()"
-          aria-label="Open menu"
-        >
+        <button type="button" class="btn-icon menu-only-mobile" (click)="toggleSidebar()" aria-label="Open menu">
           ☰
         </button>
         <h1 class="page-title">Library Management System</h1>
       </div>
 
       <div class="topbar-right">
+        <button type="button" class="btn-icon" (click)="toggleDarkMode()"
+          [attr.aria-label]="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'" style="margin-right: 1rem;">
+          <span *ngIf="!isDarkMode">🌙</span>
+          <span *ngIf="isDarkMode">☀️</span>
+        </button>
+
         <ng-container *ngIf="currentUser$ | async as user; else guest">
           <div class="user-info">
             <div class="user-name">{{ user.name || user.email }}</div>
@@ -147,31 +91,16 @@
           </div>
 
           <div class="user-menu" #userMenuRef>
-            <button
-              type="button"
-              class="btn-icon user-menu-trigger"
-              (click)="toggleUserMenu()"
-              [attr.aria-expanded]="userMenuOpen"
-              aria-haspopup="true"
-              aria-label="Account settings"
-            >
+            <button type="button" class="btn-icon user-menu-trigger" (click)="toggleUserMenu()"
+              [attr.aria-expanded]="userMenuOpen" aria-haspopup="true" aria-label="Account settings">
               ⚙
             </button>
 
             <div class="user-menu-panel" *ngIf="userMenuOpen">
-              <button
-                type="button"
-                class="user-menu-item"
-                routerLink="/account"
-                (click)="closeUserMenu()"
-              >
+              <button type="button" class="user-menu-item" routerLink="/account" (click)="closeUserMenu()">
                 Account settings
               </button>
-              <button
-                type="button"
-                class="user-menu-item user-menu-item-danger"
-                (click)="logout(); closeUserMenu()"
-              >
+              <button type="button" class="user-menu-item user-menu-item-danger" (click)="logout(); closeUserMenu()">
                 Logout
               </button>
             </div>
@@ -191,4 +120,3 @@
     </main>
   </div>
 </div>
-

@@ -176,20 +176,23 @@ input[type='text'] {
   background: transparent;
 }
 
-.invalid {
+.has-error {
   box-shadow: none !important;
 }
 
-input.invalid {
-  /* when input has invalid class, color its wrapper */
+input.has-error,
+input.ng-invalid {
+  color: inherit !important;
+  border: none !important;
+  background: transparent !important;
 }
 
-.control:has(input.invalid) {
+.control:has(input.has-error) {
   border-color: #ef4444;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
 }
 
-.control:has(input.invalid) .control-icon {
+.control:has(input.has-error) .control-icon {
   border-color: rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.08);
   color: #991b1b;
@@ -249,12 +252,10 @@ input.invalid {
 }
 
 .btn-primary {
-  background: linear-gradient(
-    90deg,
-    #4f46e5 0%,
-    #6366f1 45%,
-    #4f46e5 100%
-  );
+  background: linear-gradient(90deg,
+      #4f46e5 0%,
+      #6366f1 45%,
+      #4f46e5 100%);
   background-size: 200% 100%;
   background-position: 0% 50%;
   color: #f9fafb;
@@ -392,6 +393,7 @@ input.invalid {
     transform: translateY(4px) scale(0.99);
     opacity: 0.5;
   }
+
   to {
     transform: translateY(0) scale(1);
     opacity: 1;
