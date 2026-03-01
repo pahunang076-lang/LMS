@@ -50,10 +50,15 @@
               </span>
             </td>
             <td class="actions-col">
-              <button type="button" class="btn btn-small" (click)="openQrDialog(user)"
-                title="Show QR code for this user">
-                QR Code
-              </button>
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+                <button type="button" class="btn btn-small" (click)="openQrDialog(user)"
+                  title="Show QR code for this user">
+                  QR Code
+                </button>
+                <a [routerLink]="['/profile', user.uid]" class="btn btn-small btn-profile" title="View student profile">
+                  View Profile
+                </a>
+              </div>
             </td>
           </tr>
         </ng-template>

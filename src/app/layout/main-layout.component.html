@@ -31,8 +31,30 @@
 
         <a routerLink="/circulation" routerLinkActive="active" class="nav-link" title="Borrow & Return"
           *ngIf="(isAdminOrLibrarian$ | async) || (isStudent$ | async)">
-          <span class="nav-icon" aria-hidden="true">📥</span>
-          <span class="nav-label">Borrow &amp; Return</span>
+          <div class="nav-link-inner">
+            <span class="nav-icon" aria-hidden="true">📥</span>
+            <span class="nav-label">Borrow &amp; Return</span>
+          </div>
+          <ng-container *ngIf="isStudent$ | async">
+            <span class="nav-badge" *ngIf="(overdueNavBadge$ | async) as count" title="Overdue books">
+              {{ count }}
+            </span>
+          </ng-container>
+        </a>
+
+        <a routerLink="/reservations" routerLinkActive="active" class="nav-link" title="Reservations">
+          <span class="nav-icon" aria-hidden="true">🔖</span>
+          <span class="nav-label">Reservations</span>
+        </a>
+
+        <a routerLink="/book-requests" routerLinkActive="active" class="nav-link" title="Book Requests">
+          <span class="nav-icon" aria-hidden="true">📩</span>
+          <span class="nav-label">Book Requests</span>
+        </a>
+
+        <a routerLink="/announcements" routerLinkActive="active" class="nav-link" title="Announcements">
+          <span class="nav-icon" aria-hidden="true">📢</span>
+          <span class="nav-label">Announcements</span>
         </a>
       </div>
 
@@ -47,6 +69,11 @@
         <a routerLink="/books" routerLinkActive="active" class="nav-link" title="Book Management">
           <span class="nav-icon" aria-hidden="true">📚</span>
           <span class="nav-label">Book Management</span>
+        </a>
+
+        <a routerLink="/fines" routerLinkActive="active" class="nav-link" title="Fines Management">
+          <span class="nav-icon" aria-hidden="true">💳</span>
+          <span class="nav-label">Fines Management</span>
         </a>
 
         <a routerLink="/users" routerLinkActive="active" class="nav-link" title="User Management"
@@ -83,6 +110,9 @@
           <span *ngIf="!isDarkMode">🌙</span>
           <span *ngIf="isDarkMode">☀️</span>
         </button>
+
+        <!-- Notification bell -->
+        <app-notification-bell style="margin-right: 0.75rem;"></app-notification-bell>
 
         <ng-container *ngIf="currentUser$ | async as user; else guest">
           <div class="user-info">

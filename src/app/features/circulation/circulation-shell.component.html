@@ -66,14 +66,34 @@
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-borrow>
-            <tr>
+            <tr [class.row-overdue]="borrow.status === 'overdue' && !borrow.finePaid">
               <td>{{ borrow.bookTitle }}</td>
               <td>{{ asDate(borrow.borrowedAt) | date: 'short' }}</td>
-              <td>{{ asDate(borrow.dueAt) | date: 'shortDate' }}</td>
-              <td>{{ borrow.status | titlecase }}</td>
-              <td>{{ borrow.fineAmount | currency }}</td>
               <td>
-                <button type="button" class="btn btn-small" (click)="markReturned(borrow)">
+                <div>{{ asDate(borrow.dueAt) | date: 'shortDate' }}</div>
+                <span class="due-badge" [ngClass]="dueClass(borrow.dueAt)">
+                  {{ dueCountdown(borrow.dueAt) }}
+                </span>
+              </td>
+              <td>
+                <span class="status-badge" [class.badge-overdue]="borrow.status === 'overdue' && !borrow.finePaid"
+                  [class.badge-borrowed]="borrow.status === 'borrowed'">
+                  {{ borrow.status | titlecase }}
+                </span>
+              </td>
+              <td>
+                <span [class.fine-amount]="borrow.fineAmount > 0 && !borrow.finePaid">
+                  {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}
+                </span>
+                <span class="fine-paid-badge" *ngIf="borrow.finePaid">✔ Paid</span>
+              </td>
+              <td class="actions-cell">
+                <button type="button" class="btn btn-small btn-danger"
+                  *ngIf="borrow.status === 'overdue' && !borrow.finePaid" (click)="payFine(borrow)">
+                  Pay Fine
+                </button>
+                <button type="button" class="btn btn-small" (click)="markReturned(borrow)"
+                  [disabled]="borrow.status === 'overdue' && !borrow.finePaid">
                   Mark returned
                 </button>
               </td>
@@ -248,6 +268,8 @@
             <th pSortableColumn="returnedAt">Returned at <p-sortIcon field="returnedAt"></p-sortIcon></th>
             <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
             <th pSortableColumn="fineAmount">Fine <p-sortIcon field="fineAmount"></p-sortIcon></th>
+            <th pSortableColumn="finePaidAt">Fine Paid At <p-sortIcon field="finePaidAt"></p-sortIcon></th>
+            <th>Review</th>
           </tr>
         </ng-template>
         <ng-template pTemplate="body" let-borrow>
@@ -256,7 +278,27 @@
             <td>{{ asDate(borrow.borrowedAt) | date: 'short' }}</td>
             <td>{{ asDate(borrow.returnedAt) | date: 'short' }}</td>
             <td>{{ borrow.status | titlecase }}</td>
-            <td>{{ borrow.fineAmount | currency }}</td>
+            <td>
+              {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}
+              <span class="fine-paid-badge" *ngIf="borrow.finePaid">✔ Paid</span>
+            </td>
+            <td>
+              <span *ngIf="borrow.finePaidAt; else notPaid" class="fine-paid-date">
+                {{ borrow.finePaidAt | date:'mediumDate' }}
+              </span>
+              <ng-template #notPaid><span class="muted-dash">—</span></ng-template>
+            </td>
+            <td>
+              <button type="button" class="btn btn-small btn-outline" *ngIf="!borrow.rating"
+                (click)="openReviewModal(borrow)">
+                ⭐ Rate
+              </button>
+              <div class="review-display" *ngIf="borrow.rating">
+                <span class="stars-display">{{ '⭐'.repeat(borrow.rating) }}</span>
+                <button type="button" class="btn-icon btn-icon-small" (click)="openReviewModal(borrow)"
+                  title="Edit Review">✎</button>
+              </div>
+            </td>
           </tr>
         </ng-template>
       </p-table>
@@ -266,4 +308,33 @@
       <p class="muted">No borrowing history yet.</p>
     </ng-template>
   </section>
+
+  <!-- Review Modal -->
+  <div class="dialog-backdrop" *ngIf="selectedBorrowForReview">
+    <div class="dialog">
+      <h3>Review Book</h3>
+      <p>How was <strong>{{ selectedBorrowForReview.bookTitle }}</strong>?</p>
+
+      <div class="rating-stars">
+        <button type="button" class="star-btn" *ngFor="let star of [1,2,3,4,5]" (click)="setRating(star)"
+          (mouseenter)="setHover(star)" (mouseleave)="setHover(0)"
+          [class.active]="star <= (hoverRating || reviewRating)">
+          ★
+        </button>
+      </div>
+
+      <label class="form-field full-width" style="margin-top: 1rem;">
+        <span class="form-label" style="font-size: 0.85rem; color: #4b5563;">Written review (optional)</span>
+        <textarea rows="3" class="form-textarea" [value]="reviewText" (input)="updateReviewText($event)"
+          placeholder="What did you think of the book?"></textarea>
+      </label>
+
+      <div class="dialog-actions">
+        <button type="button" class="btn btn-secondary" (click)="closeReviewModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" (click)="submitReview()" [disabled]="reviewRating === 0">
+          Submit Review
+        </button>
+      </div>
+    </div>
+  </div>
 </section>

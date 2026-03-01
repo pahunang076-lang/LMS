@@ -43,6 +43,7 @@ export class BooksShellComponent {
     quantityAvailable: [1, [Validators.required, Validators.min(0)]],
     status: ['available' as BookStatus, [Validators.required]],
     description: [''],
+    shelfLocation: [''],
   });
 
   readonly filteredBooks = computed(() => {
@@ -62,6 +63,7 @@ export class BooksShellComponent {
       quantityAvailable: 1,
       status: 'available',
       description: '',
+      shelfLocation: '',
     });
     this.isDialogOpen.set(true);
   }
@@ -77,6 +79,7 @@ export class BooksShellComponent {
       quantityAvailable: book.quantityAvailable,
       status: book.status,
       description: book.description ?? '',
+      shelfLocation: book.shelfLocation ?? '',
     });
     this.isDialogOpen.set(true);
   }
@@ -109,6 +112,7 @@ export class BooksShellComponent {
       quantityAvailable: Number(value.quantityAvailable ?? 0),
       status: (value.status ?? 'available') as BookStatus,
       description: value.description ?? '',
+      shelfLocation: value.shelfLocation ?? '',
     };
 
     const current = this.editingBook();

@@ -10,6 +10,7 @@ export interface Book {
   quantityAvailable: number;
   status: BookStatus;
   description?: string;
+  shelfLocation?: string;
   createdAt?: unknown;
   updatedAt?: unknown;
 }

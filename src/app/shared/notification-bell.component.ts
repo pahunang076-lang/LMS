@@ -1,0 +1,137 @@
+import { Component, inject, HostListener, ElementRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NotificationsService, AppNotification } from '../core/services/notifications.service';
+import { RouterModule } from '@angular/router';
+
+@Component({
+    selector: 'app-notification-bell',
+    standalone: true,
+    imports: [CommonModule, RouterModule],
+    template: `
+    <div class="bell-wrapper" (click)="toggle($event)">
+      <button class="bell-btn" [class.has-alerts]="count > 0" aria-label="Notifications">
+        🔔
+        <span class="badge" *ngIf="count > 0">{{ count > 9 ? '9+' : count }}</span>
+      </button>
+
+      <div class="panel" *ngIf="open" (click)="$event.stopPropagation()">
+        <div class="panel-header">
+          <span>Notifications</span>
+          <span class="count-tag">{{ count }}</span>
+        </div>
+
+        <div class="panel-body">
+          <ng-container *ngIf="(notifications$ | async) as items">
+            <div class="empty" *ngIf="items.length === 0">🎉 All clear! No alerts.</div>
+
+            <div class="notif-item" *ngFor="let n of items"
+                 [class.notif-overdue]="n.type === 'overdue'"
+                 [class.notif-due-soon]="n.type === 'due-soon'"
+                 [class.notif-ready]="n.type === 'reservation-ready'">
+              <span class="notif-icon">
+                {{ n.type === 'overdue' ? '🚨' : n.type === 'due-soon' ? '⏰' : '✅' }}
+              </span>
+              <span class="notif-msg">{{ n.message }}</span>
+            </div>
+          </ng-container>
+        </div>
+
+        <div class="panel-footer">
+          <a routerLink="/circulation" class="footer-link" (click)="open = false">View Borrows</a>
+          <a routerLink="/reservations" class="footer-link" (click)="open = false">Reservations</a>
+        </div>
+      </div>
+    </div>
+  `,
+    styles: [`
+    .bell-wrapper { position: relative; display: inline-flex; align-items: center; }
+    .bell-btn {
+      background: transparent; border: none; font-size: 1.25rem; cursor: pointer;
+      position: relative; padding: 0.35rem; border-radius: 0.5rem;
+      transition: background 0.2s; line-height: 1;
+    }
+    .bell-btn:hover { background: rgba(0,0,0,0.06); }
+    .bell-btn.has-alerts { animation: ring 1.5s ease infinite; }
+    @keyframes ring {
+      0%, 100% { transform: rotate(0); }
+      10% { transform: rotate(-15deg); }
+      20% { transform: rotate(15deg); }
+      30% { transform: rotate(-10deg); }
+      40% { transform: rotate(10deg); }
+      50% { transform: rotate(0); }
+    }
+    .badge {
+      position: absolute; top: 0; right: 0;
+      background: #ef4444; color: white; font-size: 0.6rem; font-weight: 700;
+      border-radius: 999px; min-width: 16px; height: 16px;
+      display: flex; align-items: center; justify-content: center; padding: 0 3px;
+      line-height: 1; transform: translate(25%, -25%);
+    }
+    .panel {
+      position: absolute; top: calc(100% + 0.5rem); right: 0;
+      width: 320px; background: white; border-radius: 1rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 1px solid #e5e7eb;
+      z-index: 100; overflow: hidden;
+      animation: fadeDown 0.2s ease;
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.9rem 1rem; border-bottom: 1px solid #f3f4f6;
+      font-weight: 600; font-size: 0.9rem; color: #111827;
+    }
+    .count-tag {
+      background: #4f46e5; color: white; font-size: 0.7rem;
+      font-weight: 700; border-radius: 999px; padding: 0.1rem 0.5rem;
+    }
+    .panel-body { max-height: 280px; overflow-y: auto; }
+    .empty { padding: 2rem 1rem; text-align: center; color: #6b7280; font-size: 0.9rem; }
+    .notif-item {
+      display: flex; align-items: flex-start; gap: 0.6rem;
+      padding: 0.75rem 1rem; border-bottom: 1px solid #f9fafb;
+      transition: background 0.15s;
+    }
+    .notif-item:hover { background: #f9fafb; }
+    .notif-overdue { border-left: 3px solid #ef4444; }
+    .notif-due-soon { border-left: 3px solid #f59e0b; }
+    .notif-ready { border-left: 3px solid #10b981; }
+    .notif-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .notif-msg { font-size: 0.825rem; color: #374151; line-height: 1.45; }
+    .panel-footer {
+      display: flex; gap: 0.5rem; justify-content: flex-end;
+      padding: 0.65rem 1rem; border-top: 1px solid #f3f4f6; background: #f9fafb;
+    }
+    .footer-link {
+      font-size: 0.8rem; color: #4f46e5; text-decoration: none; font-weight: 500;
+      padding: 0.3rem 0.65rem; border-radius: 0.375rem; transition: background 0.15s;
+    }
+    .footer-link:hover { background: #eff6ff; }
+  `]
+})
+export class NotificationBellComponent {
+    private readonly el = inject(ElementRef);
+    readonly notificationsService = inject(NotificationsService);
+    readonly notifications$ = this.notificationsService.notifications$;
+
+    count = 0;
+    open = false;
+
+    constructor() {
+        this.notifications$.subscribe((n) => { this.count = n.length; });
+    }
+
+    toggle(e: MouseEvent): void {
+        e.stopPropagation();
+        this.open = !this.open;
+    }
+
+    @HostListener('document:click', ['$event'])
+    onDocumentClick(event: MouseEvent): void {
+        if (!this.el.nativeElement.contains(event.target)) {
+            this.open = false;
+        }
+    }
+}

@@ -1,0 +1,197 @@
+.fines-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.header-content .page-title {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--p-text-color);
+}
+
+.header-content .subtitle {
+    margin: 0;
+    color: var(--p-text-muted-color);
+    font-size: 0.95rem;
+}
+
+.stats-card {
+    background: var(--p-surface-section);
+    border: 1px solid var(--p-surface-200);
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--p-text-muted-color);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.text-warning {
+    color: var(--p-primary-color);
+}
+
+.text-success {
+    color: #34d399;
+}
+
+.stat-icon-wrapper {
+    background: rgba(250, 204, 21, 0.1);
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.premium-table-container {
+    background: var(--p-surface-section);
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--p-surface-200);
+}
+
+::ng-deep .p-datatable-premium .p-datatable-thead>tr>th {
+    background: var(--p-surface-card) !important;
+    color: var(--p-text-muted-color) !important;
+    border-bottom: 1px solid var(--p-surface-200) !important;
+    padding: 1rem !important;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+}
+
+::ng-deep .p-datatable-premium .p-datatable-tbody>tr {
+    background: transparent !important;
+    color: var(--p-text-color) !important;
+    transition: background-color 0.2s ease;
+}
+
+::ng-deep .p-datatable-premium .p-datatable-tbody>tr:hover {
+    background: var(--p-surface-hover) !important;
+}
+
+::ng-deep .p-datatable-premium .p-datatable-tbody>tr>td {
+    border-bottom: 1px solid var(--p-surface-200) !important;
+    padding: 1rem !important;
+}
+
+::ng-deep .p-datatable-premium .p-paginator {
+    background: var(--p-surface-card) !important;
+    border: none !important;
+    border-top: 1px solid var(--p-surface-200) !important;
+}
+
+.student-id-badge {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.book-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: flex-start;
+}
+
+.book-title {
+    font-weight: 600;
+}
+
+.badge-status {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.status-available {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.status-unavailable {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+}
+
+.date-text {
+    color: var(--p-text-muted-color);
+    font-size: 0.9rem;
+}
+
+.fine-amount {
+    font-weight: 700;
+    color: var(--p-primary-color);
+    font-size: 1.1rem;
+}
+
+.btn-action {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 6px;
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.btn-action:hover {
+    background: #34d399;
+    color: var(--p-surface-ground);
+}
+
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem;
+    color: var(--p-text-muted-color);
+    text-align: center;
+}
+
+.empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.7;
+}

@@ -36,6 +36,10 @@ export class CirculationShellComponent {
     map((items) => items.filter((b) => b.status === 'borrowed' || b.status === 'overdue'))
   );
 
+  readonly overdueBorrows$ = this.borrows$.pipe(
+    map((items) => items.filter((b) => b.status === 'overdue' && !b.finePaid))
+  );
+
   readonly historyBorrows$ = this.borrows$.pipe(
     map((items) => items.filter((b) => b.status === 'returned'))
   );
@@ -60,6 +64,11 @@ export class CirculationShellComponent {
 
   showBorrowConfirm = false;
   showReturnConfirm = false;
+
+  selectedBorrowForReview: Borrow | null = null;
+  reviewRating = 0;
+  reviewText = '';
+  hoverRating = 0;
 
   readonly vm$ = combineLatest([this.user$, this.allBooks$, this.activeBorrows$, this.historyBorrows$]).pipe(
     map(([user, books, active, history]) => ({
@@ -126,6 +135,68 @@ export class CirculationShellComponent {
 
   async markReturned(borrow: Borrow): Promise<void> {
     await this.circulationService.returnBook(borrow);
+  }
+
+  async payFine(borrow: Borrow): Promise<void> {
+    await this.circulationService.payFine(borrow);
+  }
+
+  openReviewModal(borrow: Borrow): void {
+    if (!borrow.id) return;
+    this.selectedBorrowForReview = borrow;
+    this.reviewRating = borrow.rating ?? 0;
+    this.reviewText = borrow.review ?? '';
+    this.hoverRating = 0;
+  }
+
+  closeReviewModal(): void {
+    this.selectedBorrowForReview = null;
+  }
+
+  setRating(val: number): void {
+    this.reviewRating = val;
+  }
+
+  setHover(val: number): void {
+    this.hoverRating = val;
+  }
+
+  updateReviewText(event: Event): void {
+    const target = event.target as HTMLTextAreaElement;
+    this.reviewText = target.value;
+  }
+
+  async submitReview(): Promise<void> {
+    if (!this.selectedBorrowForReview?.id || this.reviewRating === 0) return;
+    await this.circulationService.submitReview(
+      this.selectedBorrowForReview.id,
+      this.reviewRating,
+      this.reviewText.trim()
+    );
+    this.closeReviewModal();
+  }
+
+  /** Returns a human-readable due-date label, e.g. "Due in 3 days", "Due today", "Overdue by 5 days". */
+  dueCountdown(dueAt: unknown): string {
+    if (!dueAt) return '';
+    const due = dueAt instanceof Date ? dueAt : new Date(dueAt as any);
+    const now = new Date();
+    const diffMs = due.getTime() - now.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays > 1) return `Due in ${diffDays} days`;
+    if (diffDays === 1) return 'Due tomorrow';
+    if (diffDays === 0) return 'Due today';
+    return `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? 's' : ''}`;
+  }
+
+  /** Returns a CSS class based on how many days until due. */
+  dueClass(dueAt: unknown): string {
+    if (!dueAt) return '';
+    const due = dueAt instanceof Date ? dueAt : new Date(dueAt as any);
+    const diffDays = Math.round((due.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return 'due-overdue';
+    if (diffDays <= 2) return 'due-warning';
+    return 'due-ok';
   }
 
   onStudentQrScanned(raw: string): void {

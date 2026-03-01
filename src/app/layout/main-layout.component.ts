@@ -16,11 +16,14 @@ import {
 } from '@angular/router';
 import { Subject, takeUntil } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
+import { NotificationsService } from '../core/services/notifications.service';
+import { NotificationBellComponent } from '../shared/notification-bell.component';
+import { map } from 'rxjs';
 
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, NotificationBellComponent],
   templateUrl: './main-layout.component.html',
   styleUrl: './main-layout.component.css',
 })
@@ -38,6 +41,11 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   readonly isAdmin$ = this.authService.hasRole(['admin']);
 
   readonly isStudent$ = this.authService.hasRole(['student']);
+
+  /** Count of overdue borrows for the current user – drives the red nav badge */
+  readonly overdueNavBadge$ = inject(NotificationsService).notifications$.pipe(
+    map((ns) => ns.filter((n) => n.type === 'overdue').length)
+  );
 
   readonly isLoading = computed(() => this.authService.isLoading());
 

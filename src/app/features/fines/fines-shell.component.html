@@ -1,0 +1,83 @@
+<section class="fines-dashboard">
+    <header class="dashboard-header">
+        <div class="header-content">
+            <h1 class="page-title">Fines Management</h1>
+            <p class="subtitle">Track and settle outstanding student penalties</p>
+        </div>
+        <div class="stats-card">
+            <div class="stat-info">
+                <span class="stat-label">Total Outstanding Fines</span>
+                <span class="stat-value text-warning">₱{{ totalFinesSum$ | async | number:'1.2-2' }}</span>
+            </div>
+            <div class="stat-icon-wrapper text-warning">
+                <i class="pi pi-wallet"></i>
+            </div>
+        </div>
+    </header>
+
+    <section class="data-section">
+        <div class="premium-table-container">
+            <ng-container *ngIf="outstandingFines$ | async as fines; else loading">
+                <p-table [value]="fines" [paginator]="true" [rows]="10" [showCurrentPageReport]="true"
+                    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} records"
+                    [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-premium">
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th pSortableColumn="studentId" style="width: 20%">Student ID <p-sortIcon
+                                    field="studentId"></p-sortIcon></th>
+                            <th pSortableColumn="bookTitle" style="width: 30%">Book Title <p-sortIcon
+                                    field="bookTitle"></p-sortIcon></th>
+                            <th pSortableColumn="dueAt" style="width: 15%">Due Date <p-sortIcon
+                                    field="dueAt"></p-sortIcon></th>
+                            <th pSortableColumn="fineAmount" style="width: 15%">Fine Amount <p-sortIcon
+                                    field="fineAmount"></p-sortIcon></th>
+                            <th style="width: 20%">Actions</th>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-borrow>
+                        <tr>
+                            <td>
+                                <span class="student-id-badge">{{ borrow.studentId || borrow.userId.substring(0, 8)
+                                    }}</span>
+                            </td>
+                            <td>
+                                <div class="book-info">
+                                    <span class="book-title">{{ borrow.bookTitle }}</span>
+                                    <span class="badge-status status-unavailable"
+                                        *ngIf="borrow.status === 'overdue'">Overdue</span>
+                                    <span class="badge-status status-available"
+                                        *ngIf="borrow.status === 'returned'">Returned</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="date-text">{{ borrow.dueAt | date:'mediumDate' }}</span>
+                            </td>
+                            <td>
+                                <span class="fine-amount">₱{{ borrow.fineAmount | number:'1.2-2' }}</span>
+                            </td>
+                            <td>
+                                <button class="btn-action" (click)="processPayment(borrow)">
+                                    <i class="pi pi-check-circle"></i> Process Payment
+                                </button>
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="emptymessage">
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <i class="pi pi-check-circle empty-icon text-success"></i>
+                                <p>All clear! There are no outstanding fines in the system.</p>
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </ng-container>
+            <ng-template #loading>
+                <div class="loading-state">
+                    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+                    <p>Loading fines data...</p>
+                </div>
+            </ng-template>
+        </div>
+    </section>
+</section>

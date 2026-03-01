@@ -15,5 +15,9 @@ export interface Borrow {
   returnedAt?: unknown | null;
   status: BorrowStatus;
   fineAmount: number;
+  finePaid?: boolean;
+  finePaidAt?: string; // ISO timestamp when the fine was paid
+  rating?: number; // 1-5 stars
+  review?: string; // Optional text review
 }
 

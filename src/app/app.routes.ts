@@ -20,13 +20,22 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'dashboard',
+        loadComponent: () => import('./features/dashboard/dashboard-redirect.component').then(m => m.DashboardRedirectComponent)
       },
       {
         path: 'dashboard',
         component: DashboardComponent,
         canActivate: [roleGuard],
         data: { roles: ['admin', 'librarian'] },
+      },
+      {
+        path: 'student-home',
+        canActivate: [roleGuard],
+        data: { roles: ['student'] },
+        loadComponent: () =>
+          import('./features/dashboard/student-dashboard.component').then(
+            (m) => m.StudentDashboardComponent
+          ),
       },
       {
         path: 'catalog',
@@ -50,6 +59,15 @@ export const routes: Routes = [
           ),
       },
       // The following feature routes will be implemented in later steps.
+      {
+        path: 'fines',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'librarian'] },
+        loadComponent: () =>
+          import('./features/fines/fines-shell.component').then(
+            (m) => m.FinesShellComponent
+          ),
+      },
       {
         path: 'books',
         canActivate: [roleGuard],
@@ -84,6 +102,42 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/reports/reports-shell.component').then(
             (m) => m.ReportsShellComponent
+          ),
+      },
+      {
+        path: 'reservations',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'librarian', 'student'] },
+        loadComponent: () =>
+          import('./features/reservations/reservations-shell.component').then(
+            (m) => m.ReservationsShellComponent
+          ),
+      },
+      {
+        path: 'book-requests',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'librarian', 'student'] },
+        loadComponent: () =>
+          import('./features/book-requests/book-requests-shell.component').then(
+            (m) => m.BookRequestsShellComponent
+          ),
+      },
+      {
+        path: 'profile/:uid',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'librarian'] },
+        loadComponent: () =>
+          import('./features/users/student-profile.component').then(
+            (m) => m.StudentProfileComponent
+          ),
+      },
+      {
+        path: 'announcements',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'librarian', 'student'] },
+        loadComponent: () =>
+          import('./features/announcements/announcements-shell.component').then(
+            (m) => m.AnnouncementsShellComponent
           ),
       },
     ],

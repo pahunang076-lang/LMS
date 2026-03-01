@@ -7,26 +7,26 @@
       </p>
     </div>
 
-    <form [formGroup]="rangeForm" class="range-form">
-      <select formControlName="type">
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-        <option value="monthly">Monthly</option>
-      </select>
-      <input type="date" formControlName="date" />
-    </form>
+    <div class="header-actions">
+      <form [formGroup]="rangeForm" class="range-form">
+        <select formControlName="type">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+        <input type="date" formControlName="date" />
+      </form>
+      <button type="button" class="btn btn-print" onclick="window.print()">
+        🖨️ Export PDF
+      </button>
+    </div>
   </header>
 
   <section class="cards">
     <article class="card" *ngIf="borrows$ | async as borrows">
       <h3>Total borrows</h3>
       <p class="value">{{ borrows.length }}</p>
-      <button
-        type="button"
-        class="btn btn-secondary"
-        (click)="exportBorrowsCsv(borrows)"
-        [disabled]="!borrows.length"
-      >
+      <button type="button" class="btn btn-secondary" (click)="exportBorrowsCsv(borrows)" [disabled]="!borrows.length">
         Export borrows CSV
       </button>
     </article>
@@ -34,12 +34,7 @@
     <article class="card" *ngIf="entries$ | async as entries">
       <h3>Total visits</h3>
       <p class="value">{{ entries.length }}</p>
-      <button
-        type="button"
-        class="btn btn-secondary"
-        (click)="exportEntriesCsv(entries)"
-        [disabled]="!entries.length"
-      >
+      <button type="button" class="btn btn-secondary" (click)="exportEntriesCsv(entries)" [disabled]="!entries.length">
         Export visits CSV
       </button>
     </article>
@@ -112,14 +107,8 @@
     <article class="panel" *ngIf="peakHours$ | async as hours">
       <h3>Peak hours</h3>
       <div class="bar-chart">
-        <div
-          class="bar-wrapper"
-          *ngFor="let count of hours; let i = index"
-        >
-          <div
-            class="bar"
-            [style.height.%]="count * 10"
-          ></div>
+        <div class="bar-wrapper" *ngFor="let count of hours; let i = index">
+          <div class="bar" [style.height.%]="count * 10"></div>
           <div class="bar-label" *ngIf="i % 3 === 0">
             {{ i }}
           </div>
@@ -128,4 +117,3 @@
     </article>
   </section>
 </section>
-

@@ -2,6 +2,8 @@ import { Component, inject } from '@angular/core';
 import { CommonModule, NgForOf, NgIf, KeyValuePipe } from '@angular/common';
 import { DashboardService } from './dashboard.service';
 import { EntryLogsService } from '../entry-logs/entry-logs.service';
+import { CirculationService } from '../circulation/circulation.service';
+import { map } from 'rxjs';
 
 @Component({
   selector: 'app-dashboard',
@@ -13,14 +15,41 @@ import { EntryLogsService } from '../entry-logs/entry-logs.service';
 export class DashboardComponent {
   private readonly dashboardService = inject(DashboardService);
   private readonly entryLogsService = inject(EntryLogsService);
+  private readonly circulationService = inject(CirculationService);
 
   readonly totalVisitsToday$ = this.dashboardService.getTodayVisits$();
   readonly currentlyInside$ = this.dashboardService.getCurrentlyInside$();
   readonly lastEntryTime$ = this.dashboardService.getLastEntryTime$();
   readonly hourlyTraffic$ = this.dashboardService.getTodayHourlyTraffic$();
-  readonly purposeDistribution$ =
-    this.dashboardService.getTodayPurposeDistribution$();
+  readonly purposeDistribution$ = this.dashboardService.getTodayPurposeDistribution$();
   readonly recentLogs$ = this.entryLogsService.getRecentLogs$();
+
+  /** Borrow counts per day for the last 7 days (index 0 = 6 days ago, index 6 = today). */
+  readonly borrowTrendWeek$ = this.circulationService.getAllBorrows$().pipe(
+    map((borrows) => {
+      const now = new Date();
+      return Array.from({ length: 7 }, (_, i) => {
+        const day = new Date(now);
+        day.setDate(now.getDate() - (6 - i));
+        const dayStr = day.toISOString().slice(0, 10);
+        return {
+          label: i === 6 ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' }),
+          count: borrows.filter((b) => {
+            const ba = b.borrowedAt ? new Date(b.borrowedAt as any).toISOString().slice(0, 10) : '';
+            return ba === dayStr;
+          }).length,
+        };
+      });
+    })
+  );
+
+  readonly totalActiveBorrows$ = this.circulationService.getAllBorrows$().pipe(
+    map((b) => b.filter((x) => x.status === 'borrowed' || x.status === 'overdue').length)
+  );
+
+  readonly overdueCount$ = this.circulationService.getAllBorrows$().pipe(
+    map((b) => b.filter((x) => x.status === 'overdue').length)
+  );
 
   // Expose Math to template
   readonly Math = Math;

@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import {
   FormBuilder,
   ReactiveFormsModule,
@@ -16,7 +17,7 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-users-shell',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, QrCodeComponent, TableModule, ProgressSpinnerModule],
+  imports: [CommonModule, RouterModule, ReactiveFormsModule, QrCodeComponent, TableModule, ProgressSpinnerModule],
   templateUrl: './users-shell.component.html',
   styleUrl: './users-shell.component.css',
 })

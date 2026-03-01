@@ -1,69 +1,125 @@
-<section class="catalog-root">
-  <header class="header">
-    <div>
-      <h1 class="page-title">Book Catalog</h1>
-      <p class="subtitle">
-        Search the library collection and see real-time availability
-      </p>
+<section class="catalog-dashboard">
+  <header class="dashboard-header">
+    <div class="header-content">
+      <h1 class="page-title">Library Book Catalog</h1>
+      <p class="subtitle">Search the library collection, explore subjects, and see real-time availability</p>
+    </div>
+
+    <div class="search-bar-container">
+      <div class="search-input-wrapper">
+        <i class="pi pi-search search-icon"></i>
+        <input type="text" pInputText placeholder="Search by title, author, or category..."
+          class="p-inputtext p-component search-input" (input)="onSearch($any($event.target).value)" />
+      </div>
+      <button class="filter-btn">
+        <i class="pi pi-sliders-h"></i> Filter
+      </button>
     </div>
   </header>
 
-  <div class="toolbar">
-    <div class="search-wrapper">
-      <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"></circle>
-        <path d="m21 21-4.35-4.35"></path>
-      </svg>
-      <input
-        type="search"
-        placeholder="Search by title, author, or category..."
-        (input)="onSearch($any($event.target).value)"
-      />
+  <section class="subjects-section" *ngIf="subjects$ | async as subjects">
+    <h2 class="section-title">Subjects section</h2>
+    <div class="subjects-grid">
+      <article class="subject-card" *ngFor="let sub of subjects" [ngClass]="'subject-' + sub.name.toLowerCase()">
+        <div class="subject-info">
+          <h3 class="subject-name">{{ sub.name }}</h3>
+          <span class="subject-icon">{{ sub.icon }}</span>
+        </div>
+        <div class="subject-stats">
+          <span class="subject-count">{{ sub.count }}</span>
+          <span class="subject-label">Books</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="data-section">
+    <div class="table-header">
+      <h2 class="section-title">All books</h2>
+
+      <div class="table-actions">
+        <select class="status-select" (change)="onStatusFilterChange($any($event.target).value)"
+          aria-label="Filter by availability">
+          <option value="all">All statuses</option>
+          <option value="available">Available</option>
+          <option value="unavailable">Unavailable</option>
+        </select>
+        <button class="show-all-btn">Show all <i class="pi pi-chevron-right"></i></button>
+      </div>
     </div>
 
-    <select
-      (change)="onStatusFilterChange($any($event.target).value)"
-      aria-label="Filter by availability"
-    >
-      <option value="all">All statuses</option>
-      <option value="available">Available</option>
-      <option value="unavailable">Unavailable</option>
-    </select>
-  </div>
-
-  <div class="cards" *ngIf="books$ | async as books">
-    <article
-      class="card"
-      *ngFor="let book of books | filterBooks: searchTerm():statusFilter()"
-    >
-      <header class="card-header">
-        <h3>{{ book.title }}</h3>
-        <span
-          class="badge"
-          [class.badge-success]="book.status === 'available'"
-          [class.badge-danger]="book.status === 'unavailable'"
-        >
-          {{ book.status | titlecase }}
-        </span>
-      </header>
-      <p class="author">{{ book.author }}</p>
-      <p class="meta">
-        <span class="meta-item">{{ book.category }}</span>
-        <span class="meta-item">ISBN: {{ book.isbn }}</span>
-      </p>
-      <p class="availability">
-        Available:
-        <strong>{{ book.quantityAvailable }} / {{ book.quantityTotal }}</strong>
-      </p>
-      <p class="description" *ngIf="book.description">
-        {{ book.description }}
-      </p>
-    </article>
-
-    <p class="empty" *ngIf="books.length === 0">
-      No books found.
-    </p>
-  </div>
+    <div class="premium-table-container">
+      <ng-container *ngIf="books$ | async as books; else loading">
+        <p-table [value]="books | filterBooks: searchTerm():statusFilter()" [paginator]="true" [rows]="10"
+          [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} books"
+          [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-premium">
+          <ng-template pTemplate="header">
+            <tr>
+              <th pSortableColumn="title" style="width: 35%">Title & Author <p-sortIcon field="title"></p-sortIcon></th>
+              <th pSortableColumn="category" style="width: 20%">Subject <p-sortIcon field="category"></p-sortIcon></th>
+              <th pSortableColumn="status" style="width: 15%">Status <p-sortIcon field="status"></p-sortIcon></th>
+              <th pSortableColumn="_avgRating" style="width: 15%">Rating <p-sortIcon field="_avgRating"></p-sortIcon>
+              </th>
+              <th style="width: 15%">Actions</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-book>
+            <tr>
+              <td>
+                <div class="book-cell">
+                  <div class="book-cover-placeholder">📚</div>
+                  <div class="book-info">
+                    <span class="book-title">{{ book.title }}</span>
+                    <span class="book-author">{{ book.author }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge-subject">{{ book.category }}</span>
+              </td>
+              <td>
+                <span class="badge-status"
+                  [ngClass]="{'status-available': book.status === 'available', 'status-unavailable': book.status === 'unavailable'}">
+                  {{ book.status | titlecase }}
+                </span>
+                <div class="availability-text">
+                  {{ book.quantityAvailable }} / {{ book.quantityTotal }} copies
+                </div>
+              </td>
+              <td>
+                <div class="rating-display" *ngIf="book._avgRating as rating; else noRating">
+                  <span class="star-icon">★</span>
+                  <span class="rating-value">{{ rating | number:'1.1-1' }}</span>
+                  <span class="rating-count">({{ book._reviewCount }})</span>
+                </div>
+                <ng-template #noRating>
+                  <span class="no-rating">No reviews</span>
+                </ng-template>
+              </td>
+              <td>
+                <button *ngIf="(isStudent$ | async) && book.quantityAvailable === 0" class="btn-reserve"
+                  (click)="reserve(book)">
+                  <i class="pi pi-bookmark"></i> Reserve
+                </button>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="5" class="empty-state">
+                <i class="pi pi-search empty-icon"></i>
+                <p>No books discovered matching your filter.</p>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </ng-container>
+      <ng-template #loading>
+        <div class="loading-state">
+          <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+          <p>Loading library catalog...</p>
+        </div>
+      </ng-template>
+    </div>
+  </section>
 </section>
-
-
