@@ -5,6 +5,7 @@ import { BehaviorSubject, Observable, map } from 'rxjs';
 import { Reservation, ReservationStatus } from '../../core/models/reservation.model';
 import { AppUser } from '../../core/models/user.model';
 import { Book } from '../../core/models/book.model';
+import { DueDateReminderService } from '../../core/services/due-date-reminder.service';
 import Swal from 'sweetalert2';
 
 const JSON_SERVER_URL = 'http://localhost:3000';
@@ -111,6 +112,13 @@ export class ReservationService {
         if (nextInLine && nextInLine.id) {
             await this.updateStatus(nextInLine.id, 'ready');
             ReservationService.showToast('info', `Waitlist #1 for "${nextInLine.bookTitle}" has been moved to Ready for pickup.`);
+
+            // Feature 3: Write persistent notification so student sees it on next login
+            DueDateReminderService.addReadyNotification({
+                userId: nextInLine.userId,
+                bookTitle: nextInLine.bookTitle,
+                reservationId: nextInLine.id,
+            });
         }
     }
 

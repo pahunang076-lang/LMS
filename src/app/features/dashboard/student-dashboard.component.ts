@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CirculationService } from '../circulation/circulation.service';
 import { ReservationService } from '../reservations/reservation.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
+import { BooksService } from '../books/books.service';
 import { map, switchMap, combineLatest } from 'rxjs';
 
 @Component({
@@ -19,6 +20,7 @@ export class StudentDashboardComponent {
     private readonly circulation = inject(CirculationService);
     private readonly reservations = inject(ReservationService);
     private readonly announcementsService = inject(AnnouncementService);
+    private readonly booksService = inject(BooksService);
 
     readonly user$ = this.auth.currentUser$;
 
@@ -36,6 +38,16 @@ export class StudentDashboardComponent {
         switchMap(u => this.reservations.getAllReservations$().pipe(
             map(res => res.filter(r => r.userId === u?.uid && (r.status === 'pending' || r.status === 'ready')))
         ))
+    );
+
+    /** Feature 5 — Top 4 most-borrowed books */
+    readonly topBooks$ = this.booksService.getAllBooks$().pipe(
+        map(books =>
+            [...books]
+                .filter(b => (b.borrowCount ?? 0) > 0)
+                .sort((a, b) => (b.borrowCount ?? 0) - (a.borrowCount ?? 0))
+                .slice(0, 4)
+        )
     );
 
     readonly dashboardData$ = combineLatest([

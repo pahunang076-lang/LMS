@@ -80,12 +80,21 @@
                     </thead>
                     <tbody>
                         <tr *ngFor="let r of mine" class="table-row" [class.row-ready]="r.status === 'ready'">
-                            <td>{{ r.bookTitle }}</td>
+                            <td>
+                                <div class="book-title-cell">
+                                    {{ r.bookTitle }}
+                                    <span class="pickup-banner" *ngIf="r.status === 'ready'">
+                                        🔔 Ready for Pickup!
+                                    </span>
+                                </div>
+                            </td>
                             <td>{{ asDate(r.reservedAt) | date: 'short' }}</td>
                             <td>
                                 <span class="status-badge" [ngClass]="'badge-' + r.status">
-                                    {{ statusLabel(r.status) }} <ng-container
-                                        *ngIf="r.status === 'pending'">(#{{r._queuePosition}})</ng-container>
+                                    {{ statusLabel(r.status) }}
+                                </span>
+                                <span class="queue-chip" *ngIf="r.status === 'pending'">
+                                    #{{ r._queuePosition }} in queue
                                 </span>
                             </td>
                             <td>

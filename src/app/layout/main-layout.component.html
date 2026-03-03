@@ -56,6 +56,12 @@
           <span class="nav-icon" aria-hidden="true">📢</span>
           <span class="nav-label">Announcements</span>
         </a>
+
+        <a routerLink="/my-profile" routerLinkActive="active" class="nav-link" title="My Profile"
+          *ngIf="isStudent$ | async">
+          <span class="nav-icon" aria-hidden="true">🪪</span>
+          <span class="nav-label">My Profile</span>
+        </a>
       </div>
 
       <div class="nav-section" *ngIf="(isAdminOrLibrarian$ | async)">

@@ -55,6 +55,10 @@
                   title="Show QR code for this user">
                   QR Code
                 </button>
+                <button type="button" class="btn btn-small btn-id" (click)="viewIdCard(user)"
+                  title="View & print student ID card">
+                  🪪 ID Card
+                </button>
                 <a [routerLink]="['/profile', user.uid]" class="btn btn-small btn-profile" title="View student profile">
                   View Profile
                 </a>

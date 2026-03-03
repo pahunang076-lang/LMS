@@ -140,6 +140,15 @@ export const routes: Routes = [
             (m) => m.AnnouncementsShellComponent
           ),
       },
+      {
+        path: 'my-profile',
+        canActivate: [roleGuard],
+        data: { roles: ['admin', 'librarian', 'student'] },
+        loadComponent: () =>
+          import('./features/profile/my-profile.component').then(
+            (m) => m.MyProfileComponent
+          ),
+      },
     ],
   },
   {

@@ -199,3 +199,111 @@
     background: #4f46e5;
     color: white;
 }
+
+/* Feature 5 — Most Borrowed Books */
+.popular-section {
+    margin-top: 0.5rem;
+}
+
+.section-heading {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 1rem 0;
+}
+
+.popular-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 0.875rem;
+}
+
+.popular-card {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 0.875rem;
+    padding: 0.875rem 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+}
+
+.popular-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.12);
+    border-color: #a5b4fc;
+}
+
+.popular-rank {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.rank-gold {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.rank-silver {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.rank-bronze {
+    background: #fef2e0;
+    color: #92400e;
+}
+
+.popular-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.popular-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.popular-author {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.borrow-badge {
+    display: inline-block;
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ID Card button in users table */
+.btn-id {
+    background: linear-gradient(135deg, #1e1b4b, #4338ca);
+    color: white;
+    border: none;
+}

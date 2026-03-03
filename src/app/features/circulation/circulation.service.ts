@@ -1,6 +1,7 @@
-import { Injectable, inject, PLATFORM_ID } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID, DestroyRef } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   Firestore,
   Timestamp,
@@ -12,7 +13,7 @@ import {
   where,
   query,
 } from '@angular/fire/firestore';
-import { BehaviorSubject, Observable, map } from 'rxjs';
+import { BehaviorSubject, Observable, interval, map } from 'rxjs';
 import { Borrow, BorrowStatus } from '../../core/models/borrow.model';
 import { Book } from '../../core/models/book.model';
 import { BooksService } from '../books/books.service';
@@ -32,6 +33,10 @@ export class CirculationService {
   private readonly reservationService = inject(ReservationService);
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /** Fine charged per day for overdue books (₱ per day). */
+  readonly FINE_PER_DAY = 5;
 
   private readonly storageKey = 'lms_borrows';
   private readonly useLocalStore =
@@ -46,9 +51,15 @@ export class CirculationService {
     if (this.useLocalStore && isPlatformBrowser(this.platformId)) {
       this.syncBorrowsFromServer();
     }
-    // Also run overdue check on local data immediately
+    // Run overdue check immediately on local data
     if (this.useLocalStore) {
       this.checkAndMarkOverdue();
+    }
+    // ── Feature 1: Live overdue detection every 60 seconds ──────────────
+    if (this.useLocalStore && isPlatformBrowser(this.platformId)) {
+      interval(60_000)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe(() => this.checkAndMarkOverdue());
     }
   }
 
@@ -71,7 +82,6 @@ export class CirculationService {
   /** Scans all active borrows and marks any past their due date as overdue with correct fine. */
   checkAndMarkOverdue(): void {
     const now = new Date();
-    const finePerDay = 5;
     const borrows = this.localBorrowsSubject.value;
     let changed = false;
 
@@ -79,7 +89,7 @@ export class CirculationService {
       if (b.status !== 'borrowed') return b;
       const due = b.dueAt instanceof Date ? b.dueAt : new Date(b.dueAt as any);
       if (due < now) {
-        const fine = calculateFine(due, now, finePerDay);
+        const fine = calculateFine(due, now, this.FINE_PER_DAY);
         changed = true;
         const updatedBorrow: Borrow = { ...b, status: 'overdue', fineAmount: fine };
         // Best-effort patch to JSON Server
@@ -178,6 +188,7 @@ export class CirculationService {
 
       if (book.id) {
         await this.booksService.adjustAvailability(book.id, -1);
+        this.booksService.incrementBorrowCount(book.id); // Feature 5
       }
 
       // Sync to JSON Server (best-effort)
@@ -221,8 +232,7 @@ export class CirculationService {
 
     if (this.useLocalStore) {
       const due = borrow.dueAt instanceof Date ? borrow.dueAt : new Date(borrow.dueAt as any);
-      const finePerDay = 5;
-      const fineAmount = calculateFine(due, returnDate, finePerDay);
+      const fineAmount = calculateFine(due, returnDate, this.FINE_PER_DAY);
       const status: BorrowStatus = fineAmount > 0 ? 'overdue' : 'returned';
 
       const updated = this.localBorrowsSubject.value.map((b) =>
@@ -263,8 +273,7 @@ export class CirculationService {
         ? borrow.dueAt.toDate()
         : new Date(borrow.dueAt as any);
 
-    const finePerDay = 5;
-    const fineAmount = calculateFine(due, returnDate, finePerDay);
+    const fineAmount = calculateFine(due, returnDate, this.FINE_PER_DAY);
     const status: BorrowStatus = fineAmount > 0 ? 'overdue' : 'returned';
 
     const ref = doc(this.firestore, 'borrows', borrow.id);

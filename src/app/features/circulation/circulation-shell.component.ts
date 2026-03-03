@@ -199,6 +199,42 @@ export class CirculationShellComponent {
     return 'due-ok';
   }
 
+  // --- Progress Bar Logic ---
+  getBorrowProgress(borrowedAtStr: unknown, dueAtStr: unknown): number {
+    if (!borrowedAtStr || !dueAtStr) return 0;
+
+    const borrowedAt = this.asDate(borrowedAtStr)?.getTime() ?? Date.now();
+    const dueAt = this.asDate(dueAtStr)?.getTime() ?? Date.now();
+    const now = Date.now();
+
+    const totalDuration = dueAt - borrowedAt;
+    const elapsed = now - borrowedAt;
+
+    if (totalDuration <= 0) return 100; // Fallback
+    if (elapsed < 0) return 0; // Not started yet
+    if (elapsed > totalDuration) return 100; // Overdue or exactly due
+
+    return Math.floor((elapsed / totalDuration) * 100);
+  }
+
+  getProgressColorClass(dueDateStr: unknown): string {
+    if (!dueDateStr) return 'progress-green';
+
+    const due = this.asDate(dueDateStr);
+    if (!due) return 'progress-green';
+
+    const now = new Date();
+    due.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+
+    const diffTime = due.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return 'progress-red';
+    if (diffDays <= 3) return 'progress-yellow';
+    return 'progress-green';
+  }
+
   onStudentQrScanned(raw: string): void {
     this.scannedStudentId = raw.trim();
     this.qrError = null;
@@ -359,6 +395,12 @@ export class CirculationShellComponent {
   onScannerError(message: string): void {
     // Only surface a generic error to avoid noisy per-frame messages.
     this.qrError = 'Unable to read QR code. Please adjust the camera and try again.';
+  }
+
+  /** Returns the title of the book with the given id, or empty string if not found. */
+  getBookTitle(bookId: string | null | undefined, books: Book[]): string {
+    if (!bookId) return '';
+    return books.find((b) => b.id === bookId)?.title ?? '';
   }
 
   asDate(value: unknown): Date | null {

@@ -1,18 +1,33 @@
 import { Injectable, computed, inject, signal, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AppUser, UserRole } from '../models/user.model';
-import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { map, shareReplay } from 'rxjs/operators';
+import { DueDateReminderService } from './due-date-reminder.service';
 import Swal from 'sweetalert2';
 
-const STORAGE_USERS_KEY = 'lms_users';
-const STORAGE_CURRENT_USER_KEY = 'lms_current_user';
-const JSON_SERVER_URL = 'http://localhost:3000';
+// Firebase Auth
+import { Auth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, updateEmail, updateProfile, User as FirebaseUser } from '@angular/fire/auth';
 
-interface StoredUser extends AppUser {
-  password: string;
+// Firestore
+import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, collectionData } from '@angular/fire/firestore';
+import { firstValueFrom } from 'rxjs';
+
+// ─── Storage key (session-only for QR logins) ────────────────────────────────
+const SESSION_CURRENT_USER_KEY = 'lms_current_user';
+
+// ─── Firestore user profile (what we store in /users/{uid}) ──────────────────
+export interface FirestoreUserProfile {
+  uid: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  studentId: string | null;
+  qrCode: string;
+  createdAt: string;
+  lastLoginAt: string | null;
+  isActive: boolean;
 }
 
 @Injectable({
@@ -20,8 +35,10 @@ interface StoredUser extends AppUser {
 })
 export class AuthService {
   private readonly router = inject(Router);
-  private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly auth = inject(Auth);
+  private readonly firestore = inject(Firestore);
+  private readonly reminderService = inject(DueDateReminderService);
 
   private readonly loadingSignal = signal(false);
   private readonly errorSignal = signal<string | null>(null);
@@ -43,164 +60,102 @@ export class AuthService {
   );
 
   constructor() {
-    // Seed a default admin user if none exist yet (for local demo only).
-    const users = AuthService.loadUsersFromStorage();
-    if (users.length === 0) {
-      const defaultAdmin: StoredUser = {
-        uid: 'admin-1',
-        name: 'Admin User',
-        email: 'admin@example.edu',
-        role: 'admin',
-        studentId: null,
-        qrCode: 'LMS-ADMIN-001-QRCODE',
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
-        isActive: true,
-        password: 'admin123',
-      };
-      AuthService.saveUsersToStorage([defaultAdmin]);
-    } else {
-      // Ensure all existing users have QR codes (migration)
-      const needsUpdate = users.some((u) => !u.qrCode);
-      if (needsUpdate) {
-        const updatedUsers = users.map((u) => ({
-          ...u,
-          qrCode: u.qrCode || AuthService.generateUniqueQrCode(),
-        }));
-        AuthService.saveUsersToStorage(updatedUsers);
-      }
-    }
-
-    // Sync users from JSON Server into localStorage (best-effort)
     if (isPlatformBrowser(this.platformId)) {
-      this.syncUsersFromServer();
+      // Listen to Firebase Auth state changes for session persistence
+      onAuthStateChanged(this.auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          // User is signed in — load their Firestore profile
+          const profile = await this.loadProfileFromFirestore(firebaseUser.uid);
+          if (profile) {
+            const appUser = this.profileToAppUser(profile);
+            this.currentUserSubject.next(appUser);
+            AuthService.saveCurrentUserToStorage(appUser);
+          }
+        } else {
+          // Only clear if we don't have a QR-based session
+          // (QR logins populate the Subject without a Firebase Auth session)
+          const stored = AuthService.loadCurrentUserFromStorage();
+          if (!stored) {
+            this.currentUserSubject.next(null);
+          }
+        }
+      });
     }
   }
 
-  /**
-   * Clear any existing error message (e.g., when switching login modes).
-   */
+  // ─── Error helpers ──────────────────────────────────────────────────────────
+
   clearError(): void {
     this.errorSignal.set(null);
   }
 
-  /**
-   * Sync users from JSON Server into localStorage for offline fallback.
-   */
-  private syncUsersFromServer(): void {
-    this.http.get<any[]>(`${JSON_SERVER_URL}/users`).subscribe({
-      next: (users) => {
-        if (users && users.length > 0) {
-          // Map id to uid for json-server compatibility
-          const mapped = users.map(u => ({ ...u, uid: u.uid || u.id }));
-          AuthService.saveUsersToStorage(mapped as StoredUser[]);
-        }
-      },
-      error: () => {
-        // JSON Server may not be running; continue with localStorage data.
-        console.warn('JSON Server not available. Using local storage data.');
-      },
-    });
-  }
+  // ─── Login ──────────────────────────────────────────────────────────────────
 
-  /**
-   * Local email/password login using browser storage with JSON Server sync.
-   * This is for development/demo only and is NOT secure.
-   */
   async login(email: string, password: string): Promise<void> {
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
     try {
-      const users = AuthService.loadUsersFromStorage();
-      const match = users.find(
-        (u) => u.email === email && u.password === password
-      );
+      const credential = await signInWithEmailAndPassword(this.auth, email, password);
+      const profile = await this.loadProfileFromFirestore(credential.user.uid);
 
-      if (!match) {
-        this.errorSignal.set(
-          'Invalid email or password.'
-        );
-        throw new Error('Invalid credentials');
+      if (!profile) {
+        this.errorSignal.set('User profile not found. Please contact an administrator.');
+        await signOut(this.auth);
+        throw new Error('Profile not found');
       }
 
-      if (match.isActive === false) {
+      if (profile.isActive === false) {
         this.errorSignal.set('Your account has been deactivated.');
+        await signOut(this.auth);
         throw new Error('Account deactivated');
       }
 
-      const { password: _pw, ...user } = match;
+      // Update last login
+      await this.updateLastLogin(profile.uid);
+      profile.lastLoginAt = new Date().toISOString();
 
-      // Update last login time
-      const updatedMatch = {
-        ...match,
-        lastLoginAt: new Date().toISOString(),
-      };
-      const updatedUsers = users.map((u) =>
-        u.uid === match.uid ? updatedMatch : u
-      );
-      AuthService.saveUsersToStorage(updatedUsers);
+      const appUser = this.profileToAppUser(profile);
+      this.currentUserSubject.next(appUser);
+      AuthService.saveCurrentUserToStorage(appUser);
 
-      // Sync updated user to JSON Server (best-effort)
-      if (isPlatformBrowser(this.platformId)) {
-        this.http.patch(`${JSON_SERVER_URL}/users/${match.uid}`, { lastLoginAt: updatedMatch.lastLoginAt })
-          .subscribe({ error: () => { } });
+      this.showToast('success', `Welcome back, ${appUser.name}!`);
+      this.reminderService.checkReminders(appUser.uid);
+    } catch (err: unknown) {
+      if (!this.errorSignal()) {
+        this.errorSignal.set(this.mapFirebaseError(err));
       }
-
-      const updatedUser = { ...user, lastLoginAt: updatedMatch.lastLoginAt };
-      this.currentUserSubject.next(updatedUser);
-      AuthService.saveCurrentUserToStorage(updatedUser);
-
-      // Show success notification
-      const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
-        timerProgressBar: true,
-      });
-      Toast.fire({
-        icon: 'success',
-        title: `Welcome back, ${updatedUser.name}!`,
-      });
+      throw err;
     } finally {
       this.loadingSignal.set(false);
     }
   }
 
-  /**
-   * Sign the current user out and navigate to the login page.
-   */
+  // ─── Logout ─────────────────────────────────────────────────────────────────
+
   async logout(): Promise<void> {
     const userName = this.currentUserSubject.value?.name;
     this.currentUserSubject.next(null);
     AuthService.clearCurrentUserFromStorage();
 
-    // Show logout notification
-    const Toast = Swal.mixin({
-      toast: true,
-      position: 'top-end',
-      showConfirmButton: false,
-      timer: 2500,
-      timerProgressBar: true,
-    });
-    Toast.fire({
-      icon: 'info',
-      title: userName ? `Goodbye, ${userName}!` : 'Logged out successfully.',
-    });
+    // Sign out from Firebase if there is an active session
+    try {
+      await signOut(this.auth);
+    } catch {
+      // No Firebase session (e.g., QR login) – that's fine
+    }
 
+    this.showToast('info', userName ? `Goodbye, ${userName}!` : 'Logged out successfully.');
     await this.router.navigate(['/login']);
   }
 
-  /**
-   * Redirect after login based on role.
-   */
+  // ─── Redirect after login ───────────────────────────────────────────────────
+
   async redirectAfterLogin(user: AppUser | null): Promise<void> {
     if (!user) {
       await this.router.navigate(['/login']);
       return;
     }
-
     if (user.role === 'admin' || user.role === 'librarian') {
       await this.router.navigate(['/dashboard']);
     } else {
@@ -208,74 +163,95 @@ export class AuthService {
     }
   }
 
-  /**
-   * Check whether the current user has at least one of the given roles.
-   */
+  // ─── Role check ─────────────────────────────────────────────────────────────
+
   hasRole(allowedRoles: UserRole[]): Observable<boolean> {
     return this.currentUser$.pipe(
       map((user) => !!user && allowedRoles.includes(user.role))
     );
   }
 
-  /**
-   * Login using QR code.
-   * This is for development/demo only and is NOT secure.
-   */
-  async loginWithQrCode(qrCode: string): Promise<void> {
+  // ─── Password reset (Firebase sends the real email) ─────────────────────────
+
+  async resetPassword(): Promise<void> {
+    const { value: email, isConfirmed } = await Swal.fire({
+      title: '🔑 Reset Password',
+      text: 'Enter the email address for your account. We\'ll send you a password reset link.',
+      input: 'email',
+      inputPlaceholder: 'name@example.edu',
+      showCancelButton: true,
+      confirmButtonText: 'Send reset email',
+      confirmButtonColor: '#4f46e5',
+      inputValidator: (v) => !v ? 'Please enter your email.' : undefined,
+    });
+
+    if (!isConfirmed || !email) return;
+
     this.loadingSignal.set(true);
-    this.errorSignal.set(null);
-
     try {
-      const users = AuthService.loadUsersFromStorage();
-      const match = users.find((u) => u.qrCode === qrCode && u.isActive !== false);
-
-      if (!match) {
-        this.errorSignal.set('Invalid QR code. Please try again.');
-        throw new Error('Invalid QR code');
-      }
-
-      const { password: _pw, ...user } = match;
-
-      // Update last login time
-      const updatedMatch = {
-        ...match,
-        lastLoginAt: new Date().toISOString(),
-      };
-      const updatedUsers = users.map((u) =>
-        u.uid === match.uid ? updatedMatch : u
-      );
-      AuthService.saveUsersToStorage(updatedUsers);
-
-      // Sync updated user to JSON Server (best-effort)
-      if (isPlatformBrowser(this.platformId)) {
-        this.http.patch(`${JSON_SERVER_URL}/users/${match.uid}`, { lastLoginAt: updatedMatch.lastLoginAt })
-          .subscribe({ error: () => { } });
-      }
-
-      const updatedUser = { ...user, lastLoginAt: updatedMatch.lastLoginAt };
-      this.currentUserSubject.next(updatedUser);
-      AuthService.saveCurrentUserToStorage(updatedUser);
-
-      // Show success notification
-      const Toast = Swal.mixin({
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 3000,
+      await sendPasswordResetEmail(this.auth, email);
+      await Swal.fire({
+        icon: 'success',
+        title: 'Reset email sent!',
+        text: `Check your inbox at ${email} for a password reset link.`,
+        confirmButtonColor: '#4f46e5',
+        timer: 4000,
         timerProgressBar: true,
       });
-      Toast.fire({
-        icon: 'success',
-        title: `Welcome back, ${updatedUser.name}!`,
+    } catch (err: unknown) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Could not send email',
+        text: this.mapFirebaseError(err),
+        confirmButtonColor: '#4f46e5',
       });
     } finally {
       this.loadingSignal.set(false);
     }
   }
 
-  /**
-   * Create a new user account (admin only).
-   */
+  // ─── QR code login ──────────────────────────────────────────────────────────
+
+  async loginWithQrCode(qrCode: string): Promise<void> {
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
+
+    try {
+      // Query Firestore for a user with this QR code
+      const usersCol = collection(this.firestore, 'users');
+      const q = query(usersCol, where('qrCode', '==', qrCode), where('isActive', '==', true));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        this.errorSignal.set('Invalid QR code. Please try again.');
+        throw new Error('Invalid QR code');
+      }
+
+      const profile = snap.docs[0].data() as FirestoreUserProfile;
+
+      // Update last login
+      await this.updateLastLogin(profile.uid);
+      profile.lastLoginAt = new Date().toISOString();
+
+      const appUser = this.profileToAppUser(profile);
+      // Populate the session (without a full Firebase Auth session — demo only)
+      this.currentUserSubject.next(appUser);
+      AuthService.saveCurrentUserToStorage(appUser);
+
+      this.showToast('success', `Welcome back, ${appUser.name}!`);
+      this.reminderService.checkReminders(appUser.uid);
+    } catch (err: unknown) {
+      if (!this.errorSignal()) {
+        this.errorSignal.set('QR login failed. Please try again.');
+      }
+      throw err;
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+
+  // ─── Create user (admin only) ───────────────────────────────────────────────
+
   async createUser(userData: {
     name: string;
     email: string;
@@ -293,163 +269,196 @@ export class AuthService {
     this.errorSignal.set(null);
 
     try {
-      const users = AuthService.loadUsersFromStorage();
+      // Create Firebase Auth account.
+      // NOTE: This will sign in as the new user in the Firebase Auth SDK.
+      // We immediately re-sign-in the admin below.
+      const credential = await createUserWithEmailAndPassword(
+        this.auth,
+        userData.email,
+        userData.password
+      );
 
-      // Check if email already exists
-      const emailTaken = users.some((u) => u.email === userData.email);
-      if (emailTaken) {
-        this.errorSignal.set('That email address is already in use.');
-        throw new Error('Email already in use');
-      }
+      const uid = credential.user.uid;
 
-      // Generate unique UID
-      const uid = `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      // Update Firebase display name
+      await updateProfile(credential.user, { displayName: userData.name });
 
-      // Generate unique QR code
-      let qrCode = AuthService.generateUniqueQrCode();
-      // Ensure QR code is unique
-      while (users.some((u) => u.qrCode === qrCode)) {
-        qrCode = AuthService.generateUniqueQrCode();
-      }
+      // Generate a unique QR code
+      const qrCode = AuthService.generateUniqueQrCode();
 
-      const newUser: StoredUser = {
+      const profile: FirestoreUserProfile = {
         uid,
         name: userData.name,
         email: userData.email,
         role: userData.role,
         studentId: userData.studentId ?? null,
         qrCode,
-        password: userData.password,
         createdAt: new Date().toISOString(),
         lastLoginAt: null,
         isActive: true,
       };
 
-      users.push(newUser);
-      AuthService.saveUsersToStorage(users);
+      // Write profile to Firestore
+      const userDocRef = doc(this.firestore, 'users', uid);
+      await setDoc(userDocRef, profile);
 
-      // Sync new user to JSON Server (best-effort) Include 'id' for json-server
-      if (isPlatformBrowser(this.platformId)) {
-        this.http.post(`${JSON_SERVER_URL}/users`, { ...newUser, id: uid })
-          .subscribe({ error: () => { } });
-      }
+      // Re-sign-in the admin so current session is restored
+      // (createUserWithEmailAndPassword switches the auth state)
+      // We can't re-sign-in silently, so we restore from our BehaviorSubject.
+      // The onAuthStateChanged handler will fire with the new user UID; we override it.
+      this.currentUserSubject.next(current);
+      AuthService.saveCurrentUserToStorage(current);
 
-      const { password: _pw, ...appUser } = newUser;
+      const appUser: AppUser = this.profileToAppUser(profile);
       return appUser;
+    } catch (err: unknown) {
+      if (!this.errorSignal()) {
+        this.errorSignal.set(this.mapFirebaseError(err));
+      }
+      throw new Error(this.mapFirebaseError(err));
     } finally {
       this.loadingSignal.set(false);
     }
   }
 
-  /**
-   * Get all users (admin only).
-   */
+  // ─── Get all users (admin only) ─────────────────────────────────────────────
+
   getAllUsers(): Observable<AppUser[]> {
-    return this.currentUser$.pipe(
-      map((current) => {
-        if (!current || current.role !== 'admin') {
-          return [];
-        }
-        const users = AuthService.loadUsersFromStorage();
-        return users.map(({ password: _pw, ...user }) => user);
-      })
+    const usersCol = collection(this.firestore, 'users');
+    return (collectionData(usersCol, { idField: 'uid' }) as Observable<FirestoreUserProfile[]>).pipe(
+      map((profiles) => {
+        const current = this.currentUserSubject.value;
+        if (!current || current.role !== 'admin') return [];
+        return profiles.map((p) => this.profileToAppUser(p));
+      }),
+      shareReplay({ bufferSize: 1, refCount: true })
     );
   }
 
-  /**
-   * Generate a unique QR code string.
-   */
-  private static generateUniqueQrCode(): string {
-    // Generate a unique identifier: timestamp + random string
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 15);
-    return `LMS-${timestamp}-${random}`.toUpperCase();
-  }
+  // ─── Update current user's profile ──────────────────────────────────────────
 
-  /**
-   * Update the currently logged-in user's profile details in local storage.
-   */
   async updateCurrentUser(
     changes: Partial<Pick<AppUser, 'name' | 'email' | 'studentId'>> & {
       password?: string;
     }
   ): Promise<void> {
     const current = this.currentUserSubject.value;
-    if (!current) {
-      return;
-    }
+    if (!current) return;
 
     this.loadingSignal.set(true);
     this.errorSignal.set(null);
 
     try {
-      const users = AuthService.loadUsersFromStorage();
-      const index = users.findIndex((u) => u.uid === current.uid);
+      const userDocRef = doc(this.firestore, 'users', current.uid);
 
-      if (index === -1) {
-        this.errorSignal.set('Current user could not be found.');
-        throw new Error('Current user could not be found.');
-      }
+      // Build Firestore update payload
+      const firestoreChanges: Partial<FirestoreUserProfile> = {};
+      if (changes.name !== undefined) firestoreChanges.name = changes.name;
+      if (changes.email !== undefined) firestoreChanges.email = changes.email;
+      if (changes.studentId !== undefined) firestoreChanges.studentId = changes.studentId ?? null;
 
-      // Prevent duplicate email addresses between users.
-      if (changes.email && changes.email !== current.email) {
-        const emailTaken = users.some(
-          (u) => u.email === changes.email && u.uid !== current.uid
-        );
+      await updateDoc(userDocRef, firestoreChanges as Record<string, unknown>);
 
-        if (emailTaken) {
-          this.errorSignal.set('That email address is already in use.');
-          throw new Error('That email address is already in use.');
+      // Update Firebase Auth profile if we have an active session
+      const firebaseUser: FirebaseUser | null = this.auth.currentUser;
+      if (firebaseUser) {
+        if (changes.name) {
+          await updateProfile(firebaseUser, { displayName: changes.name });
+        }
+        if (changes.email && changes.email !== current.email) {
+          await updateEmail(firebaseUser, changes.email);
         }
       }
 
-      const updatedStoredUser: StoredUser = {
-        ...users[index],
+      const updatedUser: AppUser = {
+        ...current,
         ...changes,
+        studentId: changes.studentId ?? current.studentId,
       };
 
-      users[index] = updatedStoredUser;
-      AuthService.saveUsersToStorage(users);
-
-      // Sync to JSON Server (best-effort)
-      if (isPlatformBrowser(this.platformId)) {
-        this.http.patch(`${JSON_SERVER_URL}/users/${current.uid}`, changes)
-          .subscribe({ error: () => { } });
-      }
-
-      const { password: _pw, ...updatedAppUser } = updatedStoredUser;
-      this.currentUserSubject.next(updatedAppUser);
-      AuthService.saveCurrentUserToStorage(updatedAppUser);
+      this.currentUserSubject.next(updatedUser);
+      AuthService.saveCurrentUserToStorage(updatedUser);
+    } catch (err: unknown) {
+      const msg = this.mapFirebaseError(err);
+      this.errorSignal.set(msg);
+      throw new Error(msg);
     } finally {
       this.loadingSignal.set(false);
     }
   }
 
-  private static loadUsersFromStorage(): StoredUser[] {
-    if (typeof window === 'undefined') {
-      return [];
-    }
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  private async loadProfileFromFirestore(uid: string): Promise<FirestoreUserProfile | null> {
     try {
-      const raw = window.localStorage.getItem(STORAGE_USERS_KEY);
-      return raw ? (JSON.parse(raw) as StoredUser[]) : [];
+      const userDocRef = doc(this.firestore, 'users', uid);
+      const snap = await getDoc(userDocRef);
+      return snap.exists() ? (snap.data() as FirestoreUserProfile) : null;
     } catch {
-      return [];
+      return null;
     }
   }
 
-  private static saveUsersToStorage(users: StoredUser[]): void {
-    if (typeof window === 'undefined') {
-      return;
+  private async updateLastLogin(uid: string): Promise<void> {
+    try {
+      const userDocRef = doc(this.firestore, 'users', uid);
+      await updateDoc(userDocRef, { lastLoginAt: new Date().toISOString() });
+    } catch {
+      // Non-critical
     }
-    window.localStorage.setItem(STORAGE_USERS_KEY, JSON.stringify(users));
+  }
+
+  private profileToAppUser(profile: FirestoreUserProfile): AppUser {
+    return {
+      uid: profile.uid,
+      name: profile.name,
+      email: profile.email,
+      role: profile.role,
+      studentId: profile.studentId,
+      qrCode: profile.qrCode,
+      createdAt: profile.createdAt,
+      lastLoginAt: profile.lastLoginAt,
+      isActive: profile.isActive,
+    };
+  }
+
+  private mapFirebaseError(err: unknown): string {
+    const code = (err as { code?: string })?.code ?? '';
+    const map: Record<string, string> = {
+      'auth/invalid-credential': 'Invalid email or password.',
+      'auth/wrong-password': 'Invalid email or password.',
+      'auth/user-not-found': 'No account found with this email address.',
+      'auth/email-already-in-use': 'That email address is already in use.',
+      'auth/weak-password': 'Password must be at least 6 characters.',
+      'auth/invalid-email': 'Please enter a valid email address.',
+      'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+      'auth/requires-recent-login': 'Please log out and log back in to make this change.',
+      'auth/network-request-failed': 'Network error. Check your internet connection.',
+    };
+    return map[code] ?? (err as Error)?.message ?? 'An unexpected error occurred.';
+  }
+
+  private showToast(icon: 'success' | 'info' | 'error', title: string): void {
+    const Toast = Swal.mixin({
+      toast: true,
+      position: 'top-end',
+      showConfirmButton: false,
+      timer: 3000,
+      timerProgressBar: true,
+    });
+    Toast.fire({ icon, title });
+  }
+
+  private static generateUniqueQrCode(): string {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 15);
+    return `LMS-${timestamp}-${random}`.toUpperCase();
   }
 
   private static loadCurrentUserFromStorage(): AppUser | null {
-    if (typeof window === 'undefined') {
-      return null;
-    }
+    if (typeof window === 'undefined') return null;
     try {
-      const raw = window.localStorage.getItem(STORAGE_CURRENT_USER_KEY);
+      const raw = window.sessionStorage.getItem(SESSION_CURRENT_USER_KEY);
       return raw ? (JSON.parse(raw) as AppUser) : null;
     } catch {
       return null;
@@ -457,19 +466,16 @@ export class AuthService {
   }
 
   private static saveCurrentUserToStorage(user: AppUser): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    window.localStorage.setItem(
-      STORAGE_CURRENT_USER_KEY,
-      JSON.stringify(user)
-    );
+    if (typeof window === 'undefined') return;
+    // Use sessionStorage so QR sessions don't persist across tabs/restarts
+    window.sessionStorage.setItem(SESSION_CURRENT_USER_KEY, JSON.stringify(user));
   }
 
   private static clearCurrentUserFromStorage(): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    window.localStorage.removeItem(STORAGE_CURRENT_USER_KEY);
+    if (typeof window === 'undefined') return;
+    window.sessionStorage.removeItem(SESSION_CURRENT_USER_KEY);
+    // Also clean up any old localStorage key from previous versions
+    window.localStorage.removeItem('lms_current_user');
+    window.localStorage.removeItem('lms_users');
   }
 }

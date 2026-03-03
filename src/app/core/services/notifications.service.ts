@@ -3,10 +3,11 @@ import { combineLatest, map, Observable } from 'rxjs';
 import { CirculationService } from '../../features/circulation/circulation.service';
 import { ReservationService } from '../../features/reservations/reservation.service';
 import { AuthService } from './auth.service';
+import { BookRequestService } from '../../features/book-requests/book-request.service';
 
 export interface AppNotification {
     id: string;
-    type: 'overdue' | 'due-soon' | 'reservation-ready';
+    type: 'overdue' | 'due-soon' | 'reservation-ready' | 'book-request';
     message: string;
     userId?: string;
 }
@@ -16,13 +17,15 @@ export class NotificationsService {
     private readonly auth = inject(AuthService);
     private readonly circulation = inject(CirculationService);
     private readonly reservations = inject(ReservationService);
+    private readonly bookRequests = inject(BookRequestService);
 
     readonly notifications$: Observable<AppNotification[]> = combineLatest([
         this.auth.currentUser$,
         this.circulation.getAllBorrows$(),
         this.reservations.getAllReservations$(),
+        this.bookRequests.getAll$(),
     ]).pipe(
-        map(([user, borrows, reservations]) => {
+        map(([user, borrows, reservations, requests]) => {
             const alerts: AppNotification[] = [];
             const now = new Date();
             const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
@@ -74,6 +77,19 @@ export class NotificationsService {
                         : `Your reservation for "${r.bookTitle}" is ready for pickup!`,
                     userId: r.userId,
                 });
+            }
+
+            // Book request alerts
+            if (isAdminOrLibrarian) {
+                const pendingRequests = requests.filter((r) => r.status === 'pending');
+                for (const req of pendingRequests) {
+                    alerts.push({
+                        id: `book-req-${req.id}`,
+                        type: 'book-request',
+                        message: `New book request from ${req.userName}: "${req.title}"`,
+                        userId: req.userId,
+                    });
+                }
             }
 
             return alerts;

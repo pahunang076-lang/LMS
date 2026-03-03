@@ -10,7 +10,7 @@
       "studentId": null,
       "qrCode": "LMS-ADMIN-001-QRCODE",
       "createdAt": "2025-01-01T00:00:00.000Z",
-      "lastLoginAt": "2026-03-01T17:30:31.027Z",
+      "lastLoginAt": "2026-03-02T16:11:17.907Z",
       "isActive": true
     },
     {
@@ -23,7 +23,7 @@
       "studentId": null,
       "qrCode": "LMS-LIBRARIAN-001-QRCODE",
       "createdAt": "2025-01-01T00:00:00.000Z",
-      "lastLoginAt": "2026-03-01T16:22:10.942Z",
+      "lastLoginAt": "2026-03-02T16:30:18.754Z",
       "isActive": true
     },
     {
@@ -36,7 +36,7 @@
       "studentId": "2021-00001",
       "qrCode": "LMS-STUDENT-001-QRCODE",
       "createdAt": "2025-01-02T00:00:00.000Z",
-      "lastLoginAt": "2026-03-01T17:11:03.880Z",
+      "lastLoginAt": "2026-03-02T16:25:45.528Z",
       "isActive": true
     },
     {
@@ -63,6 +63,19 @@
       "qrCode": "LMS-STUDENT-003-QRCODE",
       "createdAt": "2025-01-03T00:00:00.000Z",
       "lastLoginAt": null,
+      "isActive": true
+    },
+    {
+      "id": "user-1772411691598-iym3c02",
+      "uid": "user-1772411691598-iym3c02",
+      "name": "Lloyd",
+      "email": "lloyd@gmail.com",
+      "role": "student",
+      "studentId": "2024302103",
+      "qrCode": "LMS-MM8G5PVZ-743C07XF1P4",
+      "password": "lloyd123",
+      "createdAt": "2026-03-02T00:34:51.599Z",
+      "lastLoginAt": "2026-03-02T00:39:10.170Z",
       "isActive": true
     }
   ],
@@ -100,11 +113,11 @@
       "category": "Computer Science",
       "isbn": "978-0262033848",
       "quantityTotal": 4,
-      "quantityAvailable": 3,
+      "quantityAvailable": 4,
       "status": "available",
       "description": "Comprehensive introduction to modern algorithm design.",
       "createdAt": "2025-01-06T00:00:00.000Z",
-      "updatedAt": "2025-01-06T00:00:00.000Z"
+      "updatedAt": "2026-03-02T16:09:18.903Z"
     },
     {
       "id": "book-004",
@@ -217,9 +230,9 @@
       "bookTitle": "Introduction to Algorithms",
       "borrowedAt": "2026-02-15T14:00:00.000Z",
       "dueAt": "2026-03-01T14:00:00.000Z",
-      "returnedAt": null,
+      "returnedAt": "2026-03-02T16:09:18.902Z",
       "status": "overdue",
-      "fineAmount": 1830,
+      "fineAmount": 10,
       "finePaid": true,
       "finePaidAt": "2026-03-01T16:39:30.280Z"
     },
@@ -311,6 +324,18 @@
       "status": "fulfilled",
       "requestedAt": "2026-02-27T17:39:36.104Z",
       "resolvedAt": "2026-02-27T17:40:58.111Z"
+    },
+    {
+      "id": "req-1772411828964",
+      "userId": "user-1772411691598-iym3c02",
+      "userName": "Lloyd",
+      "title": "69",
+      "author": "dave",
+      "isbn": "",
+      "notes": "365 days",
+      "status": "approved",
+      "requestedAt": "2026-03-02T00:37:08.964Z",
+      "resolvedAt": "2026-03-02T15:50:53.063Z"
     }
   ]
 }

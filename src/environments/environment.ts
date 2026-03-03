@@ -1,18 +1,12 @@
 export const environment = {
   production: false,
-  /**
-   * Replace these placeholder values with your Firebase project configuration.
-   * You can find them in the Firebase console under:
-   * Project settings -> Your apps -> Web app -> SDK setup and configuration.
-   */
   firebase: {
-    apiKey: 'YOUR_FIREBASE_API_KEY',
-    authDomain: 'YOUR_FIREBASE_AUTH_DOMAIN',
-    projectId: 'YOUR_FIREBASE_PROJECT_ID',
-    storageBucket: 'YOUR_FIREBASE_STORAGE_BUCKET',
-    messagingSenderId: 'YOUR_FIREBASE_MESSAGING_SENDER_ID',
-    appId: 'YOUR_FIREBASE_APP_ID',
-    measurementId: 'YOUR_FIREBASE_MEASUREMENT_ID'
-  }
+    apiKey: 'AIzaSyA8jArQZj0E2_8qBA99iijqS-J6keNnLQI',
+    authDomain: 'library-management-system-g2.firebaseapp.com',
+    projectId: 'library-management-system-g2',
+    storageBucket: 'library-management-system-g2.firebasestorage.app',
+    messagingSenderId: '702980223535',
+    appId: '1:702980223535:web:6195e0789a08e178f38cda',
+    measurementId: 'G-7ZDE75FV7X',
+  },
 };
-

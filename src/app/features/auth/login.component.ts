@@ -59,7 +59,7 @@ export class LoginComponent {
   }
 
   goToForgotPassword(): void {
-    this.router.navigate(['/forgot-password']);
+    this.authService.resetPassword();
   }
 
   setLoginMode(mode: 'email' | 'qr'): void {

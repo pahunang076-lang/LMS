@@ -234,6 +234,22 @@ export class BooksService {
     });
   }
 
+  /** Feature 5 — Increment the borrow count when a book is borrowed. */
+  incrementBorrowCount(id: string): void {
+    if (!this.useLocalStore) return;
+    const nowIso = new Date().toISOString();
+    const updated = this.localBooksSubject.value.map((b) =>
+      b.id === id ? { ...b, borrowCount: (b.borrowCount ?? 0) + 1, updatedAt: nowIso } : b
+    );
+    this.persistLocalBooks(updated);
+    this.localBooksSubject.next(updated);
+    const book = updated.find((b) => b.id === id);
+    if (book && isPlatformBrowser(this.platformId)) {
+      this.http.patch(`${JSON_SERVER_URL}/books/${id}`, { borrowCount: book.borrowCount, updatedAt: nowIso })
+        .subscribe({ error: () => { } });
+    }
+  }
+
   private static showToast(icon: 'success' | 'error' | 'warning', title: string): void {
     Swal.mixin({
       toast: true,

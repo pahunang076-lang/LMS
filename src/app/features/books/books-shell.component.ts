@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -12,6 +12,7 @@ import { FilterBooksPipe } from '../../shared/filter-books.pipe';
 import { QrCodeComponent } from '../../shared/qr-code.component';
 import { TableModule } from 'primeng/table';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-books-shell',
@@ -23,6 +24,8 @@ import { ProgressSpinnerModule } from 'primeng/progressspinner';
 export class BooksShellComponent {
   private readonly fb = inject(FormBuilder);
   private readonly booksService = inject(BooksService);
+
+  @ViewChild('csvFileInput') csvFileInput!: ElementRef<HTMLInputElement>;
 
   readonly books$: Observable<Book[]> = this.booksService.getAllBooks$();
 
@@ -127,18 +130,9 @@ export class BooksShellComponent {
   }
 
   async delete(book: Book): Promise<void> {
-    if (!book.id) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Are you sure you want to delete “${book.title}”?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+    if (!book.id) return;
+    const confirmed = window.confirm(`Are you sure you want to delete "${book.title}"?`);
+    if (!confirmed) return;
     await this.booksService.deleteBook(book.id);
   }
 
@@ -149,5 +143,76 @@ export class BooksShellComponent {
   onStatusFilterChange(status: BookStatus | 'all'): void {
     this.statusFilter.set(status);
   }
-}
 
+  /** Feature 6 — Trigger the hidden file input */
+  triggerCsvImport(): void {
+    this.csvFileInput?.nativeElement.click();
+  }
+
+  /** Feature 6 — Parse CSV and bulk-import books */
+  async importCsv(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const text = await file.text();
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) {
+      Swal.fire({ icon: 'error', title: 'Invalid CSV', text: 'File must have a header row and at least one data row.', confirmButtonColor: '#4f46e5' });
+      return;
+    }
+
+    // Expected headers: title,author,category,isbn,quantity,description
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const get = (row: string[], col: string) => (row[headers.indexOf(col)] ?? '').trim();
+
+    let imported = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',');
+      const title = get(cols, 'title');
+      const author = get(cols, 'author');
+      const category = get(cols, 'category');
+      const isbn = get(cols, 'isbn');
+      const qty = parseInt(get(cols, 'quantity') || get(cols, 'quantitytotal'), 10);
+      const description = get(cols, 'description');
+
+      if (!title || !author || !isbn) {
+        skipped++;
+        errors.push(`Row ${i + 1}: missing title, author, or isbn`);
+        continue;
+      }
+
+      const quantity = isNaN(qty) ? 1 : Math.max(0, qty);
+      await this.booksService.addBook({
+        title,
+        author,
+        category: category || 'Uncategorized',
+        isbn,
+        quantityTotal: quantity,
+        quantityAvailable: quantity,
+        status: 'available',
+        description,
+      });
+      imported++;
+    }
+
+    // Reset so same file can be re-imported
+    input.value = '';
+
+    Swal.fire({
+      icon: imported > 0 ? 'success' : 'warning',
+      title: '📥 Import Complete',
+      html: `
+        <p>✅ <strong>${imported}</strong> book(s) imported successfully.</p>
+        ${skipped > 0 ? `<p>⚠️ <strong>${skipped}</strong> row(s) skipped.</p>
+        <details style="text-align:left;margin-top:8px;font-size:0.8rem;color:#6b7280">
+          <summary>Details</summary>${errors.join('<br>')}
+        </details>` : ''}
+      `,
+      confirmButtonColor: '#4f46e5',
+    });
+  }
+}

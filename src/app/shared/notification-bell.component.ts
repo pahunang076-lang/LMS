@@ -4,10 +4,10 @@ import { NotificationsService, AppNotification } from '../core/services/notifica
 import { RouterModule } from '@angular/router';
 
 @Component({
-    selector: 'app-notification-bell',
-    standalone: true,
-    imports: [CommonModule, RouterModule],
-    template: `
+  selector: 'app-notification-bell',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
+  template: `
     <div class="bell-wrapper" (click)="toggle($event)">
       <button class="bell-btn" [class.has-alerts]="count > 0" aria-label="Notifications">
         🔔
@@ -27,9 +27,10 @@ import { RouterModule } from '@angular/router';
             <div class="notif-item" *ngFor="let n of items"
                  [class.notif-overdue]="n.type === 'overdue'"
                  [class.notif-due-soon]="n.type === 'due-soon'"
-                 [class.notif-ready]="n.type === 'reservation-ready'">
+                 [class.notif-ready]="n.type === 'reservation-ready'"
+                 [class.notif-book-request]="n.type === 'book-request'">
               <span class="notif-icon">
-                {{ n.type === 'overdue' ? '🚨' : n.type === 'due-soon' ? '⏰' : '✅' }}
+                {{ n.type === 'overdue' ? '🚨' : n.type === 'due-soon' ? '⏰' : n.type === 'reservation-ready' ? '✅' : '📖' }}
               </span>
               <span class="notif-msg">{{ n.message }}</span>
             </div>
@@ -43,7 +44,7 @@ import { RouterModule } from '@angular/router';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .bell-wrapper { position: relative; display: inline-flex; align-items: center; }
     .bell-btn {
       background: transparent; border: none; font-size: 1.25rem; cursor: pointer;
@@ -98,6 +99,7 @@ import { RouterModule } from '@angular/router';
     .notif-overdue { border-left: 3px solid #ef4444; }
     .notif-due-soon { border-left: 3px solid #f59e0b; }
     .notif-ready { border-left: 3px solid #10b981; }
+    .notif-book-request { border-left: 3px solid #3b82f6; }
     .notif-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
     .notif-msg { font-size: 0.825rem; color: #374151; line-height: 1.45; }
     .panel-footer {
@@ -112,26 +114,26 @@ import { RouterModule } from '@angular/router';
   `]
 })
 export class NotificationBellComponent {
-    private readonly el = inject(ElementRef);
-    readonly notificationsService = inject(NotificationsService);
-    readonly notifications$ = this.notificationsService.notifications$;
+  private readonly el = inject(ElementRef);
+  readonly notificationsService = inject(NotificationsService);
+  readonly notifications$ = this.notificationsService.notifications$;
 
-    count = 0;
-    open = false;
+  count = 0;
+  open = false;
 
-    constructor() {
-        this.notifications$.subscribe((n) => { this.count = n.length; });
+  constructor() {
+    this.notifications$.subscribe((n) => { this.count = n.length; });
+  }
+
+  toggle(e: MouseEvent): void {
+    e.stopPropagation();
+    this.open = !this.open;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.el.nativeElement.contains(event.target)) {
+      this.open = false;
     }
-
-    toggle(e: MouseEvent): void {
-        e.stopPropagation();
-        this.open = !this.open;
-    }
-
-    @HostListener('document:click', ['$event'])
-    onDocumentClick(event: MouseEvent): void {
-        if (!this.el.nativeElement.contains(event.target)) {
-            this.open = false;
-        }
-    }
+  }
 }

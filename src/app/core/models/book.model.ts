@@ -11,6 +11,7 @@ export interface Book {
   status: BookStatus;
   description?: string;
   shelfLocation?: string;
+  borrowCount?: number;   // Feature 5: total times borrowed
   createdAt?: unknown;
   updatedAt?: unknown;
 }

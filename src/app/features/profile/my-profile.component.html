@@ -1,0 +1,104 @@
+<section class="profile-root" *ngIf="user$ | async as user">
+    <!-- Header Card -->
+    <header class="profile-hero">
+        <div class="avatar" [class.avatar-student]="user.role === 'student'"
+            [class.avatar-admin]="user.role === 'admin'" [class.avatar-librarian]="user.role === 'librarian'">
+            {{ getInitials(user.name) }}
+        </div>
+        <div class="profile-info">
+            <h1 class="profile-name">{{ user.name }}</h1>
+            <div class="profile-meta">
+                <span class="role-badge">{{ user.role | titlecase }}</span>
+                <span class="meta-dot">·</span>
+                <span class="profile-email">{{ user.email }}</span>
+                <ng-container *ngIf="user.studentId">
+                    <span class="meta-dot">·</span>
+                    <span class="profile-sid">ID: {{ user.studentId }}</span>
+                </ng-container>
+            </div>
+        </div>
+    </header>
+
+    <!-- Stats Grid -->
+    <ng-container *ngIf="stats$ | async as s">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📚</div>
+                <div class="stat-val">{{ s.total }}</div>
+                <div class="stat-lbl">Total Borrowed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-val">{{ s.returned }}</div>
+                <div class="stat-lbl">Returned</div>
+            </div>
+            <div class="stat-card stat-warn" *ngIf="s.overdue > 0">
+                <div class="stat-icon">⚠️</div>
+                <div class="stat-val">{{ s.overdue }}</div>
+                <div class="stat-lbl">Overdue</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">💳</div>
+                <div class="stat-val">₱{{ s.totalFines }}</div>
+                <div class="stat-lbl">Total Fines</div>
+            </div>
+            <div class="stat-card stat-purple" *ngIf="s.reviews > 0">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-val">{{ s.avgRating | number: '1.1-1' }}</div>
+                <div class="stat-lbl">Avg Rating Given</div>
+            </div>
+            <div class="stat-card stat-indigo" *ngIf="s.favoriteCategory">
+                <div class="stat-icon">🏷️</div>
+                <div class="stat-val fav-cat">{{ s.favoriteCategory }}</div>
+                <div class="stat-lbl">Fav Category</div>
+            </div>
+        </div>
+    </ng-container>
+
+    <!-- Borrow History -->
+    <section class="history-section">
+        <h2 class="section-title">📖 Reading History</h2>
+        <ng-container *ngIf="history$ | async as history">
+            <div class="empty-history" *ngIf="history.length === 0">
+                <span class="empty-emoji">🔍</span>
+                <p>No borrowing history yet. Visit the <a routerLink="/catalog">Book Catalog</a> to get started!</p>
+            </div>
+
+            <ul class="history-list" *ngIf="history.length > 0">
+                <li class="history-card" *ngFor="let b of history" [class.hc-overdue]="b.status === 'overdue'"
+                    [class.hc-active]="b.status === 'borrowed'">
+
+                    <div class="hc-icon">
+                        <span *ngIf="b.status === 'returned'">📗</span>
+                        <span *ngIf="b.status === 'borrowed'">📘</span>
+                        <span *ngIf="b.status === 'overdue'">📕</span>
+                    </div>
+
+                    <div class="hc-body">
+                        <div class="hc-title">{{ b.bookTitle }}</div>
+                        <div class="hc-dates">
+                            Borrowed {{ asDate(b.borrowedAt) | date: 'mediumDate' }}
+                            <ng-container *ngIf="b.returnedAt">
+                                · Returned {{ asDate(b.returnedAt) | date: 'mediumDate' }}
+                            </ng-container>
+                        </div>
+                        <div class="hc-review" *ngIf="b.rating">
+                            <span class="star" *ngFor="let s of stars(b.rating)">{{ s }}</span>
+                            <span class="review-text" *ngIf="b.review">{{ b.review }}</span>
+                        </div>
+                    </div>
+
+                    <div class="hc-right">
+                        <span class="status-chip" [class]="'chip-' + b.status">
+                            {{ b.status | titlecase }}
+                        </span>
+                        <div class="fine-chip" *ngIf="b.fineAmount > 0">
+                            <span *ngIf="b.finePaid" class="paid">✅ ₱{{ b.fineAmount }} Paid</span>
+                            <span *ngIf="!b.finePaid" class="unpaid">₱{{ b.fineAmount }} Fine</span>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </ng-container>
+    </section>
+</section>

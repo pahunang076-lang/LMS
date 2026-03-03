@@ -4,7 +4,7 @@ import { BooksService } from '../books/books.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ReservationService } from '../reservations/reservation.service';
 import { Book, BookStatus } from '../../core/models/book.model';
-import { Observable, combineLatest, map } from 'rxjs';
+import { Observable, combineLatest, map, firstValueFrom } from 'rxjs';
 import { FilterBooksPipe } from '../../shared/filter-books.pipe';
 import { CirculationService } from '../../features/circulation/circulation.service';
 import { TableModule } from 'primeng/table';
@@ -99,7 +99,7 @@ export class CatalogComponent {
   }
 
   async reserve(book: Book): Promise<void> {
-    const user = await this.user$.pipe().toPromise();
+    const user = await firstValueFrom(this.user$);
     if (!user) return;
     await this.reservationService.reserveBook(user, book);
   }

@@ -71,4 +71,24 @@
             </ul>
         </article>
     </div>
+
+    <!-- Feature 5: Most Borrowed Books -->
+    <ng-container *ngIf="topBooks$ | async as topBooks">
+        <section class="popular-section" *ngIf="topBooks.length > 0">
+            <h3 class="section-heading">📈 Most Borrowed Books</h3>
+            <div class="popular-grid">
+                <a routerLink="/catalog" class="popular-card" *ngFor="let book of topBooks; let i = index">
+                    <div class="popular-rank" [class.rank-gold]="i === 0" [class.rank-silver]="i === 1"
+                        [class.rank-bronze]="i === 2">
+                        #{{ i + 1 }}
+                    </div>
+                    <div class="popular-info">
+                        <div class="popular-title">{{ book.title }}</div>
+                        <div class="popular-author">{{ book.author }}</div>
+                    </div>
+                    <span class="borrow-badge">{{ book.borrowCount }} borrows</span>
+                </a>
+            </div>
+        </section>
+    </ng-container>
 </section>
