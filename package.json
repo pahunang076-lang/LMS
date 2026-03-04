@@ -35,6 +35,7 @@
     "@angular/platform-server": "^21.1.0",
     "@angular/router": "^21.1.0",
     "@angular/ssr": "^21.1.2",
+    "@emailjs/browser": "^4.4.1",
     "@primeuix/themes": "^2.0.3",
     "@zxing/library": "^0.20.0",
     "express": "^5.1.0",

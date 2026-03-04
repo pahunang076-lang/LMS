@@ -22,6 +22,7 @@ export interface FirestoreUserProfile {
   uid: string;
   name: string;
   email: string;
+  phoneNumber: string;
   role: UserRole;
   studentId: string | null;
   qrCode: string;
@@ -256,6 +257,7 @@ export class AuthService {
     name: string;
     email: string;
     password: string;
+    phoneNumber: string;
     role: UserRole;
     studentId?: string | null;
   }): Promise<AppUser> {
@@ -290,6 +292,7 @@ export class AuthService {
         uid,
         name: userData.name,
         email: userData.email,
+        phoneNumber: userData.phoneNumber,
         role: userData.role,
         studentId: userData.studentId ?? null,
         qrCode,
@@ -310,6 +313,30 @@ export class AuthService {
       AuthService.saveCurrentUserToStorage(current);
 
       const appUser: AppUser = this.profileToAppUser(profile);
+
+      // Send Email Notification via EmailJS
+      try {
+        const emailjs = await import('@emailjs/browser');
+        // NOTE: Replace these with your actual Service ID, Template ID, and Public Key from emailjs.com
+        await emailjs.send(
+          'service_w34wlrc',
+          'template_twe94sn',
+          {
+            to_name: userData.name,
+            to_email: userData.email,
+            password: userData.password,
+            role: userData.role
+          },
+          {
+            publicKey: 'KribdKzb-OxrM25yI',
+          }
+        );
+        console.log('Welcome email sent successfully!');
+      } catch (emailErr) {
+        console.error('Failed to send welcome email:', emailErr);
+        // We don't throw the error so the account creation still succeeds
+      }
+
       return appUser;
     } catch (err: unknown) {
       if (!this.errorSignal()) {
@@ -413,6 +440,7 @@ export class AuthService {
       uid: profile.uid,
       name: profile.name,
       email: profile.email,
+      phoneNumber: profile.phoneNumber || '',
       role: profile.role,
       studentId: profile.studentId,
       qrCode: profile.qrCode,

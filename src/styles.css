@@ -26,31 +26,42 @@ body {
 
 /* ─── Light Mode Design Tokens ─────────────────────────────────────────────── */
 :root {
-  --bg-main: #f0f2f8;
+  --bg-main: #eef0f8;
   --bg-card: #ffffff;
-  --bg-section: #f4f5f9;
-  --bg-hover: #eef0f6;
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --border-color: rgba(148, 163, 184, 0.25);
+  --bg-section: #f5f6fb;
+  --bg-hover: #eaecf6;
+  --text-main: #0d1526;
+  --text-muted: #5a6a85;
+  --border-color: rgba(148, 163, 184, 0.22);
   --input-bg: #ffffff;
-  --input-border: #cbd5e1;
+  --input-border: #c9d3e0;
 
   /* Accent */
   --brand-1: #4f46e5;
-  --brand-2: #6366f1;
+  --brand-2: #6d28d9;
+  --brand-glow: rgba(79, 70, 229, 0.25);
+
+  /* Semantic colors */
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
 
   /* Elevation */
   --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.05);
-  --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.10), 0 4px 12px rgba(15, 23, 42, 0.07);
-  --shadow-xl: 0 20px 50px rgba(15, 23, 42, 0.14), 0 8px 20px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 12px 36px rgba(15, 23, 42, 0.10), 0 4px 12px rgba(15, 23, 42, 0.06);
+  --shadow-xl: 0 24px 56px rgba(15, 23, 42, 0.13), 0 8px 24px rgba(15, 23, 42, 0.07);
 
   /* Radius */
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
+  --radius-xl: 1.3rem;
+
+  /* Transitions */
+  --transition-fast: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ─── Dark Mode ─────────────────────────────────────────────────────────────── */
@@ -232,24 +243,43 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.75rem;
+  margin-bottom: 2rem;
 }
 
 .page-title-group h1 {
-  font-size: 1.75rem;
+  font-size: 1.8rem;
   font-weight: 800;
-  letter-spacing: -0.03em;
-  margin: 0 0 0.2rem;
-  background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
+  letter-spacing: -0.035em;
+  margin: 0 0 0.25rem;
+  background: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  line-height: 1.15;
 }
 
 .page-title-group p {
   margin: 0;
   color: var(--text-muted);
   font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* Fade + slide up entrance animation for pages */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: pageEnter 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 /* ─── Card ──────────────────────────────────────────────────────────────────── */
@@ -259,6 +289,12 @@ body {
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-md);
   overflow: hidden;
+  transition: box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.card-surface:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: rgba(99, 102, 241, 0.18);
 }
 
 /* ─── Global Button System ──────────────────────────────────────────────────── */
@@ -395,28 +431,33 @@ textarea:focus {
 }
 
 .badge-success {
-  background: #d1fae5;
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
   color: #065f46;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
 .badge-danger {
-  background: #fee2e2;
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
   color: #991b1b;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 .badge-warning {
-  background: #fef3c7;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
   color: #92400e;
+  border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .badge-info {
-  background: #dbeafe;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
   color: #1e40af;
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .badge-neutral {
   background: var(--bg-section);
   color: var(--text-muted);
+  border: 1px solid var(--border-color);
 }
 
 /* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
@@ -436,4 +477,23 @@ textarea:focus {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.55);
+}
+/* --- Global Page Title (gradient across all pages) --------------------------- */
+.page-title {
+  font-size: 1.85rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.035em !important;
+  line-height: 1.15 !important;
+  margin: 0 0 0.15rem !important;
+  background: linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.dark-mode .page-title {
+  background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
 }

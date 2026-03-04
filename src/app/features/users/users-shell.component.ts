@@ -36,6 +36,7 @@ export class UsersShellComponent {
     name: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
+    phoneNumber: ['', [Validators.required, Validators.pattern('^[0-9+() -]*$')]],
     role: ['student' as UserRole, [Validators.required]],
     studentId: [''],
   });
@@ -45,6 +46,7 @@ export class UsersShellComponent {
       name: '',
       email: '',
       password: '',
+      phoneNumber: '',
       role: 'student',
       studentId: '',
     });
@@ -76,6 +78,7 @@ export class UsersShellComponent {
         name: formValue.name ?? '',
         email: formValue.email ?? '',
         password: formValue.password ?? '',
+        phoneNumber: formValue.phoneNumber ?? '',
         role: formValue.role ?? 'student',
         studentId: formValue.studentId || null,
       });

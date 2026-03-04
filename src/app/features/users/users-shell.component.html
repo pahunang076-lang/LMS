@@ -26,6 +26,7 @@
           <tr>
             <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
             <th pSortableColumn="email">Email <p-sortIcon field="email"></p-sortIcon></th>
+            <th pSortableColumn="phoneNumber">Phone No. <p-sortIcon field="phoneNumber"></p-sortIcon></th>
             <th pSortableColumn="role">Role <p-sortIcon field="role"></p-sortIcon></th>
             <th pSortableColumn="studentId">Student ID <p-sortIcon field="studentId"></p-sortIcon></th>
             <th pSortableColumn="isActive">Status <p-sortIcon field="isActive"></p-sortIcon></th>
@@ -39,6 +40,7 @@
               <span>{{ user.name }}</span>
             </td>
             <td>{{ user.email }}</td>
+            <td>{{ user.phoneNumber || '-' }}</td>
             <td>
               <span class="badge badge-info">{{ user.role | titlecase }}</span>
             </td>
@@ -126,6 +128,14 @@
               form.controls.password.touched && form.controls.password.invalid
             ">
             Password must be at least 6 characters.
+          </span>
+        </label>
+
+        <label class="form-field">
+          <span class="form-label">Phone Number <span class="required">*</span></span>
+          <input type="tel" formControlName="phoneNumber" class="form-input" placeholder="Enter phone number" />
+          <span class="error" *ngIf="form.controls.phoneNumber.touched && form.controls.phoneNumber.invalid">
+            Valid phone number is required.
           </span>
         </label>
 

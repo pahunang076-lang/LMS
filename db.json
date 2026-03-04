@@ -1,8 +1,8 @@
 {
   "users": [
     {
-      "id": "admin-1",
-      "uid": "admin-1",
+      "id": "ocRbvd9UY9dbOf37zh7bMh4zCm22",
+      "uid": "ocRbvd9UY9dbOf37zh7bMh4zCm22",
       "name": "Admin User",
       "email": "admin@example.edu",
       "password": "admin123",
@@ -14,8 +14,8 @@
       "isActive": true
     },
     {
-      "id": "librarian-1",
-      "uid": "librarian-1",
+      "id": "rn7bhUA54Ba66SfWEaRvNvbjr9g2",
+      "uid": "rn7bhUA54Ba66SfWEaRvNvbjr9g2",
       "name": "Jane Librarian",
       "email": "librarian@example.edu",
       "password": "librarian123",
@@ -27,8 +27,8 @@
       "isActive": true
     },
     {
-      "id": "student-1",
-      "uid": "student-1",
+      "id": "o6eviWyuaKcNn46nT9f1tTf6wVk1",
+      "uid": "o6eviWyuaKcNn46nT9f1tTf6wVk1",
       "name": "Alice Santos",
       "email": "alice@students.edu",
       "password": "student123",
@@ -40,8 +40,8 @@
       "isActive": true
     },
     {
-      "id": "student-2",
-      "uid": "student-2",
+      "id": "rfV0DKmR0NVZSkwQglINrco2phT2",
+      "uid": "rfV0DKmR0NVZSkwQglINrco2phT2",
       "name": "Bob Cruz",
       "email": "bob@students.edu",
       "password": "student123",
@@ -53,8 +53,8 @@
       "isActive": true
     },
     {
-      "id": "student-3",
-      "uid": "student-3",
+      "id": "DGSg3RiXwTaIMCknMroI00PGVG02",
+      "uid": "DGSg3RiXwTaIMCknMroI00PGVG02",
       "name": "Carol Reyes",
       "email": "carol@students.edu",
       "password": "student123",
@@ -66,8 +66,8 @@
       "isActive": true
     },
     {
-      "id": "user-1772411691598-iym3c02",
-      "uid": "user-1772411691598-iym3c02",
+      "id": "veJaJ9PgB5TSHKL56QAQrdnADeu2",
+      "uid": "veJaJ9PgB5TSHKL56QAQrdnADeu2",
       "name": "Lloyd",
       "email": "lloyd@gmail.com",
       "role": "student",

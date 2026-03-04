@@ -4,6 +4,7 @@ export interface AppUser {
   uid: string;
   name: string;
   email: string;
+  phoneNumber: string;
   role: UserRole;
   studentId?: string | null;
   qrCode: string;
@@ -11,4 +12,5 @@ export interface AppUser {
   lastLoginAt?: unknown;
   isActive?: boolean;
 }
+
 
