@@ -478,6 +478,7 @@ textarea:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.55);
 }
+
 /* --- Global Page Title (gradient across all pages) --------------------------- */
 .page-title {
   font-size: 1.85rem !important;
@@ -496,4 +497,28 @@ textarea:focus {
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
+}
+
+/* ─── SweetAlert2 Custom Overrides ─────────────────────────────────────────── */
+.swal2-custom-input,
+.swal2-popup .swal2-input.swal2-custom-input {
+  font-family: inherit !important;
+  font-size: 0.95rem !important;
+  background: var(--input-bg) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--input-border) !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 0.75rem 1rem !important;
+  margin: 1rem auto !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+  width: 90% !important;
+  max-width: 100% !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
+.swal2-custom-input:focus,
+.swal2-popup .swal2-input.swal2-custom-input:focus {
+  outline: none !important;
+  border-color: var(--brand-1) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
 }

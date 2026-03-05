@@ -25,13 +25,11 @@
         <div class="nav-section-title">Library</div>
 
         <a routerLink="/catalog" routerLinkActive="active" class="nav-link" title="Book Catalog">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label">Book Catalog</span>
         </a>
 
         <a routerLink="/circulation" routerLinkActive="active" class="nav-link" title="Borrow & Return"
           *ngIf="(isAdminOrLibrarian$ | async) || (isStudent$ | async)">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label" style="flex: 1;">Borrow &amp; Return</span>
           <ng-container *ngIf="isStudent$ | async">
             <span class="nav-badge" *ngIf="(overdueNavBadge$ | async) as count" title="Overdue books">
@@ -40,59 +38,50 @@
           </ng-container>
         </a>
 
+        <a routerLink="/my-profile" routerLinkActive="active" class="nav-link" title="My Profile"
+          *ngIf="isStudent$ | async">
+          <span class="nav-label">My Profile</span>
+        </a>
+
         <a routerLink="/reservations" routerLinkActive="active" class="nav-link" title="Reservations">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label">Reservations</span>
         </a>
 
         <a routerLink="/book-requests" routerLinkActive="active" class="nav-link" title="Book Requests">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label">Book Requests</span>
         </a>
 
         <a routerLink="/announcements" routerLinkActive="active" class="nav-link" title="Announcements">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label">Announcements</span>
         </a>
 
-        <a routerLink="/my-profile" routerLinkActive="active" class="nav-link" title="My Profile"
-          *ngIf="isStudent$ | async">
-          <span class="nav-icon" aria-hidden="true"></span>
-          <span class="nav-label">My Profile</span>
-        </a>
       </div>
 
       <div class="nav-section" *ngIf="(isAdminOrLibrarian$ | async)">
         <div class="nav-section-title">Admin</div>
 
         <a routerLink="/dashboard" routerLinkActive="active" class="nav-link" title="Dashboard">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label">Dashboard</span>
         </a>
 
         <a routerLink="/books" routerLinkActive="active" class="nav-link" title="Book Management">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label">Book Management</span>
         </a>
 
         <a routerLink="/fines" routerLinkActive="active" class="nav-link" title="Fines Management">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label">Fines Management</span>
         </a>
 
         <a routerLink="/users" routerLinkActive="active" class="nav-link" title="User Management"
           *ngIf="isAdmin$ | async">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label">User Management</span>
         </a>
 
         <a routerLink="/entry-logs" routerLinkActive="active" class="nav-link" title="Entry Logs">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label">Entry Logs</span>
         </a>
 
         <a routerLink="/reports" routerLinkActive="active" class="nav-link" title="Reports">
-          <span class="nav-icon" aria-hidden="true"></span>
           <span class="nav-label">Reports</span>
         </a>
       </div>
@@ -105,7 +94,7 @@
         <button type="button" class="btn-icon menu-only-mobile" (click)="toggleSidebar()" aria-label="Open menu">
           ☰
         </button>
-        <h1 class="page-title">Library Management System</h1>
+        <p class="page-title">Library Management System</p>
       </div>
 
       <div class="topbar-right">

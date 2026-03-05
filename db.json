@@ -311,7 +311,17 @@
       "forcedCheckout": false
     }
   ],
-  "reservations": [],
+  "reservations": [
+    {
+      "id": "res-1772631962056-cvxjqfjmfmj",
+      "userId": "ya7AGe6PxTgP5z5YSkaL9NqHfLk1",
+      "userName": "JHON LLOYD P. CINCO",
+      "bookId": "gRnVnS4Bh5DmVrP3Nprt",
+      "bookTitle": "how to grow inches",
+      "reservedAt": "2026-03-04T13:46:02.056Z",
+      "status": "ready"
+    }
+  ],
   "bookRequests": [
     {
       "id": "req-1772213976104",

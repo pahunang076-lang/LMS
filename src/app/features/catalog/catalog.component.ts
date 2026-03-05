@@ -8,6 +8,7 @@ import { Observable, combineLatest, map, firstValueFrom } from 'rxjs';
 import { FilterBooksPipe } from '../../shared/filter-books.pipe';
 import { CirculationService } from '../../features/circulation/circulation.service';
 import { TableModule } from 'primeng/table';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-catalog',
@@ -101,7 +102,21 @@ export class CatalogComponent {
   async reserve(book: Book): Promise<void> {
     const user = await firstValueFrom(this.user$);
     if (!user) return;
-    await this.reservationService.reserveBook(user, book);
+
+    const result = await Swal.fire({
+      title: 'Reserve this book?',
+      html: `<b>${book.title}</b><br><small>by ${book.author}</small><br><br>You will be added to the waitlist and notified when it becomes available.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: '📚 Yes, Reserve it!',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#6c63ff',
+      cancelButtonColor: '#aaa',
+    });
+
+    if (result.isConfirmed) {
+      await this.reservationService.reserveBook(user, book);
+    }
   }
 }
 

@@ -60,6 +60,13 @@ export class AuthService {
     map((user) => !!user)
   );
 
+  triggerStateRefresh(): void {
+    const current = this.currentUserSubject.value;
+    if (current) {
+      this.currentUserSubject.next({ ...current });
+    }
+  }
+
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
       // Listen to Firebase Auth state changes for session persistence
@@ -183,6 +190,11 @@ export class AuthService {
       showCancelButton: true,
       confirmButtonText: 'Send reset email',
       confirmButtonColor: '#4f46e5',
+      color: '#111827',
+      background: '#ffffff',
+      customClass: {
+        input: 'swal2-custom-input'
+      },
       inputValidator: (v) => !v ? 'Please enter your email.' : undefined,
     });
 
@@ -196,6 +208,8 @@ export class AuthService {
         title: 'Reset email sent!',
         text: `Check your inbox at ${email} for a password reset link.`,
         confirmButtonColor: '#4f46e5',
+        color: '#111827',
+        background: '#ffffff',
         timer: 4000,
         timerProgressBar: true,
       });
@@ -205,6 +219,8 @@ export class AuthService {
         title: 'Could not send email',
         text: this.mapFirebaseError(err),
         confirmButtonColor: '#4f46e5',
+        color: '#111827',
+        background: '#ffffff',
       });
     } finally {
       this.loadingSignal.set(false);

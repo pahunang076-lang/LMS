@@ -106,14 +106,19 @@ export class BooksShellComponent {
     }
 
     const value = this.form.getRawValue();
+    const qtyAvailable = Number(value.quantityAvailable ?? 0);
+
+    // Auto-sync status based on quantity
+    const autoStatus: BookStatus = qtyAvailable <= 0 ? 'unavailable' : 'available';
+
     const payload: Omit<Book, 'id'> = {
       title: value.title ?? '',
       author: value.author ?? '',
       category: value.category ?? '',
       isbn: value.isbn ?? '',
       quantityTotal: Number(value.quantityTotal ?? 0),
-      quantityAvailable: Number(value.quantityAvailable ?? 0),
-      status: (value.status ?? 'available') as BookStatus,
+      quantityAvailable: qtyAvailable,
+      status: autoStatus,
       description: value.description ?? '',
       shelfLocation: value.shelfLocation ?? '',
     };
@@ -131,9 +136,19 @@ export class BooksShellComponent {
 
   async delete(book: Book): Promise<void> {
     if (!book.id) return;
-    const confirmed = window.confirm(`Are you sure you want to delete "${book.title}"?`);
-    if (!confirmed) return;
-    await this.booksService.deleteBook(book.id);
+    const result = await Swal.fire({
+      title: 'Delete this book?',
+      html: `<b>${book.title}</b> will be permanently removed from the library.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#aaa',
+    });
+    if (result.isConfirmed) {
+      await this.booksService.deleteBook(book.id);
+    }
   }
 
   onSearch(term: string): void {

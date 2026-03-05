@@ -36,22 +36,22 @@
 }
 
 .card {
-    background: linear-gradient(135deg, #fff, #f9fafb);
+    background: var(--bg-card, #ffffff);
     border-radius: 1rem;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
-    border: 1px solid rgba(229, 231, 235, .8);
+    border: 1px solid var(--border-color, rgba(229, 231, 235, .8));
 }
 
 .card h3 {
     margin: 0 0 0.5rem 0;
     font-size: 1.2rem;
     font-weight: 600;
-    color: #111827;
+    color: var(--text-main, #111827);
 }
 
 .section-sub {
-    color: #6b7280;
+    color: var(--text-muted, #6b7280);
     font-size: 0.875rem;
     margin: 0 0 1.25rem 0;
 }
@@ -72,7 +72,7 @@
     gap: 0.4rem;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--text-main, #374151);
 }
 
 .full-width {
@@ -82,7 +82,7 @@
 .form-label {
     font-size: 0.875rem;
     font-weight: 500;
-    color: #374151;
+    color: var(--text-main, #374151);
 }
 
 .required {
@@ -93,9 +93,10 @@
 .form-textarea {
     padding: 0.6rem 0.75rem;
     border-radius: 0.5rem;
-    border: 1px solid #d1d5db;
+    border: 1px solid var(--border-color, #d1d5db);
     font-size: 0.9rem;
-    background: white;
+    background: var(--input-bg, #ffffff);
+    color: var(--text-main, #111827);
     font-family: inherit;
     transition: border-color .2s;
 }
@@ -188,24 +189,24 @@
 .table td {
     padding: 0.75rem;
     text-align: left;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
 .table th {
-    background: #f9fafb;
+    background: var(--bg-section, #f9fafb);
     font-weight: 600;
-    color: #374151;
+    color: var(--text-main, #374151);
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
 .table-row:hover {
-    background: #f9fafb;
+    background: var(--bg-hover, #f9fafb);
 }
 
 .empty {
-    color: #6b7280;
+    color: var(--text-muted, #6b7280);
     font-size: 0.875rem;
     padding: 2rem;
     text-align: center;
@@ -268,5 +269,5 @@
     margin: 0;
     font-size: 1.2rem;
     font-weight: 600;
-    color: #111827;
+    color: var(--text-main, #111827);
 }

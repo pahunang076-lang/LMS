@@ -8,11 +8,12 @@
     <div class="search-bar-container">
       <div class="search-input-wrapper">
         <i class="pi pi-search search-icon"></i>
-        <input type="text" pInputText placeholder="Search by title, author, or category..."
-          class="p-inputtext p-component search-input" (input)="onSearch($any($event.target).value)" />
+        <input #searchInput type="text" pInputText placeholder="Search by title, author, or category..."
+          class="p-inputtext p-component search-input" (input)="onSearch(searchInput.value)" />
       </div>
-      <button class="filter-btn">
-        <i class="pi pi-sliders-h"></i> Filter
+      <button class="filter-btn" (click)="onSearch(''); onStatusFilterChange('all'); searchInput.value = ''"
+        aria-label="Clear Filters">
+        <i class="pi pi-filter-slash"></i> Clear
       </button>
     </div>
   </header>
@@ -38,13 +39,17 @@
       <h2 class="section-title">All books</h2>
 
       <div class="table-actions">
-        <select class="status-select" (change)="onStatusFilterChange($any($event.target).value)"
+        <select #statusSelect class="status-select" (change)="onStatusFilterChange($any(statusSelect.value))"
           aria-label="Filter by availability">
           <option value="all">All statuses</option>
           <option value="available">Available</option>
           <option value="unavailable">Unavailable</option>
         </select>
-        <button class="show-all-btn">Show all <i class="pi pi-chevron-right"></i></button>
+        <button class="show-all-btn"
+          (click)="onSearch(''); onStatusFilterChange('all'); statusSelect.value = 'all'; searchInput.value = ''"
+          aria-label="Show All Books">
+          Show all <i class="pi pi-chevron-right"></i>
+        </button>
       </div>
     </div>
 
@@ -97,7 +102,7 @@
                 </ng-template>
               </td>
               <td>
-                <button *ngIf="(isStudent$ | async) && book.quantityAvailable === 0" class="btn-reserve"
+                <button *ngIf="(isStudent$ | async) && book.status === 'unavailable'" class="btn-reserve"
                   (click)="reserve(book)">
                   <i class="pi pi-bookmark"></i> Reserve
                 </button>
