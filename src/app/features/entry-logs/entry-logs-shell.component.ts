@@ -6,7 +6,7 @@ import { EntryLogsService } from './entry-logs.service';
 import { EntryLog, VisitPurpose } from '../../core/models/entry-log.model';
 import { AppUser } from '../../core/models/user.model';
 import { QrScannerComponent } from '../../shared/qr-scanner.component';
-import { combineLatest, map } from 'rxjs';
+import { BehaviorSubject, combineLatest, map } from 'rxjs';
 
 @Component({
   selector: 'app-entry-logs-shell',
@@ -29,11 +29,18 @@ export class EntryLogsShellComponent {
     map((users) => users.filter((u) => u.role === 'student'))
   );
 
-  /* Search & filter state */
-  searchName = '';
-  filterPurpose: VisitPurpose | 'all' = 'all';
-  filterDateFrom = '';
-  filterDateTo = '';
+  /* Search & filter state — backed by a Subject so filteredLogs$ reacts */
+  private readonly filterSubject = new BehaviorSubject<{
+    searchName: string;
+    filterPurpose: VisitPurpose | 'all';
+    filterDateFrom: string;
+    filterDateTo: string;
+  }>({ searchName: '', filterPurpose: 'all', filterDateFrom: '', filterDateTo: '' });
+
+  get searchName() { return this.filterSubject.value.searchName; }
+  get filterPurpose() { return this.filterSubject.value.filterPurpose; }
+  get filterDateFrom() { return this.filterSubject.value.filterDateFrom; }
+  get filterDateTo() { return this.filterSubject.value.filterDateTo; }
 
   readonly purposes: VisitPurpose[] = ['Study', 'Borrow/Return', 'Research', 'Others'];
 
@@ -47,22 +54,22 @@ export class EntryLogsShellComponent {
     purpose: ['Study' as VisitPurpose, Validators.required],
   });
 
-  /* Filtered recent logs */
-  readonly filteredLogs$ = this.recentLogs$.pipe(
-    map((logs) => this.applyFilters(logs))
+  /* Filtered recent logs — reacts to both data AND filter changes */
+  readonly filteredLogs$ = combineLatest([this.recentLogs$, this.filterSubject]).pipe(
+    map(([logs, filters]) => this.applyFilters(logs, filters))
   );
 
-  private applyFilters(logs: EntryLog[]): EntryLog[] {
+  private applyFilters(logs: EntryLog[], filters: typeof this.filterSubject.value): EntryLog[] {
     return logs.filter((log) => {
-      const matchName = !this.searchName || log.name.toLowerCase().includes(this.searchName.toLowerCase());
-      const matchPurpose = this.filterPurpose === 'all' || log.purpose === this.filterPurpose;
+      const matchName = !filters.searchName || log.name.toLowerCase().includes(filters.searchName.toLowerCase());
+      const matchPurpose = filters.filterPurpose === 'all' || log.purpose === filters.filterPurpose;
       let matchDate = true;
-      if (this.filterDateFrom || this.filterDateTo) {
+      if (filters.filterDateFrom || filters.filterDateTo) {
         const logDate = this.asDate(log.timeIn);
         if (logDate) {
-          if (this.filterDateFrom) matchDate = matchDate && logDate >= new Date(this.filterDateFrom);
-          if (this.filterDateTo) {
-            const to = new Date(this.filterDateTo);
+          if (filters.filterDateFrom) matchDate = matchDate && logDate >= new Date(filters.filterDateFrom);
+          if (filters.filterDateTo) {
+            const to = new Date(filters.filterDateTo);
             to.setHours(23, 59, 59, 999);
             matchDate = matchDate && logDate <= to;
           }
@@ -72,11 +79,12 @@ export class EntryLogsShellComponent {
     });
   }
 
-  onSearch(val: string): void { this.searchName = val; }
-  onPurposeFilter(val: string): void { this.filterPurpose = val as VisitPurpose | 'all'; }
-  onDateFrom(val: string): void { this.filterDateFrom = val; }
-  onDateTo(val: string): void { this.filterDateTo = val; }
-  clearFilters(): void { this.searchName = ''; this.filterPurpose = 'all'; this.filterDateFrom = ''; this.filterDateTo = ''; }
+  onSearch(val: string): void { this.filterSubject.next({ ...this.filterSubject.value, searchName: val }); }
+  onPurposeFilter(val: string): void { this.filterSubject.next({ ...this.filterSubject.value, filterPurpose: val as VisitPurpose | 'all' }); }
+  onDateFrom(val: string): void { this.filterSubject.next({ ...this.filterSubject.value, filterDateFrom: val }); }
+  onDateTo(val: string): void { this.filterSubject.next({ ...this.filterSubject.value, filterDateTo: val }); }
+  clearFilters(): void { this.filterSubject.next({ searchName: '', filterPurpose: 'all', filterDateFrom: '', filterDateTo: '' }); }
+
 
   async manualCheckIn(students: AppUser[]): Promise<void> {
     if (this.manualForm.invalid) { this.manualForm.markAllAsTouched(); return; }

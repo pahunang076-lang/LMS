@@ -5,24 +5,27 @@
         <h4 class="qr-title">{{ title }}</h4>
         <p class="qr-hint" *ngIf="hint">{{ hint }}</p>
       </div>
-      <button
-        *ngIf="availableCameras.length > 1"
-        type="button"
-        class="btn btn-camera-selector"
-        (click)="toggleCameraSelector()"
-        title="Switch camera"
-      >
-        <span class="camera-icon">📷</span>
-        Switch Camera
-      </button>
+      <div class="qr-header-controls">
+        <!-- Camera toggle switch -->
+        <button type="button" class="btn-camera-toggle" [class.camera-on]="isCameraOn" (click)="toggleCamera()"
+          [title]="isCameraOn ? 'Turn camera off' : 'Turn camera on'">
+          <span class="toggle-track">
+            <span class="toggle-thumb"></span>
+          </span>
+          <span class="toggle-label">{{ isCameraOn ? 'Camera On' : 'Camera Off' }}</span>
+        </button>
+
+        <!-- Switch camera button (only when camera is on and multiple cameras) -->
+        <button *ngIf="isCameraOn && availableCameras.length > 1" type="button" class="btn btn-camera-selector"
+          (click)="toggleCameraSelector()" title="Switch camera">
+          <span class="camera-icon">📷</span>
+          Switch
+        </button>
+      </div>
     </div>
     <div class="qr-camera-selector" *ngIf="showCameraSelector && availableCameras.length > 1">
       <label class="camera-selector-label">Select Camera:</label>
-      <select
-        class="camera-select"
-        [value]="selectedCameraId || ''"
-        (change)="switchCamera($any($event.target).value)"
-      >
+      <select class="camera-select" [value]="selectedCameraId || ''" (change)="switchCamera($any($event.target).value)">
         <option *ngFor="let camera of availableCameras" [value]="camera.deviceId">
           {{ camera.label }}
         </option>
@@ -30,17 +33,17 @@
     </div>
   </header>
 
-  <div class="qr-scanner-host">
+  <!-- Camera off state -->
+  <div class="qr-camera-off" *ngIf="!isCameraOn">
+    <span class="camera-off-icon">📷</span>
+    <p>Camera is off. Toggle the switch above to start scanning.</p>
+  </div>
+
+  <!-- Camera on state -->
+  <div class="qr-scanner-host" *ngIf="isCameraOn">
     <div class="qr-scanner-wrapper" *ngIf="!errorMessage">
-      <video
-        #videoElement
-        class="qr-video"
-        autoplay
-        playsinline
-        muted
-        [class.hidden]="isInitializing"
-      ></video>
-      
+      <video #videoElement class="qr-video" autoplay playsinline muted [class.hidden]="isInitializing"></video>
+
       <div class="qr-scanner-overlay" *ngIf="!isInitializing">
         <div class="qr-scanner-box"></div>
       </div>
@@ -60,13 +63,9 @@
   </div>
 
   <div class="qr-status" *ngIf="lastResult">
-    <span
-      class="qr-status-icon"
-      [class.qr-status-icon--success]="hasScanSuccess"
-    >
+    <span class="qr-status-icon" [class.qr-status-icon--success]="hasScanSuccess">
       ✔
     </span>
     <span class="qr-status-text">Last scanned: {{ lastResult }}</span>
   </div>
 </section>
-

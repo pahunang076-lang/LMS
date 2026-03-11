@@ -7,6 +7,8 @@ import {
   Output,
   ViewChild,
   ElementRef,
+  ChangeDetectorRef,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -51,18 +53,58 @@ export class QrScannerComponent implements OnInit, OnDestroy {
 
   lastResult: string | null = null;
   hasScanSuccess = false;
-  isInitializing = true;
+  isInitializing = false;
   errorMessage: string | null = null;
   availableCameras: Array<{ deviceId: string; label: string }> = [];
   selectedCameraId: string | null = null;
   showCameraSelector = false;
 
+  /** Whether the camera is currently active (user toggled on) */
+  isCameraOn = false;
+
+  private readonly cdr = inject(ChangeDetectorRef);
+
   async ngOnInit(): Promise<void> {
-    if (!this.isBrowser) {
-      return;
+    // Camera does NOT auto-start; user must toggle it on.
+  }
+
+  toggleCamera(): void {
+    if (this.isCameraOn) {
+      this.stopCamera();
+    } else {
+      this.startCamera();
+    }
+  }
+
+  startCamera(): void {
+    this.isCameraOn = true;
+    this.errorMessage = null;
+    this.initializeScanner();
+  }
+
+  stopCamera(): void {
+    this.isCameraOn = false;
+    this.isInitializing = false;
+    this.scanning = false;
+
+    if (this.videoCheckInterval) {
+      clearInterval(this.videoCheckInterval);
+      this.videoCheckInterval = null;
     }
 
-    await this.initializeScanner();
+    if (this.reader) {
+      try {
+        this.reader.reset();
+        this.reader.stopAsyncDecode();
+      } catch (_) { }
+      this.reader = null;
+    }
+
+    if (this.videoElement?.nativeElement?.srcObject) {
+      const stream = this.videoElement.nativeElement.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      this.videoElement.nativeElement.srcObject = null;
+    }
   }
 
   async initializeScanner(deviceId?: string): Promise<void> {
@@ -165,13 +207,13 @@ export class QrScannerComponent implements OnInit, OnDestroy {
 
       const videoElement = this.videoElement!.nativeElement;
       const videoElementId = `qr-video-${Math.random().toString(36).slice(2)}`;
-      
+
       // Set the ID and ensure video attributes are correct
       videoElement.id = videoElementId;
       videoElement.setAttribute('autoplay', 'true');
       videoElement.setAttribute('playsinline', 'true');
       videoElement.setAttribute('muted', 'true'); // Muted helps with autoplay
-      
+
       // Ensure video is visible and ready
       videoElement.style.display = 'block';
       videoElement.style.width = '100%';
@@ -225,7 +267,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
           this.scanning = true;
           videoElement.style.display = 'block';
           videoElement.classList.remove('hidden');
-          
+
           if (this.videoCheckInterval) {
             clearInterval(this.videoCheckInterval);
             this.videoCheckInterval = null;
@@ -256,7 +298,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
 
         const hasStream = !!videoElement.srcObject;
         const hasDimensions = videoElement.videoWidth > 0 && videoElement.videoHeight > 0;
-        
+
         if (hasStream && hasDimensions) {
           markCameraReady();
         }
@@ -269,7 +311,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
         }
         this.videoCheckInterval = setInterval(checkForStream, 100);
       }, 300);
-      
+
       // Safety timeout - mark as ready if stream exists after 3 seconds
       setTimeout(() => {
         if (this.isInitializing && videoElement.srcObject) {
@@ -279,50 +321,50 @@ export class QrScannerComponent implements OnInit, OnDestroy {
 
       // Callback function for handling scan results
       const handleScanResult = (result: any, err: any): void => {
-          if (result) {
-            const decodedText = result.getText();
-            
-            // Only emit if it's a new result
-            if (this.lastResult !== decodedText) {
-              this.lastResult = decodedText;
-              this.hasScanSuccess = true;
-              this.scanned.emit(decodedText);
+        if (result) {
+          const decodedText = result.getText();
 
-              // Briefly flash the success state
-              setTimeout(() => {
-                this.hasScanSuccess = false;
-              }, 800);
-            }
-          }
+          // Only emit if it's a new result
+          if (this.lastResult !== decodedText) {
+            this.lastResult = decodedText;
+            this.hasScanSuccess = true;
+            this.scanned.emit(decodedText);
 
-          if (err) {
-            // NotFoundException is expected when no QR code is found
-            // Don't emit error for this as it happens frequently during scanning
-            const errorName = err?.name || err?.constructor?.name || '';
-            const errorMessage = String(err?.message || '');
-            
-            // Ignore expected "not found" errors that occur during normal scanning
-            const isExpectedError = 
-              errorName === 'NotFoundException' ||
-              errorName === 'NoQRCodeFoundException' ||
-              errorMessage.includes('No QR code') ||
-              errorMessage.includes('not found') ||
-              errorMessage.includes('NotFoundException') ||
-              (errorMessage.includes('element with id') && errorMessage.includes('not found')) ||
-              errorMessage.includes('No MultiFormat Readers') ||
-              errorMessage.includes('unable to detect');
-            
-            if (!isExpectedError && !this.errorMessage) {
-              // Only emit actual unexpected errors
-              this.errorMessage = errorMessage || 'Scan error';
-              this.scanError.emit(this.errorMessage || undefined);
-            }
+            // Briefly flash the success state
+            setTimeout(() => {
+              this.hasScanSuccess = false;
+            }, 800);
           }
-        };
+        }
+
+        if (err) {
+          // NotFoundException is expected when no QR code is found
+          // Don't emit error for this as it happens frequently during scanning
+          const errorName = err?.name || err?.constructor?.name || '';
+          const errorMessage = String(err?.message || '');
+
+          // Ignore expected "not found" errors that occur during normal scanning
+          const isExpectedError =
+            errorName === 'NotFoundException' ||
+            errorName === 'NoQRCodeFoundException' ||
+            errorMessage.includes('No QR code') ||
+            errorMessage.includes('not found') ||
+            errorMessage.includes('NotFoundException') ||
+            (errorMessage.includes('element with id') && errorMessage.includes('not found')) ||
+            errorMessage.includes('No MultiFormat Readers') ||
+            errorMessage.includes('unable to detect');
+
+          if (!isExpectedError && !this.errorMessage) {
+            // Only emit actual unexpected errors
+            this.errorMessage = errorMessage || 'Scan error';
+            this.scanError.emit(this.errorMessage || undefined);
+          }
+        }
+      };
 
       // Start decoding from video device - let ZXing handle the stream attachment
       let decodePromise: Promise<any>;
-      
+
       if ((this.reader as any).decodeFromConstraints) {
         // Use decodeFromConstraints with optimized video constraints
         const videoConstraints: MediaTrackConstraints = {
@@ -330,7 +372,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
           width: { ideal: 1280, min: 640 },
           height: { ideal: 720, min: 480 },
         };
-        
+
         decodePromise = this.reader.decodeFromConstraints(
           { video: videoConstraints },
           videoElementId,
@@ -352,7 +394,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
         // Handle initialization errors
         const errorMessage = err?.message || 'Failed to start camera scanner.';
         console.error('Scanner initialization error', err);
-        
+
         // Check if it's the "element not found" error and retry once
         if (errorMessage.includes('element with id') && errorMessage.includes('not found') && this.retryCount < this.MAX_RETRIES) {
           this.retryCount++;
@@ -367,7 +409,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
           }, 300);
           return;
         }
-        
+
         this.isInitializing = false;
         this.errorMessage = errorMessage;
         this.scanError.emit(this.errorMessage || undefined);
@@ -384,7 +426,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
     if (deviceId === this.currentDeviceId) {
       return; // Already using this camera
     }
-    
+
     this.selectedCameraId = deviceId;
     this.showCameraSelector = false; // Close selector after selection
     await this.initializeScanner(deviceId);

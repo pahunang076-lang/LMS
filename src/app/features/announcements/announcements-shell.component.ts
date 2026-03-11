@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { AuthService } from '../../core/services/auth.service';
-import { map } from 'rxjs';
+import { map, firstValueFrom } from 'rxjs';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -27,7 +27,7 @@ export class AnnouncementsShellComponent {
     async postAnnouncement(): Promise<void> {
         if (!this.newTitle.trim() || !this.newBody.trim()) return;
 
-        const user = await this.user$.pipe().toPromise();
+        const user = await firstValueFrom(this.user$);
 
         await this.announcementService.createAnnouncement({
             title: this.newTitle.trim(),
