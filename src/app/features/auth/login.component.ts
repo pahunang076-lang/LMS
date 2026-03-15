@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { animate, style, transition, trigger } from '@angular/animations';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -16,6 +17,24 @@ import { QrScannerComponent } from '../../shared/qr-scanner.component';
   imports: [CommonModule, ReactiveFormsModule, QrScannerComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
+  animations: [
+    trigger('modeTransition', [
+      transition('login => reset', [
+        style({ opacity: 0, transform: 'translateX(16px)' }),
+        animate(
+          '220ms ease-out',
+          style({ opacity: 1, transform: 'translateX(0)' })
+        ),
+      ]),
+      transition('reset => login', [
+        style({ opacity: 0, transform: 'translateX(-16px)' }),
+        animate(
+          '220ms ease-out',
+          style({ opacity: 1, transform: 'translateX(0)' })
+        ),
+      ]),
+    ]),
+  ],
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
@@ -24,10 +43,15 @@ export class LoginComponent {
 
   showPassword = false;
   readonly loginMode = signal<'email' | 'qr'>('email');
+  isResetPasswordMode = false;
 
   readonly form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
+  });
+
+  readonly resetForm = this.fb.group({
+    email: ['', [Validators.required, Validators.email]],
   });
 
   readonly isLoading = this.authService.isLoading;
@@ -59,7 +83,33 @@ export class LoginComponent {
   }
 
   goToForgotPassword(): void {
-    this.authService.resetPassword();
+    this.isResetPasswordMode = true;
+    this.resetForm.reset();
+  }
+
+  cancelResetPassword(): void {
+    this.isResetPasswordMode = false;
+    this.resetForm.reset();
+  }
+
+  async submitResetPassword(): Promise<void> {
+    if (this.resetForm.invalid) {
+      this.resetForm.markAllAsTouched();
+      return;
+    }
+
+    const { email } = this.resetForm.getRawValue();
+    if (!email) {
+      return;
+    }
+
+    try {
+      await this.authService.resetPassword(email);
+      this.isResetPasswordMode = false;
+      this.resetForm.reset();
+    } catch {
+      // Error handling is managed in the auth service
+    }
   }
 
   setLoginMode(mode: 'email' | 'qr'): void {

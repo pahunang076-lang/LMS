@@ -53,6 +53,6 @@ export class ReservationsShellComponent {
     }
 
     statusLabel(s: ReservationStatus): string {
-        return { pending: 'Pending', ready: 'Ready for Pickup', cancelled: 'Cancelled', fulfilled: 'Fulfilled' }[s] ?? s;
+        return { pending: 'Pending', ready: 'Ready for Pickup', cancelled: 'Cancelled', fulfilled: 'Completed' }[s] ?? s;
     }
 }

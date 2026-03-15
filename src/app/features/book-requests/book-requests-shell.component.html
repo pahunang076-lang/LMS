@@ -113,7 +113,7 @@
                                     Reject</button>
                             </ng-container>
                             <button class="btn btn-small btn-fulfill" *ngIf="r.status === 'approved'"
-                                (click)="updateStatus(r, 'fulfilled')">📦 Mark Fulfilled</button>
+                                (click)="updateStatus(r, 'fulfilled')">📦 Mark Completed</button>
                             <span class="resolved" *ngIf="r.status === 'rejected' || r.status === 'fulfilled'">
                                 {{ r.resolvedAt | date: 'shortDate' }}
                             </span>

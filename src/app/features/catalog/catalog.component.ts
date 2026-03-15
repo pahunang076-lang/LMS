@@ -8,12 +8,13 @@ import { Observable, combineLatest, map, firstValueFrom } from 'rxjs';
 import { FilterBooksPipe } from '../../shared/filter-books.pipe';
 import { CirculationService } from '../../features/circulation/circulation.service';
 import { TableModule } from 'primeng/table';
+import { DialogModule } from 'primeng/dialog';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-catalog',
   standalone: true,
-  imports: [CommonModule, FilterBooksPipe, TableModule],
+  imports: [CommonModule, FilterBooksPipe, TableModule, DialogModule],
   templateUrl: './catalog.component.html',
   styleUrl: './catalog.component.css',
 })
@@ -86,6 +87,10 @@ export class CatalogComponent {
   readonly searchTerm = signal('');
   readonly categoryFilter = signal<string | 'all'>('all');
   readonly statusFilter = signal<BookStatus | 'all'>('all');
+  showAll = false;
+
+  selectedBook: Book | null = null;
+  bookDialogVisible = false;
 
   onSearch(term: string): void {
     this.searchTerm.set(term.toLowerCase());
@@ -97,6 +102,22 @@ export class CatalogComponent {
 
   onCategoryFilterChange(category: string | 'all'): void {
     this.categoryFilter.set(category);
+  }
+
+  onShowAll(): void {
+    this.onSearch('');
+    this.onStatusFilterChange('all');
+    this.onCategoryFilterChange('all');
+    this.showAll = true;
+  }
+
+  openBookDetails(book: Book): void {
+    this.selectedBook = book;
+    this.bookDialogVisible = true;
+  }
+
+  closeBookDetails(): void {
+    this.bookDialogVisible = false;
   }
 
   async reserve(book: Book): Promise<void> {

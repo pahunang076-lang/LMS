@@ -58,6 +58,31 @@
   flex-shrink: 0;
 }
 
+.sidebar-greeting-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  color: #e5e7eb;
+}
+
+.sidebar-greeting-subtitle {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: rgba(148, 163, 184, 0.7);
+}
+
+.sidebar-greeting-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
 .sidebar-actions {
   display: inline-flex;
   align-items: center;

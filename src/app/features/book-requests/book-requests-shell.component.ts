@@ -72,7 +72,7 @@ export class BookRequestsShellComponent {
 
     statusLabel(s: BookRequestStatus): string {
         const map: Record<BookRequestStatus, string> = {
-            pending: '🕐 Pending', approved: '✅ Approved', rejected: '❌ Rejected', fulfilled: '📦 Fulfilled',
+            pending: '🕐 Pending', approved: '✅ Approved', rejected: '❌ Rejected', fulfilled: '📦 Completed',
         };
         return map[s] ?? s;
     }

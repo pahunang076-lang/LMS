@@ -9,7 +9,8 @@ export class FilterBooksPipe implements PipeTransform {
   transform(
     books: Book[] | null | undefined,
     searchTerm: string,
-    status: BookStatus | 'all'
+    status: BookStatus | 'all',
+    category: string | 'all' = 'all'
   ): Book[] {
     if (!books || books.length === 0) {
       return [];
@@ -20,6 +21,17 @@ export class FilterBooksPipe implements PipeTransform {
     return books.filter((book) => {
       if (status !== 'all' && book.status !== status) {
         return false;
+      }
+
+      if (category && category !== 'all') {
+        const predefined = new Set(['Science', 'Arts', 'Commerce', 'Design', 'Cooking']);
+        if (category === 'others') {
+          if (predefined.has(book.category)) {
+            return false;
+          }
+        } else if (book.category !== category) {
+          return false;
+        }
       }
 
       if (!term) {

@@ -21,7 +21,12 @@
   <section class="subjects-section" *ngIf="subjects$ | async as subjects">
     <h2 class="section-title">Subjects section</h2>
     <div class="subjects-grid">
-      <article class="subject-card" *ngFor="let sub of subjects" [ngClass]="'subject-' + sub.name.toLowerCase()">
+      <article
+        class="subject-card"
+        *ngFor="let sub of subjects"
+        [ngClass]="'subject-' + sub.name.toLowerCase()"
+        (click)="onCategoryFilterChange(sub.name === 'Others' ? 'others' : sub.name)"
+      >
         <div class="subject-info">
           <h3 class="subject-name">{{ sub.name }}</h3>
           <span class="subject-icon">{{ sub.icon }}</span>
@@ -39,14 +44,14 @@
       <h2 class="section-title">All books</h2>
 
       <div class="table-actions">
-        <select #statusSelect class="status-select" (change)="onStatusFilterChange($any(statusSelect.value))"
+        <select #statusSelect class="status-select" (change)="onStatusFilterChange($any(statusSelect.value)); showAll = false"
           aria-label="Filter by availability">
           <option value="all">All statuses</option>
           <option value="available">Available</option>
           <option value="unavailable">Unavailable</option>
         </select>
         <button class="show-all-btn"
-          (click)="onSearch(''); onStatusFilterChange('all'); statusSelect.value = 'all'; searchInput.value = ''"
+          (click)="onShowAll(); statusSelect.value = 'all'; searchInput.value = ''"
           aria-label="Show All Books">
           Show all <i class="pi pi-chevron-right"></i>
         </button>
@@ -55,7 +60,9 @@
 
     <div class="premium-table-container">
       <ng-container *ngIf="books$ | async as books; else loading">
-        <p-table [value]="books | filterBooks: searchTerm():statusFilter()" [paginator]="true" [rows]="10"
+        <p-table [value]="books | filterBooks: searchTerm():statusFilter():categoryFilter()"
+          [paginator]="!showAll"
+          [rows]="showAll ? books.length : 10"
           [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} books"
           [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-premium">
           <ng-template pTemplate="header">
@@ -69,7 +76,7 @@
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-book>
-            <tr>
+            <tr (click)="openBookDetails(book)" class="book-row">
               <td>
                 <div class="book-cell">
                   <div class="book-cover-placeholder">📚</div>
@@ -102,8 +109,11 @@
                 </ng-template>
               </td>
               <td>
-                <button *ngIf="(isStudent$ | async) && book.status === 'unavailable'" class="btn-reserve"
-                  (click)="reserve(book)">
+                <button
+                  *ngIf="(isStudent$ | async) && book.status === 'unavailable'"
+                  class="btn-reserve"
+                  (click)="$event.stopPropagation(); reserve(book)"
+                >
                   <i class="pi pi-bookmark"></i> Reserve
                 </button>
               </td>
@@ -127,4 +137,77 @@
       </ng-template>
     </div>
   </section>
+
+  <p-dialog
+    [(visible)]="bookDialogVisible"
+    [modal]="true"
+    [style]="{ width: '480px' }"
+    [dismissableMask]="true"
+    [breakpoints]="{ '960px': '90vw', '640px': '95vw' }"
+    [draggable]="false"
+    [resizable]="false"
+    styleClass="book-dialog"
+    *ngIf="selectedBook as book"
+  >
+    <ng-template pTemplate="header">
+      <header class="book-dialog-header">
+        <div class="book-cover-chip">📚</div>
+        <div class="book-dialog-heading">
+          <h2 class="book-dialog-title">{{ book.title }}</h2>
+          <p class="book-dialog-author">by {{ book.author }}</p>
+        </div>
+      </header>
+    </ng-template>
+
+    <div class="book-dialog-content">
+      <div class="book-dialog-row">
+        <span class="label">Subject</span>
+        <span class="value badge-subject">{{ book.category }}</span>
+      </div>
+      <div class="book-dialog-row">
+        <span class="label">Status</span>
+        <span class="value">
+          <span
+            class="badge-status"
+            [ngClass]="{
+              'status-available': book.status === 'available',
+              'status-unavailable': book.status === 'unavailable'
+            }"
+          >
+            {{ book.status | titlecase }}
+          </span>
+          <span class="availability-text">
+            {{ book.quantityAvailable }} / {{ book.quantityTotal }} copies
+          </span>
+        </span>
+      </div>
+      <div class="book-dialog-row" *ngIf="book._avgRating as rating">
+        <span class="label">Rating</span>
+        <span class="value rating-inline">
+          <span class="star-icon">★</span>
+          <span class="rating-value">{{ rating | number: '1.1-1' }}</span>
+          <span class="rating-count">({{ book._reviewCount ?? 0 }} reviews)</span>
+        </span>
+      </div>
+      <div class="book-dialog-row" *ngIf="book.description">
+        <span class="label">Description</span>
+        <p class="value description-text">
+          {{ book.description }}
+        </p>
+      </div>
+      <div class="book-dialog-row" *ngIf="book.isbn">
+        <span class="label">ISBN</span>
+        <span class="value">{{ book.isbn }}</span>
+      </div>
+    </div>
+
+    <ng-template pTemplate="footer">
+      <div class="book-dialog-footer">
+        <span class="footer-hint">Tap anywhere outside or use the button to close.</span>
+        <button type="button" class="btn-close-dialog" (click)="closeBookDetails()">
+          Close
+        </button>
+      </div>
+    </ng-template>
+  </p-dialog>
 </section>

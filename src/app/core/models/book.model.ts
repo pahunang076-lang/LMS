@@ -12,7 +12,10 @@ export interface Book {
   description?: string;
   shelfLocation?: string;
   borrowCount?: number;   // Feature 5: total times borrowed
+  coverImage?: string;    // Optional base64/URL for book cover
   createdAt?: unknown;
   updatedAt?: unknown;
+  _avgRating?: number;
+  _reviewCount?: number;
 }
 

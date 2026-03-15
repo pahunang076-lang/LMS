@@ -48,11 +48,12 @@
 
   <div class="table-container">
     <ng-container *ngIf="books$ | async as books; else loading">
-      <p-table [value]="books | filterBooks: searchTerm():statusFilter()" [paginator]="true" [rows]="10"
+      <p-table [value]="books | filterBooks: searchTerm():statusFilter():'all'" [paginator]="true" [rows]="10"
         [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} books"
         [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-sm">
         <ng-template pTemplate="header">
           <tr>
+            <th style="width: 80px;">Cover</th>
             <th pSortableColumn="title">Title <p-sortIcon field="title"></p-sortIcon></th>
             <th pSortableColumn="author">Author <p-sortIcon field="author"></p-sortIcon></th>
             <th pSortableColumn="category">Category <p-sortIcon field="category"></p-sortIcon></th>
@@ -64,9 +65,20 @@
         </ng-template>
         <ng-template pTemplate="body" let-book>
           <tr>
+            <td>
+              <div style="display:flex;justify-content:center;align-items:center;">
+                <img *ngIf="book.coverImage; else defaultCover" [src]="book.coverImage"
+                  alt="{{ book.title }} cover" style="width:48px;height:64px;object-fit:cover;border-radius:4px;" />
+                <ng-template #defaultCover>
+                  <div
+                    style="width:48px;height:64px;border-radius:4px;border:1px dashed #d1d5db;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:#9ca3af;">
+                    📚
+                  </div>
+                </ng-template>
+              </div>
+            </td>
             <td class="table-cell-title">
               <div class="book-title-wrapper">
-                <span class="book-icon">📚</span>
                 <span>{{ book.title }}</span>
               </div>
             </td>
@@ -120,7 +132,7 @@
         </ng-template>
         <ng-template pTemplate="emptymessage">
           <tr>
-            <td colspan="7" style="text-align: center; padding: 0;">
+            <td colspan="8" style="text-align: center; padding: 0;">
               <div class="empty-state">
                 No books found. Click "Add Book" to create one.
               </div>
@@ -197,6 +209,36 @@
         <label class="form-field">
           <span class="form-label">Shelf Location</span>
           <input type="text" formControlName="shelfLocation" class="form-input" placeholder="e.g., A1, B3, Reference" />
+        </label>
+
+        <label class="form-field full-width">
+          <span class="form-label">Cover Image</span>
+          <div class="cover-upload">
+            <button type="button" class="btn-cover-upload" (click)="coverFile.click()">
+              <span class="btn-cover-icon">📷</span>
+              <span class="btn-cover-text">
+                <strong>Select cover</strong>
+                <span class="btn-cover-subtext">JPG, PNG up to ~1–2 MB</span>
+              </span>
+            </button>
+            <input #coverFile type="file" accept="image/*" class="cover-file-input"
+              (change)="onCoverSelected($event)" />
+
+            <div *ngIf="form.value.coverImage" class="cover-preview">
+              <img [src]="form.value.coverImage" alt="Cover preview" class="cover-preview-image" />
+              <div class="cover-preview-text">
+                <div class="cover-preview-title">
+                  Preview
+                  <button type="button" class="btn-cover-remove" (click)="removeCover(coverFile)">
+                    Remove cover
+                  </button>
+                </div>
+                <div class="cover-preview-subtitle">
+                  This is how the book cover will appear in the list.
+                </div>
+              </div>
+            </div>
+          </div>
         </label>
 
         <div class="dialog-actions full-width">

@@ -47,6 +47,7 @@ export class BooksShellComponent {
     status: ['available' as BookStatus, [Validators.required]],
     description: [''],
     shelfLocation: [''],
+    coverImage: [''],
   });
 
   readonly filteredBooks = computed(() => {
@@ -67,6 +68,7 @@ export class BooksShellComponent {
       status: 'available',
       description: '',
       shelfLocation: '',
+      coverImage: '',
     });
     this.isDialogOpen.set(true);
   }
@@ -83,6 +85,7 @@ export class BooksShellComponent {
       status: book.status,
       description: book.description ?? '',
       shelfLocation: book.shelfLocation ?? '',
+      coverImage: book.coverImage ?? '',
     });
     this.isDialogOpen.set(true);
   }
@@ -121,6 +124,7 @@ export class BooksShellComponent {
       status: autoStatus,
       description: value.description ?? '',
       shelfLocation: value.shelfLocation ?? '',
+      coverImage: value.coverImage ?? '',
     };
 
     const current = this.editingBook();
@@ -132,6 +136,42 @@ export class BooksShellComponent {
     }
 
     this.closeDialog();
+  }
+
+  onCoverSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    // Basic guard so images stay within Firestore / network limits
+    // You can raise this further, but avoid going near Firestore's 1 MB per-document limit.
+    const maxBytes = 900 * 1024; // ~900 KB
+    if (file.size > maxBytes) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Image too large',
+        text: 'Please choose a smaller image (around 900 KB or less).',
+        confirmButtonColor: '#4f46e5',
+      });
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : '';
+      this.form.patchValue({ coverImage: result });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeCover(input?: HTMLInputElement): void {
+    this.form.patchValue({ coverImage: '' });
+    if (input) {
+      input.value = '';
+    }
   }
 
   async delete(book: Book): Promise<void> {

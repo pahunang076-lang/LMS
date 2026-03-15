@@ -27,7 +27,8 @@
 
     <!-- ===== RIGHT PANEL: Login Card ===== -->
     <div class="form-panel">
-      <div class="login-card" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <div class="login-card" role="dialog" aria-modal="true" aria-labelledby="loginTitle"
+        [@modeTransition]="isResetPasswordMode ? 'reset' : 'login'">
 
         <!-- Card Header -->
         <div class="card-header">
@@ -35,13 +36,19 @@
             <img src="/images/Library Management S.png" alt="Library Management System logo" class="card-logo" />
           </div>
           <div>
-            <h1 class="title" id="loginTitle">Welcome back</h1>
-            <p class="subtitle">Sign in to your LMS account</p>
+            <h1 class="title" id="loginTitle" *ngIf="!isResetPasswordMode; else resetTitleTpl">Welcome back</h1>
+            <ng-template #resetTitleTpl>
+              <h1 class="title">Reset Password</h1>
+            </ng-template>
+            <p class="subtitle" *ngIf="!isResetPasswordMode">Sign in to your LMS account</p>
+            <p class="subtitle" *ngIf="isResetPasswordMode">
+              Enter the email address for your account. We'll send you a password reset link.
+            </p>
           </div>
         </div>
 
-        <!-- Login Mode Toggle -->
-        <div class="login-mode-toggle">
+        <!-- Login Mode Toggle (hidden while in reset password mode) -->
+        <div class="login-mode-toggle" *ngIf="!isResetPasswordMode">
           <button type="button" class="toggle-btn" [class.active]="loginMode() === 'email'"
             (click)="setLoginMode('email')">
             ✉️ Email & Password
@@ -52,7 +59,8 @@
         </div>
 
         <!-- Email/Password Login Form -->
-        <form *ngIf="loginMode() === 'email'" [formGroup]="form" (ngSubmit)="submit()" class="form" novalidate>
+        <form *ngIf="loginMode() === 'email' && !isResetPasswordMode" [formGroup]="form" (ngSubmit)="submit()"
+          class="form" novalidate>
           <label class="field">
             <span class="label">Email</span>
             <div class="control">
@@ -109,6 +117,39 @@
             <button type="button" class="link-button" (click)="goToForgotPassword()">
               <span class="link-button-text">Forgot your password?</span>
               <span class="link-button-icon" aria-hidden="true">?</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Reset Password Form (inline, no modal) -->
+        <form *ngIf="isResetPasswordMode" [formGroup]="resetForm" (ngSubmit)="submitResetPassword()" class="form"
+          novalidate>
+          <label class="field">
+            <span class="label">Email</span>
+            <div class="control">
+              <span class="control-icon" aria-hidden="true">✉</span>
+              <input type="email" formControlName="email" placeholder="name@example.edu" autocomplete="email"
+                inputmode="email" [attr.aria-invalid]="resetForm.controls.email.touched && resetForm.controls.email.invalid"
+                [class.has-error]="resetForm.controls.email.touched && resetForm.controls.email.invalid" />
+            </div>
+            <span class="error" *ngIf="resetForm.controls.email.touched && resetForm.controls.email.invalid">
+              Please enter a valid email.
+            </span>
+          </label>
+
+          <div class="form-footer form-footer-actions">
+            <button class="btn btn-primary" type="submit" [disabled]="isLoading()" [class.loading]="isLoading()"
+              [attr.aria-busy]="isLoading()">
+              <span class="btn-inner">
+                <span class="btn-spinner" aria-hidden="true"></span>
+                <span class="btn-text" *ngIf="!isLoading(); else loadingResetTpl">Send reset email</span>
+                <ng-template #loadingResetTpl>
+                  <span class="btn-text">Sending...</span>
+                </ng-template>
+              </span>
+            </button>
+            <button type="button" class="btn btn-secondary" (click)="cancelResetPassword()">
+              Cancel
             </button>
           </div>
         </form>

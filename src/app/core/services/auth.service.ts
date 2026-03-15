@@ -181,24 +181,18 @@ export class AuthService {
 
   // ─── Password reset (Firebase sends the real email) ─────────────────────────
 
-  async resetPassword(): Promise<void> {
-    const { value: email, isConfirmed } = await Swal.fire({
-      title: '🔑 Reset Password',
-      text: 'Enter the email address for your account. We\'ll send you a password reset link.',
-      input: 'email',
-      inputPlaceholder: 'name@example.edu',
-      showCancelButton: true,
-      confirmButtonText: 'Send reset email',
-      confirmButtonColor: '#4f46e5',
-      color: '#111827',
-      background: '#ffffff',
-      customClass: {
-        input: 'swal2-custom-input'
-      },
-      inputValidator: (v) => !v ? 'Please enter your email.' : undefined,
-    });
-
-    if (!isConfirmed || !email) return;
+  async resetPassword(email: string): Promise<void> {
+    if (!email) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Email required',
+        text: 'Please enter your email address.',
+        confirmButtonColor: '#4f46e5',
+        color: '#111827',
+        background: '#ffffff',
+      });
+      return;
+    }
 
     this.loadingSignal.set(true);
     try {
