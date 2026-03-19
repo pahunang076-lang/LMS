@@ -23,6 +23,52 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // Validates that a student is only updating their own borrow record in ways
+    // that match the client flows (return/pay/review). Staff can update anything.
+    function isValidOwnerBorrowUpdate() {
+      // Immutable ownership / identity fields must not change.
+      return request.resource.data.userId == resource.data.userId
+        && request.resource.data.bookId == resource.data.bookId
+        && request.resource.data.bookTitle == resource.data.bookTitle
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.borrowedAt == resource.data.borrowedAt
+        && request.resource.data.dueAt == resource.data.dueAt
+        // Core numeric sanity.
+        && request.resource.data.fineAmount is number
+        && request.resource.data.fineAmount >= 0
+        // If the student is paying a fine, they must be marking it as paid on the returned state.
+        && (
+          request.resource.data.finePaid == true
+            ? (
+                request.resource.data.status == 'returned'
+                && request.resource.data.fineAmount > 0
+                && request.resource.data.finePaidAt is string
+              )
+            : true
+        )
+        // If the student transitions from "borrowed" to a finished state, returnedAt must be present.
+        && (
+          resource.data.status == 'borrowed'
+            ? (request.resource.data.status in ['returned', 'overdue'] && request.resource.data.returnedAt != null)
+            : true
+        );
+    }
+
+    // Validates that a student is only logging their own exit (Inside -> Left)
+    // without enabling staff-only "forcedCheckout".
+    function isValidOwnerEntryLogExitUpdate() {
+      return request.resource.data.userId == resource.data.userId
+        && request.resource.data.timeIn == resource.data.timeIn
+        && request.resource.data.purpose == resource.data.purpose
+        && request.resource.data.name == resource.data.name
+        && request.resource.data.forcedCheckout == false
+        && resource.data.status == 'Inside'
+        && request.resource.data.status == 'Left'
+        && request.resource.data.timeOut is timestamp
+        && request.resource.data.durationMinutes is number
+        && request.resource.data.durationMinutes >= 0;
+    }
+
     // Users
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdminOrLibrarian();
@@ -41,8 +87,10 @@ service cloud.firestore {
       // Students can create borrows only for themselves
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid;
-      // Only staff can update or delete borrowing records
-      allow update, delete: if isAdminOrLibrarian();
+      // Owners (students) can return/pay/review their own borrow records.
+      allow update: if isAdminOrLibrarian() || (isOwner(resource.data.userId) && isValidOwnerBorrowUpdate());
+      // Only staff can delete borrowing records.
+      allow delete: if isAdminOrLibrarian();
     }
 
     // Library entry / exit logs
@@ -55,7 +103,9 @@ service cloud.firestore {
       allow read: if isAdminOrLibrarian() || isOwner(resource.data.userId);
 
       // Only staff may update logs (e.g., force checkout)
-      allow update: if isAdminOrLibrarian();
+      // Students may update only their own exit transitions (Inside -> Left).
+      allow update: if isAdminOrLibrarian()
+        || (isOwner(resource.data.userId) && isValidOwnerEntryLogExitUpdate());
     }
 
     // Deny everything else by default
