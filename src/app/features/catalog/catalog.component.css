@@ -477,95 +477,140 @@
     radial-gradient(circle at bottom right, rgba(14, 116, 144, 0.08), transparent);
 }
 
-.book-dialog-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.book-cover-chip {
-  width: 46px;
-  height: 60px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.6rem;
-  background: var(--bg-section);
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.2);
-}
-
-.book-dialog-heading {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.book-dialog-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-main);
-}
-
-.book-dialog-author {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-
+/* New Two-Column Grid Layout for Book Details */
 :host ::ng-deep .book-dialog .p-dialog-content {
-  padding: 1.25rem 1.5rem 1.25rem 1.5rem;
+  padding: 1.5rem 2rem;
   background: var(--bg-card);
 }
 
-.book-dialog-content {
+.book-modal-container {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Left Column: Cover Image & Fallback */
+.cover-wrapper {
+  position: relative;
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  background: var(--bg-section);
+  min-height: 200px;
+}
+
+.book-cover-img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.gradient-fallback {
+  width: 100%;
+  min-height: 200px;
+  background: linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);
+  display: flex; /* overridden by onerror logic when needed, defaults to flex in template if no ISBN */
+  align-items: center;
+  justify-content: center;
+}
+
+.gradient-fallback:not([style*="display: none"]) {
+  display: flex !important;
+}
+
+.fallback-icon {
+  font-size: 3rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Right Column: Information */
+.right-column {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 1rem;
 }
 
-.book-dialog-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 1.25rem;
-  font-size: 0.9rem;
-}
-
-.book-dialog-row .label {
-  flex: 0 0 90px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-size: 0.7rem;
-}
-
-.book-dialog-row .value {
-  flex: 1;
-  color: var(--text-main);
-}
-
-.book-dialog-row .availability-text {
-  display: block;
-  margin-top: 0.15rem;
-}
-
-.rating-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.description-text {
+.book-modal-heading {
   margin: 0;
-  line-height: 1.5;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.book-modal-author {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+/* Stylized Categories */
+.category-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.category-pill {
+  background: rgba(139, 92, 246, 0.1); /* Soft purple */
+  color: #7c3aed;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  padding: 0.25rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.book-modal-row {
+  display: flex;
+  align-items: center;
+}
+
+/* Polished Description */
+.book-modal-desc-container {
+  margin-top: 0.5rem;
+}
+
+.book-modal-description {
+  margin: 0;
+  color: #4b5563; /* Lighter font color per spec */
+  line-height: 1.6;
+  font-size: 0.95rem;
+}
+
+/* Meta Data Grid (Status, ISBN, etc) */
+.book-modal-meta {
+  margin-top: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.meta-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.meta-value {
   font-size: 0.9rem;
   color: var(--text-main);
-  background: var(--bg-section);
-  border-radius: 10px;
-  padding: 0.75rem 0.85rem;
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  font-weight: 500;
 }
 
 :host ::ng-deep .book-dialog .p-dialog-footer {
@@ -602,4 +647,131 @@
   background: rgba(148, 163, 184, 0.12);
   border-color: var(--p-primary-color);
   color: var(--p-primary-color);
+}
+
+/* --- Mobile Responsiveness Enhancements --- */
+@media (max-width: 900px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-bar-container {
+    width: 100%;
+  }
+  .search-input-wrapper {
+    flex: 1;
+  }
+  .search-input {
+    width: 100%;
+  }
+  
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .table-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Subjects Grid Configuration */
+  .subjects-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Convert Table to Mobile Cards */
+  ::ng-deep .p-datatable-premium .p-datatable-thead {
+    display: none !important;
+  }
+  
+  ::ng-deep .p-datatable-premium .p-datatable-tbody > tr {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 1rem !important;
+    border-radius: 12px;
+    margin-bottom: 0.75rem;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    gap: 0.5rem;
+  }
+  
+  ::ng-deep .p-datatable-premium .p-datatable-tbody > tr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.08);
+  }
+  
+  ::ng-deep .p-datatable-premium .p-datatable-tbody > tr > td {
+    border: none !important;
+    padding: 0 !important;
+  }
+  
+  /* Empty State Handling */
+  ::ng-deep .p-datatable-premium .p-datatable-tbody > tr:has(.empty-state) {
+    box-shadow: none;
+    border: 1px dashed var(--border-color) !important;
+    background: transparent !important;
+  }
+  
+  .empty-state {
+    width: 100%;
+    padding: 2rem 1rem;
+  }
+
+  /* 1: Title & Author - Full Width */
+  ::ng-deep .p-datatable-premium .p-datatable-tbody > tr > td:nth-child(1) {
+    width: 100%;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding-bottom: 0.75rem !important;
+    margin-bottom: 0.25rem;
+  }
+  
+  .book-cell {
+    align-items: center;
+  }
+
+  /* Status */
+  ::ng-deep .p-datatable-premium .p-datatable-tbody > tr > td:nth-child(3) {
+    display: flex;
+    align-items: center;
+  }
+  
+  .availability-text {
+    display: none; /* Hide on small screens */
+  }
+  
+  .badge-status {
+    margin-bottom: 0;
+  }
+  
+  /* 5: Actions */
+  ::ng-deep .p-datatable-premium .p-datatable-tbody > tr > td:nth-child(5) {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .book-modal-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .cover-wrapper {
+    max-width: 140px;
+    margin: 0 auto;
+    min-height: 180px;
+  }
+  
+  .book-modal-meta {
+    grid-template-columns: 1fr;
+  }
+  
+  ::ng-deep .p-datatable-premium .p-datatable-tbody > tr {
+    padding: 0.85rem !important;
+  }
 }

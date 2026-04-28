@@ -1,4 +1,5 @@
-import { inject } from '@angular/core';
+import { inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import {
   ActivatedRouteSnapshot,
   CanActivateFn,
@@ -23,6 +24,11 @@ export const roleGuard: CanActivateFn = (
   | Promise<boolean | UrlTree> => {
   const authService = inject(AuthService);
   const router = inject(Router);
+  const platformId = inject(PLATFORM_ID);
+
+  if (!isPlatformBrowser(platformId)) {
+    return true; // Bypass on the server during SSR
+  }
 
   const allowedRoles =
     (route.data?.['roles'] as UserRole[] | undefined) ?? [];

@@ -1,4 +1,5 @@
-import { Component, inject, computed } from '@angular/core';
+import { Component, inject, computed, signal } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -49,12 +50,25 @@ export class MyProfileComponent {
         })
     );
 
-    readonly history$ = this.allBorrows$.pipe(
-        map(borrows => [...borrows].sort((a, b) => {
-            const da = new Date((a.borrowedAt ?? 0) as any).getTime();
-            const db = new Date((b.borrowedAt ?? 0) as any).getTime();
-            return db - da;
-        }))
+    readonly historyFilter = signal<'all' | 'borrowed' | 'returned'>('all');
+
+    readonly filteredHistory$ = combineLatest([
+        this.allBorrows$,
+        toObservable(this.historyFilter)
+    ]).pipe(
+        map(([borrows, filterVal]) => {
+            let filtered = [...borrows];
+            if (filterVal === 'borrowed') {
+                filtered = filtered.filter(b => b.status === 'borrowed' || b.status === 'overdue');
+            } else if (filterVal === 'returned') {
+                filtered = filtered.filter(b => b.status === 'returned');
+            }
+            return filtered.sort((a, b) => {
+                const da = this.asDate(a.borrowedAt)?.getTime() ?? 0;
+                const db = this.asDate(b.borrowedAt)?.getTime() ?? 0;
+                return db - da;
+            });
+        })
     );
 
     getInitials(name: string): string {
@@ -70,7 +84,13 @@ export class MyProfileComponent {
         return Array.from({ length: 5 }, (_, i) => i < r ? '★' : '☆');
     }
 
-    asDate(val: unknown): Date {
-        return val instanceof Date ? val : new Date(val as any);
+    asDate(val: unknown): Date | null {
+        if (!val) return null;
+        const anyVal = val as any;
+        if (typeof anyVal.toDate === 'function') {
+            return anyVal.toDate();
+        }
+        if (val instanceof Date) return val;
+        return new Date(anyVal);
     }
 }

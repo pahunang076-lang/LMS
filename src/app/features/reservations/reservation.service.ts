@@ -6,6 +6,7 @@ import { Reservation, ReservationStatus } from '../../core/models/reservation.mo
 import { AppUser } from '../../core/models/user.model';
 import { Book } from '../../core/models/book.model';
 import { DueDateReminderService } from '../../core/services/due-date-reminder.service';
+import { EmailNotificationService } from '../../core/services/email-notification.service';
 import Swal from 'sweetalert2';
 
 const JSON_SERVER_URL = 'http://localhost:3000';
@@ -14,6 +15,7 @@ const JSON_SERVER_URL = 'http://localhost:3000';
 export class ReservationService {
     private readonly http = inject(HttpClient);
     private readonly platformId = inject(PLATFORM_ID);
+    private readonly emailService = inject(EmailNotificationService);
     private readonly storageKey = 'lms_reservations';
 
     private readonly localSubject = new BehaviorSubject<Reservation[]>(this.load());
@@ -119,6 +121,9 @@ export class ReservationService {
                 bookTitle: nextInLine.bookTitle,
                 reservationId: nextInLine.id,
             });
+
+            // Feature 4: Fire off the automated email alert
+            await this.emailService.sendReadyForPickup(nextInLine.userId, nextInLine.bookTitle);
         }
     }
 

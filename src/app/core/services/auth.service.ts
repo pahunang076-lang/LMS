@@ -233,15 +233,47 @@ export class AuthService {
       const q = query(usersCol, where('qrCode', '==', qrCode), where('isActive', '==', true));
       const snap = await getDocs(q);
 
-      if (snap.empty) {
+      let profile: FirestoreUserProfile | null = null;
+      let fromFirestore = false;
+
+      if (!snap.empty) {
+        profile = snap.docs[0].data() as FirestoreUserProfile;
+        fromFirestore = true;
+      } else {
+        // Fallback: check json-server (db.json)
+        try {
+          const res = await fetch(`http://localhost:3000/users?qrCode=${qrCode}`);
+          if (res.ok) {
+            const users = await res.json();
+            if (users && users.length > 0 && users[0].isActive !== false) {
+              profile = users[0];
+            }
+          }
+        } catch {
+          // ignore network errors for fallback
+        }
+      }
+
+      if (!profile) {
         this.errorSignal.set('Invalid QR code. Please try again.');
         throw new Error('Invalid QR code');
       }
 
-      const profile = snap.docs[0].data() as FirestoreUserProfile;
+      // If we recovered a password from the JSON server fallback, perform a real Firebase login
+      // so that Firestore security rules (requiring request.auth != null) will pass.
+      if ((profile as any).password) {
+        try {
+          // This ensures the application gets a valid Firebase auth token.
+          await signInWithEmailAndPassword(this.auth, profile.email, (profile as any).password);
+        } catch (e) {
+          console.warn('Silent Firebase login failed during QR fallback:', e);
+        }
+      }
 
-      // Update last login
-      await this.updateLastLogin(profile.uid);
+      if (fromFirestore) {
+        // Update last login
+        await this.updateLastLogin(profile.uid);
+      }
       profile.lastLoginAt = new Date().toISOString();
 
       const appUser = this.profileToAppUser(profile);
@@ -415,6 +447,92 @@ export class AuthService {
 
       this.currentUserSubject.next(updatedUser);
       AuthService.saveCurrentUserToStorage(updatedUser);
+    } catch (err: unknown) {
+      const msg = this.mapFirebaseError(err);
+      this.errorSignal.set(msg);
+      throw new Error(msg);
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+
+  // ─── Update any user profile (admin only) ───────────────────────────────────
+
+  async adminUpdateUser(
+    uid: string,
+    changes: Partial<Pick<AppUser, 'name' | 'phoneNumber' | 'studentId' | 'role'>>
+  ): Promise<void> {
+    const current = this.currentUserSubject.value;
+    if (!current || current.role !== 'admin') {
+      this.errorSignal.set('Only administrators can update user accounts.');
+      throw new Error('Unauthorized');
+    }
+
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
+
+    try {
+      const userDocRef = doc(this.firestore, 'users', uid);
+
+      // Build Firestore update payload
+      const firestoreChanges: Partial<FirestoreUserProfile> = {};
+      if (changes.name !== undefined) firestoreChanges.name = changes.name;
+      if (changes.phoneNumber !== undefined) firestoreChanges.phoneNumber = changes.phoneNumber;
+      if (changes.studentId !== undefined) firestoreChanges.studentId = changes.studentId ?? null;
+      if (changes.role !== undefined) firestoreChanges.role = changes.role;
+
+      await updateDoc(userDocRef, firestoreChanges as Record<string, unknown>);
+
+      // Sync to JSON Server (best-effort)
+      if (isPlatformBrowser(this.platformId)) {
+        try {
+          await fetch(`http://localhost:3000/users/${uid}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(firestoreChanges)
+          });
+        } catch { }
+      }
+
+      this.showToast('success', 'User updated successfully.');
+    } catch (err: unknown) {
+      const msg = this.mapFirebaseError(err);
+      this.errorSignal.set(msg);
+      throw new Error(msg);
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+
+  // ─── Toggle user status (admin only) ────────────────────────────────────────
+
+  async toggleUserStatus(uid: string, isActive: boolean): Promise<void> {
+    const current = this.currentUserSubject.value;
+    if (!current || current.role !== 'admin') {
+      this.errorSignal.set('Only administrators can deactivate user accounts.');
+      throw new Error('Unauthorized');
+    }
+
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
+
+    try {
+      const userDocRef = doc(this.firestore, 'users', uid);
+      await updateDoc(userDocRef, { isActive });
+
+      // Sync to JSON Server (best-effort)
+      if (isPlatformBrowser(this.platformId)) {
+        try {
+          await fetch(`http://localhost:3000/users/${uid}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isActive })
+          });
+        } catch { }
+      }
+
+      const statusMsg = isActive ? 'reactivated' : 'deactivated';
+      this.showToast('success', `User account successfully ${statusMsg}.`);
     } catch (err: unknown) {
       const msg = this.mapFirebaseError(err);
       this.errorSignal.set(msg);

@@ -17,6 +17,9 @@
                 </ng-container>
             </div>
         </div>
+        <div class="hero-watermark">
+            <i class="pi pi-book"></i>
+        </div>
     </header>
 
     <!-- Stats Grid -->
@@ -57,21 +60,32 @@
 
     <!-- Borrow History -->
     <section class="history-section">
-        <h2 class="section-title">📖 Reading History</h2>
-        <ng-container *ngIf="history$ | async as history">
+        <div class="history-header">
+            <h2 class="section-title">📖 Reading History</h2>
+            <div class="history-tabs">
+                <button [class.active]="historyFilter() === 'all'" (click)="historyFilter.set('all')">All</button>
+                <button [class.active]="historyFilter() === 'borrowed'" (click)="historyFilter.set('borrowed')">Currently Borrowed</button>
+                <button [class.active]="historyFilter() === 'returned'" (click)="historyFilter.set('returned')">Returned</button>
+            </div>
+        </div>
+
+        <ng-container *ngIf="filteredHistory$ | async as history">
             <div class="empty-history" *ngIf="history.length === 0">
                 <span class="empty-emoji">🔍</span>
-                <p>No borrowing history yet. Visit the <a routerLink="/catalog">Book Catalog</a> to get started!</p>
+                <p>No borrowing history found for this filter.</p>
             </div>
 
-            <ul class="history-list" *ngIf="history.length > 0">
-                <li class="history-card" *ngFor="let b of history" [class.hc-overdue]="b.status === 'overdue'"
-                    [class.hc-active]="b.status === 'borrowed'">
+            <div class="history-list-container" *ngIf="history.length > 0">
+                <ul class="history-list">
+                    <li class="history-card" *ngFor="let b of history" [class.hc-overdue]="b.status === 'overdue'"
+                        [class.hc-active]="b.status === 'borrowed'">
 
-                    <div class="hc-icon">
-                        <span *ngIf="b.status === 'returned'">📗</span>
-                        <span *ngIf="b.status === 'borrowed'">📘</span>
-                        <span *ngIf="b.status === 'overdue'">📕</span>
+                    <div class="hc-icon" [ngClass]="'icon-' + b.status">
+                        <i class="pi" [ngClass]="{
+                            'pi-check-circle': b.status === 'returned',
+                            'pi-book': b.status === 'borrowed',
+                            'pi-exclamation-triangle': b.status === 'overdue'
+                        }"></i>
                     </div>
 
                     <div class="hc-body">
@@ -98,7 +112,8 @@
                         </div>
                     </div>
                 </li>
-            </ul>
+                </ul>
+            </div>
         </ng-container>
     </section>
 </section>

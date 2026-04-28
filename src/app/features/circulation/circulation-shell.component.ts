@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
@@ -6,7 +6,7 @@ import { CirculationService } from './circulation.service';
 import { BooksService } from '../books/books.service';
 import { Book } from '../../core/models/book.model';
 import { Borrow } from '../../core/models/borrow.model';
-import { combineLatest, map, switchMap, filter } from 'rxjs';
+import { BehaviorSubject, combineLatest, map, switchMap, filter } from 'rxjs';
 import { QrScannerComponent } from '../../shared/qr-scanner.component';
 import { TableModule } from 'primeng/table';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
@@ -23,25 +23,74 @@ export class CirculationShellComponent {
   private readonly authService = inject(AuthService);
   private readonly circulationService = inject(CirculationService);
   private readonly booksService = inject(BooksService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   readonly user$ = this.authService.currentUser$;
   readonly allBooks$ = this.booksService.getAllBooks$();
 
   readonly borrows$ = this.user$.pipe(
     filter((u): u is NonNullable<typeof u> => !!u),
-    switchMap((user) => this.circulationService.getBorrowsForUser$(user.uid))
+    switchMap((user) => {
+      if (user.role === 'admin' || user.role === 'librarian') {
+        return this.circulationService.getAllBorrows$();
+      }
+      return this.circulationService.getBorrowsForUser$(user.uid);
+    })
   );
 
-  readonly activeBorrows$ = this.borrows$.pipe(
+  readonly rawActiveBorrows$ = this.borrows$.pipe(
     map((items) => items.filter((b) => b.status === 'borrowed' || b.status === 'overdue'))
   );
 
-  readonly overdueBorrows$ = this.borrows$.pipe(
-    map((items) => items.filter((b) => b.status === 'overdue' && !b.finePaid))
+  readonly searchSubject = new BehaviorSubject<string>('');
+  readonly filterSubject = new BehaviorSubject<'All' | 'Overdue' | 'Due Today'>('All');
+
+  readonly filteredActiveBorrows$ = combineLatest([
+    this.rawActiveBorrows$,
+    this.searchSubject,
+    this.filterSubject
+  ]).pipe(
+    map(([active, search, filterStr]) => {
+      let result = active;
+
+      if (search) {
+        const s = search.toLowerCase();
+        result = result.filter((b) =>
+          b.bookTitle?.toLowerCase().includes(s) ||
+          b.userName?.toLowerCase().includes(s) ||
+          b.studentId?.toLowerCase().includes(s)
+        );
+      }
+
+      if (filterStr === 'Overdue') {
+        result = result.filter((b) => b.status === 'overdue');
+      } else if (filterStr === 'Due Today') {
+        const todayStr = new Date().toDateString();
+        result = result.filter((b) => {
+          const due = b.dueAt instanceof Date ? b.dueAt : new Date(b.dueAt as any);
+          return due.toDateString() === todayStr;
+        });
+      }
+
+      return result;
+    })
   );
 
-  readonly historyBorrows$ = this.borrows$.pipe(
-    map((items) => items.filter((b) => b.status === 'returned'))
+  readonly historySearchSubject = new BehaviorSubject<string>('');
+
+  readonly historyBorrows$ = combineLatest([
+    this.borrows$.pipe(map((items) => items.filter((b) => b.status === 'returned'))),
+    this.historySearchSubject
+  ]).pipe(
+    map(([returned, search]) => {
+      if (!search) return returned;
+      const s = search.toLowerCase();
+      return returned.filter((b) =>
+        b.bookTitle?.toLowerCase().includes(s) ||
+        b.userName?.toLowerCase().includes(s) ||
+        b.studentId?.toLowerCase().includes(s)
+      );
+    })
   );
 
   readonly borrowForm = this.fb.group({
@@ -70,14 +119,37 @@ export class CirculationShellComponent {
   reviewText = '';
   hoverRating = 0;
 
-  readonly vm$ = combineLatest([this.user$, this.allBooks$, this.activeBorrows$, this.historyBorrows$]).pipe(
-    map(([user, books, active, history]) => ({
+  readonly vm$ = combineLatest([
+    this.user$,
+    this.allBooks$,
+    this.filteredActiveBorrows$,
+    this.historyBorrows$,
+    this.searchSubject,
+    this.filterSubject,
+    this.rawActiveBorrows$
+  ]).pipe(
+    map(([user, books, active, history, search, filterStr, rawActive]) => ({
       user,
       books,
       active,
       history,
+      search,
+      filterStr,
+      rawActiveCount: rawActive.length
     }))
   );
+
+  setSearchQuery(event: Event): void {
+    this.searchSubject.next((event.target as HTMLInputElement).value);
+  }
+
+  setHistorySearchQuery(event: Event): void {
+    this.historySearchSubject.next((event.target as HTMLInputElement).value);
+  }
+
+  setFilter(filter: 'All' | 'Overdue' | 'Due Today'): void {
+    this.filterSubject.next(filter);
+  }
 
   setMode(next: 'manual' | 'qrBorrow' | 'qrReturn'): void {
     this.mode = next;
@@ -90,38 +162,29 @@ export class CirculationShellComponent {
   }
 
   async createBorrow(
-    userId: string | undefined,
+    userId: string | undefined | null,
     books: Book[],
     activeBorrows: Borrow[]
   ): Promise<void> {
     if (!userId || this.borrowForm.invalid) {
+      console.error('Invalid form or missing user', { userId, invalid: this.borrowForm.invalid });
       this.borrowForm.markAllAsTouched();
       return;
     }
 
     const { bookId, dueDate } = this.borrowForm.getRawValue();
-    const book = books.find((b) => b.id === bookId);
+    const book = books.find((b) => String(b.id) === String(bookId));
 
     if (!book || !book.id || !dueDate) {
+      console.error('Missing book or dueDate', { book, bookId, dueDate });
       return;
     }
 
     if (book.quantityAvailable <= 0) {
-      this.qrError = 'Cannot borrow this book because there are no available copies.';
+      import('./circulation.service').then(m => m.CirculationService.showToast('error', 'Cannot borrow this book because there are no available copies.'));
       return;
     }
 
-    const BORROW_LIMIT = 3;
-    if (activeBorrows.length >= BORROW_LIMIT) {
-      this.qrError = `Borrow limit of ${BORROW_LIMIT} active books reached.`;
-      return;
-    }
-
-    const hasOverdue = activeBorrows.some((b) => b.status === 'overdue');
-    if (hasOverdue) {
-      this.qrError = 'Cannot borrow while you have overdue books.';
-      return;
-    }
 
     const due = new Date(dueDate);
     await this.circulationService.borrowBook(
@@ -131,6 +194,8 @@ export class CirculationShellComponent {
       this.scannedStudentId
     );
     this.borrowForm.reset();
+    // Force a state refresh to ensure the UI catches the update immediately
+    this.cdr.markForCheck();
   }
 
   async markReturned(borrow: Borrow): Promise<void> {
@@ -179,7 +244,8 @@ export class CirculationShellComponent {
   /** Returns a human-readable due-date label, e.g. "Due in 3 days", "Due today", "Overdue by 5 days". */
   dueCountdown(dueAt: unknown): string {
     if (!dueAt) return '';
-    const due = dueAt instanceof Date ? dueAt : new Date(dueAt as any);
+    const due = this.asDate(dueAt);
+    if (!due) return '';
     const now = new Date();
     const diffMs = due.getTime() - now.getTime();
     const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
@@ -187,6 +253,17 @@ export class CirculationShellComponent {
     if (diffDays === 1) return 'Due tomorrow';
     if (diffDays === 0) return 'Due today';
     return `Overdue by ${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? 's' : ''}`;
+  }
+
+  /** Dynamically checks if a borrowing is currently overdue based on dates or status. */
+  isOverdue(borrow: Borrow): boolean {
+    if (borrow.status === 'overdue') return true;
+    if (borrow.status === 'returned') return false;
+    const due = this.asDate(borrow.dueAt);
+    if (!due) return false;
+    // Set time to end of day to be fair, or just compare times
+    const now = new Date();
+    return now.getTime() > due.getTime();
   }
 
   /** Returns a CSS class based on how many days until due. */

@@ -105,6 +105,16 @@ export class EntryLogsService {
     return collectionData(q, { idField: 'id' }) as unknown as Observable<EntryLog[]>;
   }
 
+  /**
+   * All logs (used by Dashboard for aggregations).
+   */
+  getAllLogs$(): Observable<EntryLog[]> {
+    if (this.useLocalStore) {
+      return this.localLogsSubject.asObservable();
+    }
+    return collectionData(this.logsCollection(), { idField: 'id' }) as unknown as Observable<EntryLog[]>;
+  }
+
   async logEntry(user: AppUser, purpose: VisitPurpose): Promise<void> {
     if (this.useLocalStore) {
       const now = new Date().toISOString();

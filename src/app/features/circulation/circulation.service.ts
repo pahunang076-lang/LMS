@@ -13,11 +13,12 @@ import {
   where,
   query,
 } from '@angular/fire/firestore';
-import { BehaviorSubject, Observable, interval, map } from 'rxjs';
+import { BehaviorSubject, Observable, interval, map, catchError, of } from 'rxjs';
 import { Borrow, BorrowStatus } from '../../core/models/borrow.model';
 import { Book } from '../../core/models/book.model';
 import { BooksService } from '../books/books.service';
 import { ReservationService } from '../reservations/reservation.service';
+import { EmailNotificationService } from '../../core/services/email-notification.service';
 import { calculateFine } from '../../shared/fines.util';
 import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
@@ -31,6 +32,7 @@ export class CirculationService {
   private readonly firestore = inject(Firestore);
   private readonly booksService = inject(BooksService);
   private readonly reservationService = inject(ReservationService);
+  private readonly emailService = inject(EmailNotificationService);
   private readonly http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
@@ -91,6 +93,10 @@ export class CirculationService {
       if (due < now) {
         const fine = calculateFine(due, now, this.FINE_PER_DAY);
         changed = true;
+        
+        // ONLY trigger the email the exact moment it transitions from borrowed to overdue
+        this.emailService.sendOverdueAlert(b.userId, b.bookTitle, fine);
+
         const updatedBorrow: Borrow = { ...b, status: 'overdue', fineAmount: fine };
         // Best-effort patch to JSON Server
         if (isPlatformBrowser(this.platformId) && b.id) {
@@ -121,23 +127,32 @@ export class CirculationService {
     }
 
     const q = query(this.borrowsCollection(), where('userId', '==', userId));
-    return collectionData(q, { idField: 'id' }) as unknown as Observable<
-      Borrow[]
-    >;
+    return (collectionData(q, { idField: 'id' }) as unknown as Observable<Borrow[]>).pipe(
+      catchError((err) => {
+        console.warn('Could not fetch borrows (permission or connection error):', err.message);
+        return of([]);
+      })
+    );
   }
 
   getAllBorrows$(): Observable<Borrow[]> {
     if (this.useLocalStore) {
       return this.localBorrowsSubject.asObservable();
     }
-    return collectionData(this.borrowsCollection(), { idField: 'id' }) as unknown as Observable<Borrow[]>;
+    return (collectionData(this.borrowsCollection(), { idField: 'id' }) as unknown as Observable<Borrow[]>).pipe(
+      catchError((err) => {
+        console.warn('Could not fetch all borrows (likely student permission restrictions for ratings):', err.message);
+        return of([]);
+      })
+    );
   }
 
   async borrowBook(
     userId: string,
     book: Book,
     dueDate: Date,
-    studentId?: string | null
+    studentId?: string | null,
+    userName?: string
   ): Promise<void> {
     if (this.useLocalStore) {
       const currentBorrows = this.localBorrowsSubject.value;
@@ -172,6 +187,7 @@ export class CirculationService {
       const next: Borrow = {
         id,
         userId,
+        userName: userName || undefined,
         studentId: studentId ?? null,
         bookId: book.id ?? book.isbn,
         bookTitle: book.title,
@@ -207,7 +223,7 @@ export class CirculationService {
     const borrowedAt = Timestamp.now();
     const dueAt = Timestamp.fromDate(dueDate);
 
-    await addDoc(this.borrowsCollection(), {
+    const borrowData: any = {
       userId,
       studentId: studentId ?? null,
       bookId: book.id,
@@ -217,7 +233,13 @@ export class CirculationService {
       returnedAt: null,
       status: 'borrowed' as BorrowStatus,
       fineAmount: 0,
-    });
+    };
+
+    if (userName) {
+      borrowData.userName = userName;
+    }
+
+    await addDoc(this.borrowsCollection(), borrowData);
 
     if (book.id) {
       await this.booksService.adjustAvailability(book.id, -1);
@@ -233,7 +255,7 @@ export class CirculationService {
     if (this.useLocalStore) {
       const due = borrow.dueAt instanceof Date ? borrow.dueAt : new Date(borrow.dueAt as any);
       const fineAmount = calculateFine(due, returnDate, this.FINE_PER_DAY);
-      const status: BorrowStatus = fineAmount > 0 ? 'overdue' : 'returned';
+      const status: BorrowStatus = 'returned';
 
       const updated = this.localBorrowsSubject.value.map((b) =>
         b.id === borrow.id
@@ -274,7 +296,7 @@ export class CirculationService {
         : new Date(borrow.dueAt as any);
 
     const fineAmount = calculateFine(due, returnDate, this.FINE_PER_DAY);
-    const status: BorrowStatus = fineAmount > 0 ? 'overdue' : 'returned';
+    const status: BorrowStatus = 'returned';
 
     const ref = doc(this.firestore, 'borrows', borrow.id);
     await updateDoc(ref, {
@@ -302,7 +324,7 @@ export class CirculationService {
     if (this.useLocalStore) {
       const updated = this.localBorrowsSubject.value.map((b) =>
         b.id === borrow.id
-          ? { ...b, finePaid: true, finePaidAt, status: 'returned' as BorrowStatus }
+          ? { ...b, finePaid: true, finePaidAt: new Date().toISOString() }
           : b
       );
       this.persistLocalBorrows(updated);
@@ -310,7 +332,7 @@ export class CirculationService {
 
       if (isPlatformBrowser(this.platformId)) {
         this.http.patch(`${JSON_SERVER_URL}/borrows/${borrow.id}`, {
-          finePaid: true, finePaidAt, status: 'returned'
+          finePaid: true, finePaidAt: new Date().toISOString()
         }).subscribe({ error: () => { } });
       }
       CirculationService.showToast('success', `Fine of ₱${borrow.fineAmount} paid successfully!`);
@@ -318,7 +340,7 @@ export class CirculationService {
     }
 
     const ref = doc(this.firestore, 'borrows', borrow.id);
-    await updateDoc(ref, { finePaid: true, finePaidAt, status: 'returned' as BorrowStatus });
+    await updateDoc(ref, { finePaid: true, finePaidAt: new Date().toISOString() });
     CirculationService.showToast('success', `Fine of ₱${borrow.fineAmount} paid successfully!`);
   }
 
@@ -343,7 +365,7 @@ export class CirculationService {
     CirculationService.showToast('success', 'Review submitted successfully!');
   }
 
-  private static showToast(icon: 'success' | 'error' | 'warning', title: string): void {
+  static showToast(icon: 'success' | 'error' | 'warning', title: string): void {
     Swal.mixin({
       toast: true,
       position: 'top-end',

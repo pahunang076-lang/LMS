@@ -35,7 +35,8 @@ export class DashboardComponent {
         return {
           label: i === 6 ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' }),
           count: borrows.filter((b) => {
-            const ba = b.borrowedAt ? new Date(b.borrowedAt as any).toISOString().slice(0, 10) : '';
+            const d = this.asDate(b.borrowedAt);
+            const ba = d && !isNaN(d.getTime()) ? d.toISOString().slice(0, 10) : '';
             return ba === dayStr;
           }).length,
         };

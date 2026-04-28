@@ -3,6 +3,7 @@ export type BorrowStatus = 'borrowed' | 'returned' | 'overdue';
 export interface Borrow {
   id?: string;
   userId: string;
+  userName?: string; // Display name of the borrower
   /**
    * Optional student identifier for reporting / QR-based flows.
    * This may mirror AppUser.studentId when available.

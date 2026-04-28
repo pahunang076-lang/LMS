@@ -15,7 +15,8 @@ import {
 } from '@angular/fire/firestore';
 import { increment } from 'firebase/firestore';
 import { Book } from '../../core/models/book.model';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
 
@@ -69,9 +70,12 @@ export class BooksService {
     }
 
     const q = query(this.booksCollection(), orderBy('title'));
-    return collectionData(q, { idField: 'id' }) as unknown as Observable<
-      Book[]
-    >;
+    return (collectionData(q, { idField: 'id' }) as unknown as Observable<Book[]>).pipe(
+      catchError((err) => {
+        console.warn('Could not fetch books (permission or connection error):', err.message);
+        return of([]);
+      })
+    );
   }
 
   async addBook(input: Omit<Book, 'id' | 'createdAt' | 'updatedAt'>) {

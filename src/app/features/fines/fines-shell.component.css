@@ -195,3 +195,42 @@
     margin-bottom: 1rem;
     opacity: 0.7;
 }
+
+@media screen and (max-width: 768px) {
+    .fines-dashboard {
+        padding: 0;
+        gap: 1.5rem;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .stats-card {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    ::ng-deep .p-datatable-premium .p-datatable-wrapper {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .premium-table-container {
+        border-radius: 8px;
+    }
+    
+    ::ng-deep .p-datatable-premium .p-datatable-thead > tr > th {
+        padding: 0.75rem !important;
+    }
+
+    ::ng-deep .p-datatable-premium .p-datatable-tbody > tr > td {
+        padding: 0.75rem !important;
+    }
+
+    .empty-state {
+        padding: 1.5rem 1rem;
+    }
+}

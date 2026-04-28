@@ -20,8 +20,9 @@
   <div class="table-container">
     <ng-container *ngIf="users$ | async as users; else loading">
       <p-table [value]="users" [paginator]="true" [rows]="10" [showCurrentPageReport]="true"
-        currentPageReportTemplate="Showing {first} to {last} of {totalRecords} users"
-        [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-sm">
+        currentPageReportTemplate="{first} to {last} of {totalRecords} users"
+        [showFirstLastIcon]="false"
+        responsiveLayout="scroll" styleClass="p-datatable-sm">
         <ng-template pTemplate="header">
           <tr>
             <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
@@ -52,7 +53,11 @@
               </span>
             </td>
             <td class="actions-col">
-              <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+              <div class="actions-wrapper">
+                <button type="button" class="btn btn-small" (click)="openEditDialog(user)"
+                  title="Edit user details">
+                  ✏️ Edit
+                </button>
                 <button type="button" class="btn btn-small" (click)="openQrDialog(user)"
                   title="Show QR code for this user">
                   QR Code
@@ -64,6 +69,15 @@
                 <a [routerLink]="['/profile', user.uid]" class="btn btn-small btn-profile" title="View student profile">
                   View Profile
                 </a>
+                <button type="button" class="btn btn-small" (click)="openHistory(user)" title="View borrowing history">
+                  View History
+                </button>
+                <button type="button" class="btn btn-small" 
+                  [ngClass]="user.isActive !== false ? 'btn-danger' : 'btn-success'"
+                  (click)="toggleActive(user)" 
+                  [title]="user.isActive !== false ? 'Deactivate user' : 'Reactivate user'">
+                  {{ user.isActive !== false ? 'Deactivate' : 'Reactivate' }}
+                </button>
               </div>
             </td>
           </tr>
@@ -91,7 +105,7 @@
   <div class="dialog-backdrop" *ngIf="isDialogOpen()" (click)="closeDialog()">
     <div class="dialog" (click)="$event.stopPropagation()">
       <div class="dialog-header">
-        <h3>Create User Account</h3>
+        <h3>{{ isEditing ? 'Edit User Account' : 'Create User Account' }}</h3>
         <button type="button" class="btn-close" (click)="closeDialog()" aria-label="Close">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -111,7 +125,7 @@
           </span>
         </label>
 
-        <label class="form-field">
+        <label class="form-field" *ngIf="!isEditing">
           <span class="form-label">Email <span class="required">*</span></span>
           <input type="email" formControlName="email" class="form-input" placeholder="Enter email address" />
           <span class="error" *ngIf="
@@ -121,7 +135,7 @@
           </span>
         </label>
 
-        <label class="form-field">
+        <label class="form-field" *ngIf="!isEditing">
           <span class="form-label">Password <span class="required">*</span></span>
           <input type="password" formControlName="password" class="form-input" placeholder="Minimum 6 characters" />
           <span class="error" *ngIf="
@@ -157,7 +171,7 @@
           <button type="button" class="btn btn-secondary" (click)="closeDialog()">
             Cancel
           </button>
-          <button type="submit" class="btn btn-primary">Create User</button>
+          <button type="submit" class="btn btn-primary">{{ isEditing ? 'Save Changes' : 'Create User' }}</button>
         </div>
 
         <p *ngIf="createError()" class="error-message full-width">
@@ -165,7 +179,7 @@
         </p>
 
         <p *ngIf="createSuccess()" class="success-message full-width">
-          User account created successfully!
+          {{ isEditing ? 'User account updated successfully!' : 'User account created successfully!' }}
         </p>
       </form>
     </div>
@@ -206,7 +220,17 @@
         <button type="button" class="btn btn-secondary" (click)="closeQrDialog()">
           Close
         </button>
+        <button type="button" class="btn btn-primary" *ngIf="qrUser() as u" (click)="downloadQr(u)">
+          <i class="pi pi-download"></i> Download QR
+        </button>
       </div>
     </div>
   </div>
+
+  <!-- History Modal -->
+  <app-user-history-modal 
+    [isOpen]="isHistoryOpen()" 
+    [user]="historyUser()" 
+    (close)="closeHistory()">
+  </app-user-history-modal>
 </section>

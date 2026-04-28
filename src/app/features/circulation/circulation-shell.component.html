@@ -6,7 +6,7 @@
     </div>
     <div class="page-header-stats">
       <div class="stat-chip stat-chip--active">
-        <span class="stat-chip-value">{{ vm.active.length }}</span>
+        <span class="stat-chip-value">{{ vm.rawActiveCount }}</span>
         <span class="stat-chip-label">Active</span>
       </div>
       <div class="stat-chip stat-chip--history">
@@ -28,7 +28,7 @@
     </button>
   </div>
 
-  <div class="columns" *ngIf="mode === 'manual'">
+  <div class="columns main-layout" *ngIf="mode === 'manual'">
     <!-- ===== NEW BORROWING FORM ===== -->
     <section class="column form-column">
       <div class="column-header">
@@ -74,30 +74,52 @@
       </form>
     </section>
 
-    <!-- ===== CURRENT BORROWINGS ===== -->
-    <section class="column borrow-column">
+    <!-- ===== LISTS CONTAINER ===== -->
+    <div class="lists-container">
+      <!-- ===== CURRENT BORROWINGS ===== -->
+      <section class="column borrow-column">
       <div class="column-header">
         <div class="column-icon">📂</div>
-        <div>
+        <div style="flex: 1;">
           <h3>Current Borrowings</h3>
-          <p class="section-subtitle">Your active and overdue books.</p>
+          <p class="section-subtitle">Active and overdue books across the system.</p>
         </div>
       </div>
 
-      <ng-container *ngIf="vm.active.length > 0; else noActive">
-        <div class="cards-grid">
+      <!-- Search and Filters -->
+      <div class="filter-controls">
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" placeholder="Search by student, book..." (input)="setSearchQuery($event)" [value]="vm.search" />
+        </div>
+        
+        <div class="filter-chips">
+          <button type="button" class="filter-chip" [class.active]="vm.filterStr === 'All'" (click)="setFilter('All')">All</button>
+          <button type="button" class="filter-chip" [class.active]="vm.filterStr === 'Overdue'" (click)="setFilter('Overdue')">Overdue</button>
+          <button type="button" class="filter-chip" [class.active]="vm.filterStr === 'Due Today'" (click)="setFilter('Due Today')">Due Today</button>
+        </div>
+      </div>
+
+      <ng-container *ngIf="vm.active.length > 0 || vm.search || vm.filterStr !== 'All'; else noActive">
+        <div class="scroll-container">
+          <div class="cards-grid">
           <div class="borrow-card" *ngFor="let borrow of vm.active"
-            [class.card-overdue]="borrow.status === 'overdue' && !borrow.finePaid">
+            [class.card-overdue]="isOverdue(borrow) && !borrow.finePaid">
 
             <!-- Card Cover Band -->
-            <div class="card-cover-band" [class.cover-overdue]="borrow.status === 'overdue' && !borrow.finePaid">
-              <span class="cover-emoji">{{ borrow.status === 'overdue' ? '🚨' : '📙' }}</span>
+            <div class="card-cover-band" [class.cover-overdue]="isOverdue(borrow) && !borrow.finePaid">
+              <span class="cover-emoji">{{ isOverdue(borrow) && !borrow.finePaid ? '🚨' : '📙' }}</span>
             </div>
 
             <!-- Card Body -->
             <div class="card-body">
               <div class="borrow-card-header">
-                <div class="borrow-card-title">{{ borrow.bookTitle }}</div>
+                <div class="borrow-card-title">
+                  {{ borrow.bookTitle }}
+                  <div class="borrow-card-user" *ngIf="borrow.userName || borrow.studentId">
+                    <small>👤 {{ borrow.userName || 'User' }} {{ borrow.studentId ? '(' + borrow.studentId + ')' : '' }}</small>
+                  </div>
+                </div>
                 <span class="status-badge" [class.badge-overdue]="borrow.status === 'overdue' && !borrow.finePaid"
                   [class.badge-borrowed]="borrow.status === 'borrowed'">
                   {{ borrow.status | titlecase }}
@@ -138,17 +160,19 @@
 
               <!-- Actions -->
               <div class="borrow-card-actions">
-                <button type="button" class="btn btn-small btn-danger"
-                  *ngIf="borrow.status === 'overdue' && !borrow.finePaid" (click)="payFine(borrow)">
-                  💳 Pay Fine
-                </button>
-                <button type="button" class="btn btn-small btn-success action-btn" (click)="markReturned(borrow)"
-                  [disabled]="borrow.status === 'overdue' && !borrow.finePaid">
+                <button type="button" class="btn btn-small btn-success action-btn" (click)="markReturned(borrow)">
                   ✅ Mark Returned
                 </button>
               </div>
             </div>
           </div>
+        </div>
+        </div>
+        <!-- Empty state when filters yield no results -->
+        <div class="empty-state" *ngIf="vm.active.length === 0">
+          <span class="empty-icon">🔍</span>
+          <p class="empty-text">No matches found</p>
+          <p class="empty-sub">Try clearing your filters or search query.</p>
         </div>
       </ng-container>
 
@@ -160,6 +184,94 @@
         </div>
       </ng-template>
     </section>
+
+    <!-- ===== BORROWING HISTORY ===== -->
+    <section class="column history-column">
+      <div class="column-header">
+        <div class="column-icon">📜</div>
+        <div style="flex: 1;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <h3>Borrowing History</h3>
+            <span class="history-count-badge" *ngIf="vm.history.length > 0">{{ vm.history.length }} records</span>
+          </div>
+          <p class="section-subtitle">A log of all previously returned books.</p>
+        </div>
+      </div>
+
+      <div class="filter-controls" style="margin-bottom: 1rem;">
+        <div class="search-bar" style="width: 100%;">
+          <span class="search-icon">🔍</span>
+          <input type="text" class="search-input" placeholder="Search history by student, book..." (input)="setHistorySearchQuery($event)" />
+        </div>
+      </div>
+
+      <ng-container *ngIf="vm.history.length > 0; else noHistory">
+        <div class="scroll-container">
+          <div class="cards-grid">
+          <div class="borrow-card history-card" *ngFor="let borrow of vm.history">
+
+            <!-- Card Cover Band -->
+            <div class="card-cover-band cover-returned">
+              <span class="cover-emoji">📘</span>
+            </div>
+
+            <!-- Card Body -->
+            <div class="card-body">
+              <div class="borrow-card-header">
+                <div class="borrow-card-title">{{ borrow.bookTitle }}</div>
+                <span class="status-badge bg-gray">{{ borrow.status | titlecase }}</span>
+              </div>
+
+              <div class="borrow-card-dates">
+                <div class="date-col">
+                  <span class="date-label">Borrowed</span>
+                  <span class="date-val">{{ asDate(borrow.borrowedAt) | date: 'MMM d, y' }}</span>
+                </div>
+                <div class="date-divider"></div>
+                <div class="date-col">
+                  <span class="date-label">Returned</span>
+                  <span class="date-val">{{ asDate(borrow.returnedAt) | date: 'MMM d, y' }}</span>
+                </div>
+              </div>
+
+              <div class="history-fine-row" *ngIf="borrow.fineAmount > 0">
+                <span class="fine-amount">💸 Fine: {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}</span>
+                <span class="fine-paid-badge" *ngIf="borrow.finePaid">
+                  ✔ Paid {{ borrow.finePaidAt | date:'shortDate' }}
+                </span>
+                <span class="muted-dash" *ngIf="!borrow.finePaid">— Unpaid</span>
+              </div>
+
+              <div class="borrow-card-actions border-top">
+                <button type="button" class="btn btn-small btn-danger"
+                  *ngIf="borrow.fineAmount > 0 && !borrow.finePaid" (click)="payFine(borrow)">
+                  💳 Pay Fine
+                </button>
+                <button type="button" class="btn btn-small btn-outline action-btn" *ngIf="!borrow.rating"
+                  (click)="openReviewModal(borrow)">
+                  ⭐ Rate Book
+                </button>
+                <div class="review-display" *ngIf="borrow.rating">
+                  <span class="stars-display">{{ '⭐'.repeat(borrow.rating) }}</span>
+                  <button type="button" class="btn-icon btn-icon-small" (click)="openReviewModal(borrow)"
+                    title="Edit Review">✎</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </ng-container>
+
+      <ng-template #noHistory>
+        <div class="empty-state">
+          <span class="empty-icon">📋</span>
+          <p class="empty-text">No borrowing history yet.</p>
+          <p class="empty-sub">Your past borrowings will appear here.</p>
+        </div>
+      </ng-template>
+    </section>
+  </div>
   </div>
 
   <!-- ===== BORROW VIA QR ===== -->
@@ -282,73 +394,6 @@
     </div>
   </div>
 
-  <!-- ===== BORROWING HISTORY ===== -->
-  <section class="history">
-    <div class="section-title-row">
-      <h3>📜 Borrowing History</h3>
-      <span class="history-count-badge" *ngIf="vm.history.length > 0">{{ vm.history.length }} records</span>
-    </div>
-
-    <ng-container *ngIf="vm.history.length > 0; else noHistory">
-      <div class="cards-grid">
-        <div class="borrow-card history-card" *ngFor="let borrow of vm.history">
-
-          <!-- Card Cover Band -->
-          <div class="card-cover-band cover-returned">
-            <span class="cover-emoji">📘</span>
-          </div>
-
-          <!-- Card Body -->
-          <div class="card-body">
-            <div class="borrow-card-header">
-              <div class="borrow-card-title">{{ borrow.bookTitle }}</div>
-              <span class="status-badge bg-gray">{{ borrow.status | titlecase }}</span>
-            </div>
-
-            <div class="borrow-card-dates">
-              <div class="date-col">
-                <span class="date-label">Borrowed</span>
-                <span class="date-val">{{ asDate(borrow.borrowedAt) | date: 'MMM d, y' }}</span>
-              </div>
-              <div class="date-divider"></div>
-              <div class="date-col">
-                <span class="date-label">Returned</span>
-                <span class="date-val">{{ asDate(borrow.returnedAt) | date: 'MMM d, y' }}</span>
-              </div>
-            </div>
-
-            <div class="history-fine-row" *ngIf="borrow.fineAmount > 0">
-              <span class="fine-amount">💸 Fine: {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}</span>
-              <span class="fine-paid-badge" *ngIf="borrow.finePaid">
-                ✔ Paid {{ borrow.finePaidAt | date:'shortDate' }}
-              </span>
-              <span class="muted-dash" *ngIf="!borrow.finePaid">— Unpaid</span>
-            </div>
-
-            <div class="borrow-card-actions border-top">
-              <button type="button" class="btn btn-small btn-outline action-btn" *ngIf="!borrow.rating"
-                (click)="openReviewModal(borrow)">
-                ⭐ Rate Book
-              </button>
-              <div class="review-display" *ngIf="borrow.rating">
-                <span class="stars-display">{{ '⭐'.repeat(borrow.rating) }}</span>
-                <button type="button" class="btn-icon btn-icon-small" (click)="openReviewModal(borrow)"
-                  title="Edit Review">✎</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </ng-container>
-
-    <ng-template #noHistory>
-      <div class="empty-state">
-        <span class="empty-icon">📋</span>
-        <p class="empty-text">No borrowing history yet.</p>
-        <p class="empty-sub">Your past borrowings will appear here.</p>
-      </div>
-    </ng-template>
-  </section>
 
   <!-- ===== REVIEW MODAL ===== -->
   <div class="dialog-backdrop" *ngIf="selectedBorrowForReview">

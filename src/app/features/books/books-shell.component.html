@@ -49,8 +49,8 @@
   <div class="table-container">
     <ng-container *ngIf="books$ | async as books; else loading">
       <p-table [value]="books | filterBooks: searchTerm():statusFilter():'all'" [paginator]="true" [rows]="10"
-        [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} books"
-        [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-sm">
+        [showCurrentPageReport]="true" currentPageReportTemplate="{first} to {last} of {totalRecords} books"
+        [showFirstLastIcon]="false" responsiveLayout="scroll" styleClass="p-datatable-sm">
         <ng-template pTemplate="header">
           <tr>
             <th style="width: 80px;">Cover</th>
@@ -164,22 +164,27 @@
       <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
         <label class="form-field">
           <span class="form-label">Title <span class="required">*</span></span>
-          <input type="text" formControlName="title" class="form-input" placeholder="Enter book title" />
+          <input type="text" formControlName="title" class="form-input" placeholder="Enter book title" required />
         </label>
 
         <label class="form-field">
           <span class="form-label">Author <span class="required">*</span></span>
-          <input type="text" formControlName="author" class="form-input" placeholder="Enter author name" />
+          <input type="text" formControlName="author" class="form-input" placeholder="Enter author name" required />
         </label>
 
         <label class="form-field">
           <span class="form-label">Category <span class="required">*</span></span>
-          <input type="text" formControlName="category" class="form-input" placeholder="e.g., Fiction, Science" />
+          <select formControlName="category" class="form-select" required>
+            <option value="" disabled selected>Select a category</option>
+            <option *ngFor="let subject of (subjects$ | async)" [value]="subject.name">
+              {{ subject.name }}
+            </option>
+          </select>
         </label>
 
         <label class="form-field">
           <span class="form-label">ISBN <span class="required">*</span></span>
-          <input type="text" formControlName="isbn" class="form-input" placeholder="Enter ISBN number" />
+          <input type="text" formControlName="isbn" class="form-input" placeholder="Enter ISBN number" maxlength="13" pattern="\d*" required />
         </label>
 
         <label class="form-field">

@@ -15,23 +15,32 @@
         </div>
     </header>
 
+    <div class="tabs-container" style="display:flex; gap:1rem; margin:1.5rem 2rem 0; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
+        <button class="btn" [ngClass]="activeTab() === 'outstanding' ? 'btn-primary' : 'btn-secondary'" (click)="setActiveTab('outstanding')">
+            Pending Fines
+        </button>
+        <button class="btn" [ngClass]="activeTab() === 'history' ? 'btn-primary' : 'btn-secondary'" (click)="setActiveTab('history')">
+            Paid History
+        </button>
+    </div>
+
     <section class="data-section">
-        <div class="premium-table-container">
+        <div class="premium-table-container" *ngIf="activeTab() === 'outstanding'">
             <ng-container *ngIf="outstandingFines$ | async as fines; else loading">
                 <p-table [value]="fines" [paginator]="true" [rows]="10" [showCurrentPageReport]="true"
-                    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} records"
-                    [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-premium">
+                    currentPageReportTemplate="{first} to {last} of {totalRecords} records"
+                    [showFirstLastIcon]="false" responsiveLayout="scroll" styleClass="p-datatable-premium">
                     <ng-template pTemplate="header">
                         <tr>
-                            <th pSortableColumn="studentId" style="width: 20%">Student ID <p-sortIcon
+                            <th pSortableColumn="studentId" style="width: 20%; min-width: 140px;">Student ID <p-sortIcon
                                     field="studentId"></p-sortIcon></th>
-                            <th pSortableColumn="bookTitle" style="width: 30%">Book Title <p-sortIcon
+                            <th pSortableColumn="bookTitle" style="width: 30%; min-width: 200px;">Book Title <p-sortIcon
                                     field="bookTitle"></p-sortIcon></th>
-                            <th pSortableColumn="dueAt" style="width: 15%">Due Date <p-sortIcon
+                            <th pSortableColumn="dueAt" style="width: 15%; min-width: 140px;">Due Date <p-sortIcon
                                     field="dueAt"></p-sortIcon></th>
-                            <th pSortableColumn="fineAmount" style="width: 15%">Fine Amount <p-sortIcon
+                            <th pSortableColumn="fineAmount" style="width: 15%; min-width: 140px;">Fine Amount <p-sortIcon
                                     field="fineAmount"></p-sortIcon></th>
-                            <th style="width: 20%">Actions</th>
+                            <th style="width: 20%; min-width: 180px;">Actions</th>
                         </tr>
                     </ng-template>
                     <ng-template pTemplate="body" let-borrow>
@@ -78,6 +87,58 @@
                 <div class="loading-state">
                     <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
                     <p>Loading fines data...</p>
+                </div>
+            </ng-template>
+        </div>
+
+        <div class="premium-table-container" *ngIf="activeTab() === 'history'">
+            <ng-container *ngIf="paidFines$ | async as paidFines; else loadingPaid">
+                <p-table [value]="paidFines" [paginator]="true" [rows]="10" [showCurrentPageReport]="true"
+                    currentPageReportTemplate="{first} to {last} of {totalRecords} records"
+                    [showFirstLastIcon]="false" responsiveLayout="scroll" styleClass="p-datatable-premium">
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th pSortableColumn="studentId">Student ID <p-sortIcon field="studentId"></p-sortIcon></th>
+                            <th pSortableColumn="bookTitle">Book Title <p-sortIcon field="bookTitle"></p-sortIcon></th>
+                            <th pSortableColumn="fineAmount">Amount Paid <p-sortIcon field="fineAmount"></p-sortIcon></th>
+                            <th pSortableColumn="finePaidAt">Paid Date <p-sortIcon field="finePaidAt"></p-sortIcon></th>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-borrow>
+                        <tr>
+                            <td>
+                                <span class="student-id-badge">{{ borrow.studentId || borrow.userId.substring(0, 8) }}</span>
+                            </td>
+                            <td>
+                                <div class="book-info">
+                                    <span class="book-title">{{ borrow.bookTitle }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fine-amount" style="color: #10b981;">₱{{ borrow.fineAmount | number:'1.2-2' }}</span>
+                            </td>
+                            <td>
+                                <span class="date-text">{{ borrow.finePaidAt | date:'mediumDate' }}</span>
+                                <div style="font-size: 0.75rem; color: #9ca3af;">{{ borrow.finePaidAt | date:'shortTime' }}</div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="emptymessage">
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 0;">
+                                <div class="empty-state">
+                                    <i class="pi pi-history empty-icon text-muted"></i>
+                                    <p>No paid fines history found.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </ng-template>
+                </p-table>
+            </ng-container>
+            <ng-template #loadingPaid>
+                <div class="loading-state">
+                    <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+                    <p>Loading historical data...</p>
                 </div>
             </ng-template>
         </div>

@@ -6,7 +6,7 @@ import { CirculationService } from '../circulation/circulation.service';
 import { ReservationService } from '../reservations/reservation.service';
 import { AnnouncementService } from '../../core/services/announcement.service';
 import { BooksService } from '../books/books.service';
-import { map, switchMap, combineLatest } from 'rxjs';
+import { map, switchMap, combineLatest, catchError, of } from 'rxjs';
 
 @Component({
     selector: 'app-student-dashboard',
@@ -30,13 +30,15 @@ export class StudentDashboardComponent {
 
     readonly myActiveBorrows$ = this.user$.pipe(
         switchMap(u => this.circulation.getAllBorrows$().pipe(
-            map(borrows => borrows.filter(b => b.userId === u?.uid && (b.status === 'borrowed' || b.status === 'overdue')))
+            map(borrows => borrows.filter(b => b.userId === u?.uid && (b.status === 'borrowed' || b.status === 'overdue'))),
+            catchError(() => of([]))
         ))
     );
 
     readonly myPendingRequests$ = this.user$.pipe(
         switchMap(u => this.reservations.getAllReservations$().pipe(
-            map(res => res.filter(r => r.userId === u?.uid && (r.status === 'pending' || r.status === 'ready')))
+            map(res => res.filter(r => r.userId === u?.uid && (r.status === 'pending' || r.status === 'ready'))),
+            catchError(() => of([]))
         ))
     );
 
@@ -47,7 +49,8 @@ export class StudentDashboardComponent {
                 .filter(b => (b.borrowCount ?? 0) > 0)
                 .sort((a, b) => (b.borrowCount ?? 0) - (a.borrowCount ?? 0))
                 .slice(0, 4)
-        )
+        ),
+        catchError(() => of([]))
     );
 
     readonly dashboardData$ = combineLatest([

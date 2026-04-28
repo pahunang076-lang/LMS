@@ -7,11 +7,12 @@ import {
 } from '@angular/forms';
 import { BooksService } from './books.service';
 import { Book, BookStatus } from '../../core/models/book.model';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { FilterBooksPipe } from '../../shared/filter-books.pipe';
 import { QrCodeComponent } from '../../shared/qr-code.component';
 import { TableModule } from 'primeng/table';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { SubjectsService, SubjectCategory } from '../../core/services/subjects.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -24,10 +25,12 @@ import Swal from 'sweetalert2';
 export class BooksShellComponent {
   private readonly fb = inject(FormBuilder);
   private readonly booksService = inject(BooksService);
+  private readonly subjectsService = inject(SubjectsService);
 
   @ViewChild('csvFileInput') csvFileInput!: ElementRef<HTMLInputElement>;
 
   readonly books$: Observable<Book[]> = this.booksService.getAllBooks$();
+  readonly subjects$: Observable<SubjectCategory[]> = this.subjectsService.getSubjects$();
 
   readonly searchTerm = signal('');
   readonly statusFilter = signal<BookStatus | 'all'>('all');
@@ -41,7 +44,7 @@ export class BooksShellComponent {
     title: ['', [Validators.required]],
     author: ['', [Validators.required]],
     category: ['', [Validators.required]],
-    isbn: ['', [Validators.required]],
+    isbn: ['', [Validators.required, Validators.maxLength(13), Validators.pattern('^[0-9]+$')]],
     quantityTotal: [1, [Validators.required, Validators.min(0)]],
     quantityAvailable: [1, [Validators.required, Validators.min(0)]],
     status: ['available' as BookStatus, [Validators.required]],
@@ -221,6 +224,9 @@ export class BooksShellComponent {
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
     const get = (row: string[], col: string) => (row[headers.indexOf(col)] ?? '').trim();
 
+    const currentBooks = await firstValueFrom(this.books$);
+    const existingIsbns = new Set(currentBooks.map((b: Book) => b.isbn));
+
     let imported = 0;
     let skipped = 0;
     const errors: string[] = [];
@@ -239,6 +245,14 @@ export class BooksShellComponent {
         errors.push(`Row ${i + 1}: missing title, author, or isbn`);
         continue;
       }
+
+      if (existingIsbns.has(isbn)) {
+        skipped++;
+        errors.push(`Row ${i + 1}: Book with ISBN ${isbn} already exists`);
+        continue;
+      }
+
+      existingIsbns.add(isbn);
 
       const quantity = isNaN(qty) ? 1 : Math.max(0, qty);
       await this.booksService.addBook({

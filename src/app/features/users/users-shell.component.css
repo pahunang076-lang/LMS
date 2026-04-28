@@ -147,6 +147,14 @@
   white-space: nowrap;
 }
 
+.actions-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
 .btn-small {
   padding: 0.4rem 0.85rem;
   background: var(--bg-section);

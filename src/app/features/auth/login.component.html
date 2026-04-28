@@ -51,10 +51,10 @@
         <div class="login-mode-toggle" *ngIf="!isResetPasswordMode">
           <button type="button" class="toggle-btn" [class.active]="loginMode() === 'email'"
             (click)="setLoginMode('email')">
-            ✉️ Email & Password
+            <span style="margin-right: 4px;">✉️</span> Email & Password
           </button>
           <button type="button" class="toggle-btn" [class.active]="loginMode() === 'qr'" (click)="setLoginMode('qr')">
-            📷 QR Code
+            <span style="margin-right: 4px;">📷</span> QR Code
           </button>
         </div>
 

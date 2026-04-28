@@ -7,6 +7,7 @@ import { Book, BookStatus } from '../../core/models/book.model';
 import { Observable, combineLatest, map, firstValueFrom } from 'rxjs';
 import { FilterBooksPipe } from '../../shared/filter-books.pipe';
 import { CirculationService } from '../../features/circulation/circulation.service';
+import { SubjectsService } from '../../core/services/subjects.service';
 import { TableModule } from 'primeng/table';
 import { DialogModule } from 'primeng/dialog';
 import Swal from 'sweetalert2';
@@ -23,6 +24,7 @@ export class CatalogComponent {
   private readonly authService = inject(AuthService);
   private readonly reservationService = inject(ReservationService);
   private readonly circulationService = inject(CirculationService);
+  private readonly subjectsService = inject(SubjectsService);
 
   readonly books$: Observable<Book[]> = combineLatest([
     this.booksService.getAllBooks$(),
@@ -46,21 +48,16 @@ export class CatalogComponent {
     })
   );
 
-  readonly subjects$: Observable<{ name: string; count: number; icon: string }[]> = this.books$.pipe(
-    map((books) => {
+  readonly subjects$: Observable<{ name: string; count: number; icon: string }[]> = combineLatest([
+    this.books$,
+    this.subjectsService.getSubjects$()
+  ]).pipe(
+    map(([books, predefined]) => {
       const counts: Record<string, number> = {};
       books.forEach((b) => {
         if (!counts[b.category]) counts[b.category] = 0;
         counts[b.category] += 1;
       });
-
-      const predefined = [
-        { name: 'Science', icon: '🧬' },
-        { name: 'Arts', icon: '🎨' },
-        { name: 'Commerce', icon: '💼' },
-        { name: 'Design', icon: '📐' },
-        { name: 'Cooking', icon: '🍳' },
-      ];
 
       const result = predefined.map((p) => ({
         name: p.name,
@@ -83,6 +80,8 @@ export class CatalogComponent {
 
   readonly user$ = this.authService.currentUser$;
   readonly isStudent$ = this.user$.pipe(map((u) => u?.role === 'student'));
+  readonly isAdmin$ = this.user$.pipe(map((u) => u?.role === 'admin'));
+  readonly canEditCatalog$ = this.user$.pipe(map((u) => u?.role === 'admin' || u?.role === 'librarian'));
 
   readonly searchTerm = signal('');
   readonly categoryFilter = signal<string | 'all'>('all');
@@ -109,6 +108,35 @@ export class CatalogComponent {
     this.onStatusFilterChange('all');
     this.onCategoryFilterChange('all');
     this.showAll = true;
+  }
+
+  async onAddSubject() {
+    const { value: formValues } = await Swal.fire({
+      title: 'Add New Catalog Category',
+      html: `
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px;">
+          <input id="swal-input1" class="swal2-input" placeholder="Category Name (e.g., IT, Plants)" style="margin: 0;">
+          <input id="swal-input2" class="swal2-input" placeholder="Icon Emoji (e.g., 💻, 🌿)" maxlength="5" style="margin: 0;">
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Add Category',
+      confirmButtonColor: '#6c63ff',
+      preConfirm: () => {
+        const name = (document.getElementById('swal-input1') as HTMLInputElement).value.trim();
+        const icon = (document.getElementById('swal-input2') as HTMLInputElement).value.trim();
+        if (!name) {
+          Swal.showValidationMessage('Category name is required');
+          return null;
+        }
+        return { name, icon: icon || '📚' };
+      }
+    });
+
+    if (formValues) {
+      await this.subjectsService.addSubject(formValues.name, formValues.icon);
+    }
   }
 
   openBookDetails(book: Book): void {

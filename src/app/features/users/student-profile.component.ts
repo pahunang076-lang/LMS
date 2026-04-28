@@ -7,7 +7,7 @@ import { EntryLogsService } from '../entry-logs/entry-logs.service';
 import { AppUser } from '../../core/models/user.model';
 import { Borrow } from '../../core/models/borrow.model';
 import { EntryLog } from '../../core/models/entry-log.model';
-import { combineLatest, map, take } from 'rxjs';
+import { combineLatest, map, take, catchError, of } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
 
 @Component({
@@ -140,9 +140,9 @@ export class StudentProfileComponent {
 
     readonly vm$ = combineLatest([
         this.uid$,
-        this.authService.getAllUsers(),
-        this.circulationService.getAllBorrows$(),
-        this.entryLogsService.getRecentLogs$(200),
+        this.authService.getAllUsers().pipe(catchError(() => of([]))),
+        this.circulationService.getAllBorrows$().pipe(catchError(() => of([]))),
+        this.entryLogsService.getRecentLogs$(200).pipe(catchError(() => of([]))),
     ]).pipe(
         map(([uid, users, borrows, logs]) => {
             const user = users.find((u) => u.uid === uid) ?? null;

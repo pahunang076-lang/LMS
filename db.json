@@ -12,71 +12,6 @@
       "createdAt": "2025-01-01T00:00:00.000Z",
       "lastLoginAt": "2026-03-02T16:11:17.907Z",
       "isActive": true
-    },
-    {
-      "id": "rn7bhUA54Ba66SfWEaRvNvbjr9g2",
-      "uid": "rn7bhUA54Ba66SfWEaRvNvbjr9g2",
-      "name": "Jane Librarian",
-      "email": "librarian@example.edu",
-      "password": "librarian123",
-      "role": "librarian",
-      "studentId": null,
-      "qrCode": "LMS-LIBRARIAN-001-QRCODE",
-      "createdAt": "2025-01-01T00:00:00.000Z",
-      "lastLoginAt": "2026-03-02T16:30:18.754Z",
-      "isActive": true
-    },
-    {
-      "id": "o6eviWyuaKcNn46nT9f1tTf6wVk1",
-      "uid": "o6eviWyuaKcNn46nT9f1tTf6wVk1",
-      "name": "Alice Santos",
-      "email": "alice@students.edu",
-      "password": "student123",
-      "role": "student",
-      "studentId": "2021-00001",
-      "qrCode": "LMS-STUDENT-001-QRCODE",
-      "createdAt": "2025-01-02T00:00:00.000Z",
-      "lastLoginAt": "2026-03-02T16:25:45.528Z",
-      "isActive": true
-    },
-    {
-      "id": "rfV0DKmR0NVZSkwQglINrco2phT2",
-      "uid": "rfV0DKmR0NVZSkwQglINrco2phT2",
-      "name": "Bob Cruz",
-      "email": "bob@students.edu",
-      "password": "student123",
-      "role": "student",
-      "studentId": "2021-00002",
-      "qrCode": "LMS-STUDENT-002-QRCODE",
-      "createdAt": "2025-01-02T00:00:00.000Z",
-      "lastLoginAt": "2026-02-27T14:26:43.833Z",
-      "isActive": true
-    },
-    {
-      "id": "DGSg3RiXwTaIMCknMroI00PGVG02",
-      "uid": "DGSg3RiXwTaIMCknMroI00PGVG02",
-      "name": "Carol Reyes",
-      "email": "carol@students.edu",
-      "password": "student123",
-      "role": "student",
-      "studentId": "2021-00003",
-      "qrCode": "LMS-STUDENT-003-QRCODE",
-      "createdAt": "2025-01-03T00:00:00.000Z",
-      "lastLoginAt": null,
-      "isActive": true
-    },
-    {
-      "id": "veJaJ9PgB5TSHKL56QAQrdnADeu2",
-      "uid": "veJaJ9PgB5TSHKL56QAQrdnADeu2",
-      "name": "Lloyd",
-      "email": "lloyd@gmail.com",
-      "role": "student",
-      "studentId": "2024302103",
-      "qrCode": "LMS-MM8G5PVZ-743C07XF1P4",
-      "password": "lloyd123",
-      "createdAt": "2026-03-02T00:34:51.599Z",
-      "lastLoginAt": "2026-03-02T00:39:10.170Z",
-      "isActive": true
     }
   ],
   "books": [
@@ -343,9 +278,9 @@
       "author": "dave",
       "isbn": "",
       "notes": "365 days",
-      "status": "approved",
+      "status": "fulfilled",
       "requestedAt": "2026-03-02T00:37:08.964Z",
-      "resolvedAt": "2026-03-02T15:50:53.063Z"
+      "resolvedAt": "2026-04-15T10:46:12.671Z"
     }
   ]
 }

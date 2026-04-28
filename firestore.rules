@@ -6,17 +6,21 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
     function hasRole(role) {
-      return isSignedIn() && request.auth.token.role == role;
+      return isSignedIn() && (request.auth.token.get('role', '') == role || getUserData().role == role);
     }
 
     function isAdminOrLibrarian() {
       return isSignedIn() &&
-        (request.auth.token.role == 'admin' || request.auth.token.role == 'librarian');
+        (request.auth.token.get('role', '') in ['admin', 'librarian'] || getUserData().role in ['admin', 'librarian']);
     }
 
     function isStudent() {
-      return hasRole('student');
+      return isSignedIn() && (request.auth.token.get('role', '') == 'student' || getUserData().role == 'student');
     }
 
     function isOwner(userId) {
@@ -72,18 +76,26 @@ service cloud.firestore {
     // Users
     match /users/{uid} {
       allow read: if isOwner(uid) || isAdminOrLibrarian();
-      allow write: if isAdminOrLibrarian();
+      // SEED MODE: allow users to write their own profile (no custom claims yet)
+      allow write: if isOwner(uid) || isAdminOrLibrarian();
     }
 
     // Books
     match /books/{bookId} {
+      allow read: if isSignedIn();
+      // SEED MODE: allow any signed-in user to write books temporarily
+      allow write: if isSignedIn();
+    }
+
+    // Announcements
+    match /announcements/{announcementId} {
       allow read: if isSignedIn();
       allow write: if isAdminOrLibrarian();
     }
 
     // Borrowing records
     match /borrows/{borrowId} {
-      allow read: if isAdminOrLibrarian() || isOwner(resource.data.userId);
+      allow read: if isSignedIn();
       // Students can create borrows only for themselves
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid;
@@ -95,9 +107,9 @@ service cloud.firestore {
 
     // Library entry / exit logs
     match /entryLogs/{logId} {
-      // Any authenticated user can log their own entry
+      // Any authenticated user can log their own entry, or staff can do it for them
       allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid;
+        && (request.resource.data.userId == request.auth.uid || isAdminOrLibrarian());
 
       // Users can read their own logs; staff can read all
       allow read: if isAdminOrLibrarian() || isOwner(resource.data.userId);

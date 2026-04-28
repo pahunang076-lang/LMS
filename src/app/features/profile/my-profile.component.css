@@ -20,6 +20,17 @@
     overflow: hidden;
 }
 
+.hero-watermark {
+    position: absolute;
+    right: 3rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 8rem;
+    opacity: 0.05;
+    pointer-events: none;
+    color: #ffffff;
+}
+
 .profile-hero::before {
     content: '';
     position: absolute;
@@ -99,7 +110,7 @@
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: 1rem;
-    padding: 1.25rem 1rem;
+    padding: 0.875rem 1rem;
     text-align: center;
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -146,7 +157,9 @@
 }
 
 /* History */
-.history-section {}
+.history-section {
+    margin-top: 1.5rem;
+}
 
 .section-title {
     font-size: 1.15rem;
@@ -170,6 +183,72 @@
 .empty-history a {
     color: #4f46e5;
     font-weight: 600;
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.history-header .section-title {
+    margin: 0;
+}
+
+.history-tabs {
+    display: flex;
+    gap: 0.25rem;
+    background: rgba(0,0,0,0.04);
+    padding: 0.25rem;
+    border-radius: 999px;
+}
+
+.history-tabs button {
+    background: transparent;
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.history-tabs button:hover {
+    color: var(--text-main);
+}
+
+.history-tabs button.active {
+    background: #fff;
+    color: #4f46e5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.history-list-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.history-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.history-list-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.history-list-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.history-list-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 
 .history-list {
@@ -205,9 +284,21 @@
 }
 
 .hc-icon {
-    font-size: 1.6rem;
+    font-size: 1.8rem;
     flex-shrink: 0;
     margin-top: 2px;
+}
+
+.icon-returned i {
+    color: #059669;
+}
+
+.icon-borrowed i {
+    color: #3b82f6;
+}
+
+.icon-overdue i {
+    color: #ef4444;
 }
 
 .hc-body {
