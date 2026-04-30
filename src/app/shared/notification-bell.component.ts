@@ -11,48 +11,53 @@ import { Router, RouterModule } from '@angular/router';
     <div class="bell-wrapper" (click)="toggle($event)">
       <button class="bell-btn" [class.has-alerts]="count > 0" aria-label="Notifications">
         🔔
-        <span class="badge" *ngIf="count > 0">{{ count > 9 ? '9+' : count }}</span>
+        @if (count > 0) {
+          <span class="badge">{{ count > 9 ? '9+' : count }}</span>
+        }
       </button>
-
-      <div class="panel" *ngIf="open" (click)="$event.stopPropagation()">
-        <div class="panel-header">
-          <span>Notifications</span>
-          <span class="count-tag">{{ count }}</span>
+    
+      @if (open) {
+        <div class="panel" (click)="$event.stopPropagation()">
+          <div class="panel-header">
+            <span>Notifications</span>
+            <span class="count-tag">{{ count }}</span>
+          </div>
+          <div class="panel-body">
+            @if ((notifications$ | async); as items) {
+              @if (items.length === 0) {
+                <div class="empty">🎉 All clear! No alerts.</div>
+              }
+              @for (n of items; track $index) {
+                <div class="notif-item"
+                  [class.notif-overdue]="n.type === 'overdue'"
+                  [class.notif-due-soon]="n.type === 'due-soon'"
+                  [class.notif-ready]="n.type === 'reservation-ready'"
+                  [class.notif-new-res]="n.type === 'reservation-new'"
+                  [class.notif-book-request]="n.type === 'book-request'"
+                  (click)="navigate(n)">
+                  <span class="notif-icon">
+                    {{ n.type === 'overdue' ? '🚨'
+                    : n.type === 'due-soon' ? '⏰'
+                    : n.type === 'reservation-ready' ? '✅'
+                    : n.type === 'reservation-new' ? '📋'
+                    : '📖' }}
+                  </span>
+                  <div class="notif-content">
+                    <span class="notif-msg">{{ n.message }}</span>
+                    <span class="notif-link-hint">Tap to view →</span>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+          <div class="panel-footer">
+            <a routerLink="/circulation" class="footer-link" (click)="open = false">View Borrows</a>
+            <a routerLink="/reservations" class="footer-link" (click)="open = false">Reservations</a>
+          </div>
         </div>
-
-        <div class="panel-body">
-          <ng-container *ngIf="(notifications$ | async) as items">
-            <div class="empty" *ngIf="items.length === 0">🎉 All clear! No alerts.</div>
-
-            <div class="notif-item" *ngFor="let n of items"
-                 [class.notif-overdue]="n.type === 'overdue'"
-                 [class.notif-due-soon]="n.type === 'due-soon'"
-                 [class.notif-ready]="n.type === 'reservation-ready'"
-                 [class.notif-new-res]="n.type === 'reservation-new'"
-                 [class.notif-book-request]="n.type === 'book-request'"
-                 (click)="navigate(n)">
-              <span class="notif-icon">
-                {{ n.type === 'overdue' ? '🚨'
-                 : n.type === 'due-soon' ? '⏰'
-                 : n.type === 'reservation-ready' ? '✅'
-                 : n.type === 'reservation-new' ? '📋'
-                 : '📖' }}
-              </span>
-              <div class="notif-content">
-                <span class="notif-msg">{{ n.message }}</span>
-                <span class="notif-link-hint">Tap to view →</span>
-              </div>
-            </div>
-          </ng-container>
-        </div>
-
-        <div class="panel-footer">
-          <a routerLink="/circulation" class="footer-link" (click)="open = false">View Borrows</a>
-          <a routerLink="/reservations" class="footer-link" (click)="open = false">Reservations</a>
-        </div>
-      </div>
+      }
     </div>
-  `,
+    `,
   styles: [`
     .bell-wrapper { position: relative; display: inline-flex; align-items: center; }
     .bell-btn {

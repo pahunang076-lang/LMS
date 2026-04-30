@@ -11,54 +11,66 @@ import { take } from 'rxjs/operators';
   standalone: true,
   imports: [CommonModule, ProgressSpinnerModule, TitleCasePipe],
   template: `
-    <div class="modal-overlay" *ngIf="isOpen" (click)="close.emit()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <!-- Header -->
-        <div class="modal-header">
-          <div>
-            <h2 class="title">{{ user?.name }}'s History</h2>
-            <p class="subtitle">Total Books Borrowed: {{ totalBorrows() }}</p>
-          </div>
-          <button type="button" class="close-btn" (click)="close.emit()">&times;</button>
-        </div>
-
-        <!-- Body -->
-        <div class="modal-body" (scroll)="onScroll($event)">
-          <div *ngIf="loading()" class="state-container">
-            <p-progressSpinner styleClass="w-2rem h-2rem"></p-progressSpinner>
-            <span style="margin-top: 8px;">Loading history...</span>
-          </div>
-
-          <div *ngIf="!loading() && visibleBorrows().length === 0" class="state-container">
-            No borrowing history found.
-          </div>
-
-          <div class="timeline" *ngIf="!loading() && visibleBorrows().length > 0">
-            <div class="timeline-item" *ngFor="let borrow of visibleBorrows()">
-              <div class="status-indicator" [ngClass]="getIndicatorClass(borrow.status)"></div>
-              <div class="item-content">
-                <div class="book-title">{{ borrow.bookTitle }}</div>
-                <div class="item-details">
-                  <span>Borrowed: {{ formatDate(borrow.borrowedAt) }}</span>
-                  <span *ngIf="borrow.returnedAt"> • Returned: {{ formatDate(borrow.returnedAt) }}</span>
-                  <span *ngIf="!borrow.returnedAt"> • Due: {{ formatDate(borrow.dueAt) }}</span>
-                </div>
-              </div>
-              <div class="pill" [ngClass]="getPillClass(borrow.status)">
-                {{ borrow.status | titlecase }}
-              </div>
+    @if (isOpen) {
+      <div class="modal-overlay" (click)="close.emit()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <!-- Header -->
+          <div class="modal-header">
+            <div>
+              <h2 class="title">{{ user?.name }}'s History</h2>
+              <p class="subtitle">Total Books Borrowed: {{ totalBorrows() }}</p>
             </div>
+            <button type="button" class="close-btn" (click)="close.emit()">&times;</button>
           </div>
-          
-          <div *ngIf="!loading() && visibleBorrows().length < allBorrows().length" class="load-more">
-            <button type="button" class="load-more-btn" (click)="loadMore()">
-              Load More ({{allBorrows().length - visibleBorrows().length}} older)
-            </button>
+          <!-- Body -->
+          <div class="modal-body" (scroll)="onScroll($event)">
+            @if (loading()) {
+              <div class="state-container">
+                <p-progressSpinner styleClass="w-2rem h-2rem"></p-progressSpinner>
+                <span style="margin-top: 8px;">Loading history...</span>
+              </div>
+            }
+            @if (!loading() && visibleBorrows().length === 0) {
+              <div class="state-container">
+                No borrowing history found.
+              </div>
+            }
+            @if (!loading() && visibleBorrows().length > 0) {
+              <div class="timeline">
+                @for (borrow of visibleBorrows(); track $index) {
+                  <div class="timeline-item">
+                    <div class="status-indicator" [ngClass]="getIndicatorClass(borrow.status)"></div>
+                    <div class="item-content">
+                      <div class="book-title">{{ borrow.bookTitle }}</div>
+                      <div class="item-details">
+                        <span>Borrowed: {{ formatDate(borrow.borrowedAt) }}</span>
+                        @if (borrow.returnedAt) {
+                          <span> • Returned: {{ formatDate(borrow.returnedAt) }}</span>
+                        }
+                        @if (!borrow.returnedAt) {
+                          <span> • Due: {{ formatDate(borrow.dueAt) }}</span>
+                        }
+                      </div>
+                    </div>
+                    <div class="pill" [ngClass]="getPillClass(borrow.status)">
+                      {{ borrow.status | titlecase }}
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+            @if (!loading() && visibleBorrows().length < allBorrows().length) {
+              <div class="load-more">
+                <button type="button" class="load-more-btn" (click)="loadMore()">
+                  Load More ({{allBorrows().length - visibleBorrows().length}} older)
+                </button>
+              </div>
+            }
           </div>
         </div>
       </div>
-    </div>
-  `,
+    }
+    `,
   styles: [`
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);

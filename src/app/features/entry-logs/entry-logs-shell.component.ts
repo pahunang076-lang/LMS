@@ -101,7 +101,20 @@ export class EntryLogsShellComponent {
 
   onStudentQrScanned(raw: string, students: AppUser[]): void {
     this.qrError = null;
-    const student = students.find((s) => s.qrCode === raw.trim());
+    let finalCode = raw.trim();
+    try {
+      const parsed = JSON.parse(raw) as { type?: string; value?: string };
+      if (parsed.type === 'user' && parsed.value) {
+        finalCode = parsed.value;
+      } else if (parsed.type) {
+        this.qrError = 'Invalid QR code type. Expected a Student/User QR code.';
+        return;
+      }
+    } catch {
+      // Not JSON — treat raw as plain string (backward compatibility)
+    }
+
+    const student = students.find((s) => s.qrCode === finalCode || s.uid === finalCode);
     if (!student) { this.qrError = 'No student found for this QR code.'; return; }
     const purpose = (this.manualForm.get('purpose')?.value ?? 'Study') as VisitPurpose;
     this.entryLogsService.logEntry(student, purpose);
@@ -110,9 +123,9 @@ export class EntryLogsShellComponent {
 
   asDate(value: unknown): Date | null {
     if (!value) return null;
-    const v: any = value;
-    if (v.toDate instanceof Function) return v.toDate();
+    const v = value as Record<string, unknown>;
+    if (typeof v['toDate'] === 'function') return (v['toDate'] as () => Date)();
     if (value instanceof Date) return value;
-    return new Date(v as any);
+    return new Date(String(value));
   }
 }

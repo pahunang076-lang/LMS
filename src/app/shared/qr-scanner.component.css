@@ -117,6 +117,56 @@
   background: linear-gradient(90deg, #4338ca, #5855eb);
 }
 
+/* Upload button */
+.btn-upload {
+  background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-upload:hover {
+  background: linear-gradient(90deg, #0284c7, #0ea5e9);
+}
+
+/* Dismiss button for upload errors */
+.btn-upload-retry {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-upload-retry:hover {
+  background: #e2e8f0;
+}
+
+/* Upload error text */
+.qr-upload-error {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #ef4444;
+  text-align: center;
+}
+
+/* Dark spinner for camera-off state */
+.loading-spinner--dark {
+  border-color: rgba(100, 116, 139, 0.3);
+  border-top-color: #4f46e5;
+}
+
 .camera-icon {
   font-size: 1rem;
 }

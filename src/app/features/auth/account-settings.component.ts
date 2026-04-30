@@ -20,84 +20,82 @@ import { QrCodeComponent } from '../../shared/qr-code.component';
         <h2>Account settings</h2>
         <p>Update your personal details for your account.</p>
       </header>
-
-      <div class="account-settings__card" *ngIf="user$ | async as user">
-        <form
-          [formGroup]="form"
-          (ngSubmit)="onSubmit()"
-          class="account-settings__form"
-        >
-          <div class="account-settings__row">
-            <label class="account-settings__label" for="name">Name</label>
-            <input
-              id="name"
-              type="text"
-              class="account-settings__input"
-              formControlName="name"
-              autocomplete="name"
-            />
-          </div>
-
-          <div class="account-settings__row">
-            <label class="account-settings__label" for="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              class="account-settings__input"
-              formControlName="email"
-              autocomplete="email"
-            />
-          </div>
-
-          <div class="account-settings__row">
-            <span class="account-settings__label">Role</span>
-            <span class="account-settings__value">
-              {{ user.role | titlecase }}
-            </span>
-          </div>
-
-          <div class="account-settings__qr-section">
-            <div class="account-settings__qr-header">
-              <span class="account-settings__label">Your QR Code</span>
-              <span class="account-settings__qr-hint">
-                Use this QR code to login quickly
-              </span>
-            </div>
-            <div class="account-settings__qr-display">
-              <app-qr-code [value]="user.qrCode" [size]="180"></app-qr-code>
-              <div class="account-settings__qr-code-text">
-                {{ user.qrCode }}
-              </div>
-            </div>
-          </div>
-
-          <div class="account-settings__actions">
-            <button
-              type="submit"
-              class="btn btn-primary"
-              [disabled]="form.invalid || isSaving"
+    
+      @if (user$ | async; as user) {
+        <div class="account-settings__card">
+          <form
+            [formGroup]="form"
+            (ngSubmit)="onSubmit()"
+            class="account-settings__form"
             >
-              {{ isSaving ? 'Saving…' : 'Save changes' }}
-            </button>
-          </div>
-
-          <p
-            *ngIf="saveError"
-            class="account-settings__message account-settings__message--error"
-          >
-            {{ saveError }}
-          </p>
-
-          <p
-            *ngIf="saveSuccess"
-            class="account-settings__message account-settings__message--success"
-          >
-            Your account information has been updated.
-          </p>
-        </form>
-      </div>
-    </section>
-  `,
+            <div class="account-settings__row">
+              <label class="account-settings__label" for="name">Name</label>
+              <input
+                id="name"
+                type="text"
+                class="account-settings__input"
+                formControlName="name"
+                autocomplete="name"
+                />
+              </div>
+              <div class="account-settings__row">
+                <label class="account-settings__label" for="email">Email</label>
+                <input
+                  id="email"
+                  type="email"
+                  class="account-settings__input"
+                  formControlName="email"
+                  autocomplete="email"
+                  />
+                </div>
+                <div class="account-settings__row">
+                  <span class="account-settings__label">Role</span>
+                  <span class="account-settings__value">
+                    {{ user.role | titlecase }}
+                  </span>
+                </div>
+                <div class="account-settings__qr-section">
+                  <div class="account-settings__qr-header">
+                    <span class="account-settings__label">Your QR Code</span>
+                    <span class="account-settings__qr-hint">
+                      Use this QR code to login quickly
+                    </span>
+                  </div>
+                  <div class="account-settings__qr-display">
+                    <app-qr-code [value]="user.qrCode" type="user" [size]="180"></app-qr-code>
+                    <div class="account-settings__qr-code-text">
+                      {{ user.qrCode }}
+                    </div>
+                  </div>
+                </div>
+                <div class="account-settings__actions">
+                  <button
+                    type="submit"
+                    class="btn btn-primary"
+                    [disabled]="form.invalid || isSaving"
+                    >
+                    {{ isSaving ? 'Saving…' : 'Save changes' }}
+                  </button>
+                </div>
+                @if (saveError) {
+                  <p
+                    class="account-settings__message account-settings__message--error"
+                    >
+                    {{ saveError }}
+                  </p>
+                }
+                @if (saveSuccess) {
+                  <p
+                    class="account-settings__message account-settings__message--success"
+                    >
+                    Your account information has been updated.
+                  </p>
+                }
+              </form>
+            </div>
+          }
+        </section>
+    `,
   styles: [
     `
       .account-settings {

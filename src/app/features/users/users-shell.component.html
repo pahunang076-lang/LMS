@@ -18,7 +18,7 @@
   </header>
 
   <div class="table-container">
-    <ng-container *ngIf="users$ | async as users; else loading">
+    @if (users$ | async; as users) {
       <p-table [value]="users" [paginator]="true" [rows]="10" [showCurrentPageReport]="true"
         currentPageReportTemplate="{first} to {last} of {totalRecords} users"
         [showFirstLastIcon]="false"
@@ -72,9 +72,9 @@
                 <button type="button" class="btn btn-small" (click)="openHistory(user)" title="View borrowing history">
                   View History
                 </button>
-                <button type="button" class="btn btn-small" 
+                <button type="button" class="btn btn-small"
                   [ngClass]="user.isActive !== false ? 'btn-danger' : 'btn-success'"
-                  (click)="toggleActive(user)" 
+                  (click)="toggleActive(user)"
                   [title]="user.isActive !== false ? 'Deactivate user' : 'Reactivate user'">
                   {{ user.isActive !== false ? 'Deactivate' : 'Reactivate' }}
                 </button>
@@ -93,144 +93,156 @@
           </tr>
         </ng-template>
       </p-table>
-    </ng-container>
-    <ng-template #loading>
+    } @else {
       <div style="display: flex; justify-content: center; padding: 3rem;">
         <p-progressSpinner></p-progressSpinner>
       </div>
-    </ng-template>
+    }
   </div>
 
   <!-- Create User Dialog -->
-  <div class="dialog-backdrop" *ngIf="isDialogOpen()" (click)="closeDialog()">
-    <div class="dialog" (click)="$event.stopPropagation()">
-      <div class="dialog-header">
-        <h3>{{ isEditing ? 'Edit User Account' : 'Create User Account' }}</h3>
-        <button type="button" class="btn-close" (click)="closeDialog()" aria-label="Close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
-        <label class="form-field">
-          <span class="form-label">Name <span class="required">*</span></span>
-          <input type="text" formControlName="name" class="form-input" placeholder="Enter full name" />
-          <span class="error" *ngIf="
-              form.controls.name.touched && form.controls.name.invalid
-            ">
-            Name is required.
-          </span>
-        </label>
-
-        <label class="form-field" *ngIf="!isEditing">
-          <span class="form-label">Email <span class="required">*</span></span>
-          <input type="email" formControlName="email" class="form-input" placeholder="Enter email address" />
-          <span class="error" *ngIf="
-              form.controls.email.touched && form.controls.email.invalid
-            ">
-            Valid email is required.
-          </span>
-        </label>
-
-        <label class="form-field" *ngIf="!isEditing">
-          <span class="form-label">Password <span class="required">*</span></span>
-          <input type="password" formControlName="password" class="form-input" placeholder="Minimum 6 characters" />
-          <span class="error" *ngIf="
-              form.controls.password.touched && form.controls.password.invalid
-            ">
-            Password must be at least 6 characters.
-          </span>
-        </label>
-
-        <label class="form-field">
-          <span class="form-label">Phone Number <span class="required">*</span></span>
-          <input type="tel" formControlName="phoneNumber" class="form-input" placeholder="Enter phone number" />
-          <span class="error" *ngIf="form.controls.phoneNumber.touched && form.controls.phoneNumber.invalid">
-            Valid phone number is required.
-          </span>
-        </label>
-
-        <label class="form-field">
-          <span class="form-label">Role <span class="required">*</span></span>
-          <select formControlName="role" class="form-select">
-            <option value="student">Student</option>
-            <option value="librarian">Librarian</option>
-            <option value="admin">Admin</option>
-          </select>
-        </label>
-
-        <label class="form-field">
-          <span class="form-label">Student ID (optional)</span>
-          <input type="text" formControlName="studentId" class="form-input" placeholder="Enter student ID" />
-        </label>
-
-        <div class="dialog-actions full-width">
-          <button type="button" class="btn btn-secondary" (click)="closeDialog()">
-            Cancel
+  @if (isDialogOpen()) {
+    <div class="dialog-backdrop" (click)="closeDialog()">
+      <div class="dialog" (click)="$event.stopPropagation()">
+        <div class="dialog-header">
+          <h3>{{ isEditing ? 'Edit User Account' : 'Create User Account' }}</h3>
+          <button type="button" class="btn-close" (click)="closeDialog()" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
-          <button type="submit" class="btn btn-primary">{{ isEditing ? 'Save Changes' : 'Create User' }}</button>
         </div>
-
-        <p *ngIf="createError()" class="error-message full-width">
-          {{ createError() }}
-        </p>
-
-        <p *ngIf="createSuccess()" class="success-message full-width">
-          {{ isEditing ? 'User account updated successfully!' : 'User account created successfully!' }}
-        </p>
-      </form>
+        <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
+          <label class="form-field">
+            <span class="form-label">Name <span class="required">*</span></span>
+            <input type="text" formControlName="name" class="form-input" placeholder="Enter full name" />
+            @if (
+              form.controls.name.touched && form.controls.name.invalid
+              ) {
+              <span class="error">
+                Name is required.
+              </span>
+            }
+          </label>
+          @if (!isEditing) {
+            <label class="form-field">
+              <span class="form-label">Email <span class="required">*</span></span>
+              <input type="email" formControlName="email" class="form-input" placeholder="Enter email address" />
+              @if (
+                form.controls.email.touched && form.controls.email.invalid
+                ) {
+                <span class="error">
+                  Valid email is required.
+                </span>
+              }
+            </label>
+          }
+          @if (!isEditing) {
+            <label class="form-field">
+              <span class="form-label">Password <span class="required">*</span></span>
+              <input type="password" formControlName="password" class="form-input" placeholder="Minimum 6 characters" />
+              @if (
+                form.controls.password.touched && form.controls.password.invalid
+                ) {
+                <span class="error">
+                  Password must be at least 6 characters.
+                </span>
+              }
+            </label>
+          }
+          <label class="form-field">
+            <span class="form-label">Phone Number <span class="required">*</span></span>
+            <input type="tel" formControlName="phoneNumber" class="form-input" placeholder="Enter phone number" />
+            @if (form.controls.phoneNumber.touched && form.controls.phoneNumber.invalid) {
+              <span class="error">
+                Valid phone number is required.
+              </span>
+            }
+          </label>
+          <label class="form-field">
+            <span class="form-label">Role <span class="required">*</span></span>
+            <select formControlName="role" class="form-select">
+              <option value="student">Student</option>
+              <option value="librarian">Librarian</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+          <label class="form-field">
+            <span class="form-label">Student ID (optional)</span>
+            <input type="text" formControlName="studentId" class="form-input" placeholder="Enter student ID" />
+          </label>
+          <div class="dialog-actions full-width">
+            <button type="button" class="btn btn-secondary" (click)="closeDialog()">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">{{ isEditing ? 'Save Changes' : 'Create User' }}</button>
+          </div>
+          @if (createError()) {
+            <p class="error-message full-width">
+              {{ createError() }}
+            </p>
+          }
+          @if (createSuccess()) {
+            <p class="success-message full-width">
+              {{ isEditing ? 'User account updated successfully!' : 'User account created successfully!' }}
+            </p>
+          }
+        </form>
+      </div>
     </div>
-  </div>
+  }
 
   <!-- QR Dialog -->
-  <div class="dialog-backdrop" *ngIf="qrUser()" (click)="closeQrDialog()">
-    <div class="dialog dialog--qr" (click)="$event.stopPropagation()">
-      <div class="dialog-header">
-        <h3>User QR Code</h3>
-        <button type="button" class="btn-close" (click)="closeQrDialog()" aria-label="Close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <p class="subtitle" style="padding: 0 1.75rem; margin: 0 0 1.5rem 0; color: #6b7280; font-size: 0.9rem;">
-        This QR code can be used for login. Share it with the user.
-      </p>
-
-      <div class="qr-preview" *ngIf="qrUser() as u">
-        <div class="qr-code-wrapper">
-          <app-qr-code [value]="u.qrCode" [size]="240"></app-qr-code>
+  @if (qrUser()) {
+    <div class="dialog-backdrop" (click)="closeQrDialog()">
+      <div class="dialog dialog--qr" (click)="$event.stopPropagation()">
+        <div class="dialog-header">
+          <h3>User QR Code</h3>
+          <button type="button" class="btn-close" (click)="closeQrDialog()" aria-label="Close">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
-        <div class="qr-meta">
-          <div class="qr-title">{{ u.name }}</div>
-          <div class="qr-email">{{ u.email }}</div>
-          <div class="qr-role">{{ u.role | titlecase }}</div>
-          <div class="qr-id">
-            <span class="qr-id-label">QR Code:</span>
-            <span class="qr-id-value">{{ u.qrCode }}</span>
+        <p class="subtitle" style="padding: 0 1.75rem; margin: 0 0 1.5rem 0; color: #6b7280; font-size: 0.9rem;">
+          This QR code can be used for login. Share it with the user.
+        </p>
+        @if (qrUser(); as u) {
+          <div class="qr-preview">
+            <div class="qr-code-wrapper">
+              <app-qr-code [value]="u.qrCode" type="user" [size]="240"></app-qr-code>
+            </div>
+            <div class="qr-meta">
+              <div class="qr-title">{{ u.name }}</div>
+              <div class="qr-email">{{ u.email }}</div>
+              <div class="qr-role">{{ u.role | titlecase }}</div>
+              <div class="qr-id">
+                <span class="qr-id-label">QR Code:</span>
+                <span class="qr-id-value">{{ u.qrCode }}</span>
+              </div>
+            </div>
           </div>
+        }
+        <div class="dialog-actions full-width">
+          <button type="button" class="btn btn-secondary" (click)="closeQrDialog()">
+            Close
+          </button>
+          @if (qrUser(); as u) {
+            <button type="button" class="btn btn-primary" (click)="downloadQr(u)">
+              <i class="pi pi-download"></i> Download QR
+            </button>
+          }
         </div>
-      </div>
-
-      <div class="dialog-actions full-width">
-        <button type="button" class="btn btn-secondary" (click)="closeQrDialog()">
-          Close
-        </button>
-        <button type="button" class="btn btn-primary" *ngIf="qrUser() as u" (click)="downloadQr(u)">
-          <i class="pi pi-download"></i> Download QR
-        </button>
       </div>
     </div>
-  </div>
+  }
 
   <!-- History Modal -->
-  <app-user-history-modal 
-    [isOpen]="isHistoryOpen()" 
-    [user]="historyUser()" 
+  <app-user-history-modal
+    [isOpen]="isHistoryOpen()"
+    [user]="historyUser()"
     (close)="closeHistory()">
   </app-user-history-modal>
 </section>

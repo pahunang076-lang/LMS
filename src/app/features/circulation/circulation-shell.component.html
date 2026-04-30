@@ -1,428 +1,437 @@
-<section class="circulation-root" *ngIf="vm$ | async as vm">
-  <header class="page-header">
-    <div class="page-header-text">
-      <h1 class="page-title">📚 Borrow &amp; Return</h1>
-      <p class="subtitle">Track borrowed books, due dates, and returns</p>
+@if (vm$ | async; as vm) {
+  <section class="circulation-root">
+    <header class="page-header">
+      <div class="page-header-text">
+        <h1 class="page-title">📚 Borrow &amp; Return</h1>
+        <p class="subtitle">Track borrowed books, due dates, and returns</p>
+      </div>
+      <div class="page-header-stats">
+        <div class="stat-chip stat-chip--active">
+          <span class="stat-chip-value">{{ vm.rawActiveCount }}</span>
+          <span class="stat-chip-label">Active</span>
+        </div>
+        <div class="stat-chip stat-chip--history">
+          <span class="stat-chip-value">{{ vm.history.length }}</span>
+          <span class="stat-chip-label">Returned</span>
+        </div>
+      </div>
+    </header>
+    <div class="mode-toggle">
+      <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'manual'" (click)="setMode('manual')">
+        ✏️ Manual Form
+      </button>
+      <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'qrBorrow'" (click)="setMode('qrBorrow')">
+        📷 Borrow via QR
+      </button>
+      <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'qrReturn'" (click)="setMode('qrReturn')">
+        🔄 Return via QR
+      </button>
     </div>
-    <div class="page-header-stats">
-      <div class="stat-chip stat-chip--active">
-        <span class="stat-chip-value">{{ vm.rawActiveCount }}</span>
-        <span class="stat-chip-label">Active</span>
-      </div>
-      <div class="stat-chip stat-chip--history">
-        <span class="stat-chip-value">{{ vm.history.length }}</span>
-        <span class="stat-chip-label">Returned</span>
-      </div>
-    </div>
-  </header>
-
-  <div class="mode-toggle">
-    <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'manual'" (click)="setMode('manual')">
-      ✏️ Manual Form
-    </button>
-    <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'qrBorrow'" (click)="setMode('qrBorrow')">
-      📷 Borrow via QR
-    </button>
-    <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'qrReturn'" (click)="setMode('qrReturn')">
-      🔄 Return via QR
-    </button>
-  </div>
-
-  <div class="columns main-layout" *ngIf="mode === 'manual'">
-    <!-- ===== NEW BORROWING FORM ===== -->
-    <section class="column form-column">
-      <div class="column-header">
-        <div class="column-icon">➕</div>
-        <div>
-          <h3>New Borrowing</h3>
-          <p class="section-subtitle">Create a borrowing record for the current user.</p>
-        </div>
-      </div>
-
-      <form [formGroup]="borrowForm" (ngSubmit)="createBorrow(vm.user?.uid, vm.books, vm.active)" class="form">
-
-        <div class="form-field">
-          <label class="form-label" for="book-select">
-            <span class="label-icon">📖</span> Book
-          </label>
-          <div class="select-wrapper">
-            <select id="book-select" formControlName="bookId" class="form-select">
-              <option value="" disabled>Choose a book…</option>
-              <option *ngFor="let book of vm.books" [value]="book.id" [disabled]="book.quantityAvailable <= 0">
-                {{ book.title }} {{ book.quantityAvailable <= 0 ? '— Out of stock' : '(' + book.quantityAvailable
-                  + ' left)' }} </option>
-            </select>
-            <span class="select-arrow">▾</span>
-          </div>
-          <!-- Book preview chip if selected -->
-          <div class="book-preview-chip" *ngIf="borrowForm.get('bookId')?.value">
-            <span class="chip-cover">📗</span>
-            <span class="chip-title">{{ getBookTitle(borrowForm.get('bookId')?.value, vm.books) }}</span>
-          </div>
-        </div>
-
-        <div class="form-field">
-          <label class="form-label" for="due-date-input">
-            <span class="label-icon">📅</span> Due Date
-          </label>
-          <input id="due-date-input" type="date" formControlName="dueDate" class="form-input" />
-        </div>
-
-        <button type="submit" class="btn btn-primary btn-submit" [disabled]="borrowForm.invalid">
-          <span class="btn-icon">✓</span> Create Borrowing
-        </button>
-      </form>
-    </section>
-
-    <!-- ===== LISTS CONTAINER ===== -->
-    <div class="lists-container">
-      <!-- ===== CURRENT BORROWINGS ===== -->
-      <section class="column borrow-column">
-      <div class="column-header">
-        <div class="column-icon">📂</div>
-        <div style="flex: 1;">
-          <h3>Current Borrowings</h3>
-          <p class="section-subtitle">Active and overdue books across the system.</p>
-        </div>
-      </div>
-
-      <!-- Search and Filters -->
-      <div class="filter-controls">
-        <div class="search-bar">
-          <span class="search-icon">🔍</span>
-          <input type="text" class="search-input" placeholder="Search by student, book..." (input)="setSearchQuery($event)" [value]="vm.search" />
-        </div>
-        
-        <div class="filter-chips">
-          <button type="button" class="filter-chip" [class.active]="vm.filterStr === 'All'" (click)="setFilter('All')">All</button>
-          <button type="button" class="filter-chip" [class.active]="vm.filterStr === 'Overdue'" (click)="setFilter('Overdue')">Overdue</button>
-          <button type="button" class="filter-chip" [class.active]="vm.filterStr === 'Due Today'" (click)="setFilter('Due Today')">Due Today</button>
-        </div>
-      </div>
-
-      <ng-container *ngIf="vm.active.length > 0 || vm.search || vm.filterStr !== 'All'; else noActive">
-        <div class="scroll-container">
-          <div class="cards-grid">
-          <div class="borrow-card" *ngFor="let borrow of vm.active"
-            [class.card-overdue]="isOverdue(borrow) && !borrow.finePaid">
-
-            <!-- Card Cover Band -->
-            <div class="card-cover-band" [class.cover-overdue]="isOverdue(borrow) && !borrow.finePaid">
-              <span class="cover-emoji">{{ isOverdue(borrow) && !borrow.finePaid ? '🚨' : '📙' }}</span>
+    @if (mode === 'manual') {
+      <div class="columns main-layout">
+        <!-- ===== NEW BORROWING FORM ===== -->
+        <section class="column form-column">
+          <div class="column-header">
+            <div class="column-icon">➕</div>
+            <div>
+              <h3>New Borrowing</h3>
+              <p class="section-subtitle">Create a borrowing record for the current user.</p>
             </div>
-
-            <!-- Card Body -->
-            <div class="card-body">
-              <div class="borrow-card-header">
-                <div class="borrow-card-title">
-                  {{ borrow.bookTitle }}
-                  <div class="borrow-card-user" *ngIf="borrow.userName || borrow.studentId">
-                    <small>👤 {{ borrow.userName || 'User' }} {{ borrow.studentId ? '(' + borrow.studentId + ')' : '' }}</small>
+          </div>
+          <form [formGroup]="borrowForm" (ngSubmit)="createBorrow(vm.user?.uid, vm.books, vm.active)" class="form">
+            <div class="form-field">
+              <label class="form-label" for="book-select">
+                <span class="label-icon">📖</span> Book
+              </label>
+              <div class="select-wrapper">
+                <select id="book-select" formControlName="bookId" class="form-select">
+                  <option value="" disabled>Choose a book…</option>
+                  @for (book of vm.books; track $index) {
+                    <option [value]="book.id" [disabled]="book.quantityAvailable <= 0">
+                      {{ book.title }} {{ book.quantityAvailable <= 0 ? '— Out of stock' : '(' + book.quantityAvailable
+                    + ' left)' }} </option>
+                  }
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+              <!-- Book preview chip if selected -->
+              @if (borrowForm.get('bookId')?.value) {
+                <div class="book-preview-chip">
+                  <span class="chip-cover">📗</span>
+                  <span class="chip-title">{{ getBookTitle(borrowForm.get('bookId')?.value, vm.books) }}</span>
+                </div>
+              }
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="due-date-input">
+                <span class="label-icon">📅</span> Due Date
+              </label>
+              <input id="due-date-input" type="date" formControlName="dueDate" class="form-input" />
+            </div>
+            <button type="submit" class="btn btn-primary btn-submit" [disabled]="borrowForm.invalid">
+              <span class="btn-icon">✓</span> Create Borrowing
+            </button>
+          </form>
+        </section>
+        <!-- ===== LISTS CONTAINER ===== -->
+        <div class="lists-container">
+          <!-- ===== CURRENT BORROWINGS ===== -->
+          <section class="column borrow-column">
+            <div class="column-header">
+              <div class="column-icon">📂</div>
+              <div style="flex: 1;">
+                <h3>Current Borrowings</h3>
+                <p class="section-subtitle">Active and overdue books across the system.</p>
+              </div>
+            </div>
+            <!-- Search and Filters -->
+            <div class="filter-controls">
+              <div class="search-bar">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" placeholder="Search by student, book..." (input)="setSearchQuery($event)" [value]="vm.search" />
+              </div>
+              <div class="filter-chips">
+                <button type="button" class="filter-chip" [class.active]="vm.filterStr === 'All'" (click)="setFilter('All')">All</button>
+                <button type="button" class="filter-chip" [class.active]="vm.filterStr === 'Overdue'" (click)="setFilter('Overdue')">Overdue</button>
+                <button type="button" class="filter-chip" [class.active]="vm.filterStr === 'Due Today'" (click)="setFilter('Due Today')">Due Today</button>
+              </div>
+            </div>
+            @if (vm.active.length > 0 || vm.search || vm.filterStr !== 'All') {
+              <div class="scroll-container">
+                <div class="cards-grid">
+                  @for (borrow of vm.active; track $index) {
+                    <div class="borrow-card"
+                      [class.card-overdue]="isOverdue(borrow) && !borrow.finePaid">
+                      <!-- Card Cover Band -->
+                      <div class="card-cover-band" [class.cover-overdue]="isOverdue(borrow) && !borrow.finePaid">
+                        <span class="cover-emoji">{{ isOverdue(borrow) && !borrow.finePaid ? '🚨' : '📙' }}</span>
+                      </div>
+                      <!-- Card Body -->
+                      <div class="card-body">
+                        <div class="borrow-card-header">
+                          <div class="borrow-card-title">
+                            {{ borrow.bookTitle }}
+                            @if (borrow.userName || borrow.studentId) {
+                              <div class="borrow-card-user">
+                                <small>👤 {{ borrow.userName || 'User' }} {{ borrow.studentId ? '(' + borrow.studentId + ')' : '' }}</small>
+                              </div>
+                            }
+                          </div>
+                          <span class="status-badge" [class.badge-overdue]="borrow.status === 'overdue' && !borrow.finePaid"
+                            [class.badge-borrowed]="borrow.status === 'borrowed'">
+                            {{ borrow.status | titlecase }}
+                          </span>
+                        </div>
+                        <div class="borrow-card-dates">
+                          <div class="date-col">
+                            <span class="date-label">Borrowed</span>
+                            <span class="date-val">{{ asDate(borrow.borrowedAt) | date: 'MMM d, y' }}</span>
+                          </div>
+                          <div class="date-divider"></div>
+                          <div class="date-col">
+                            <span class="date-label">Due Date</span>
+                            <span class="date-val" [class.date-val--overdue]="borrow.status === 'overdue'">
+                              {{ asDate(borrow.dueAt) | date: 'MMM d, y' }}
+                            </span>
+                          </div>
+                        </div>
+                        <!-- Due Date Progress Bar -->
+                        <div class="progress-section">
+                          <div class="progress-header">
+                            <span class="progress-text" [class.text-overdue]="borrow.status === 'overdue'">
+                              {{ dueCountdown(borrow.dueAt) }}
+                            </span>
+                            @if (borrow.fineAmount > 0 && !borrow.finePaid) {
+                              <span class="fine-amount">
+                                💸 {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}
+                              </span>
+                            }
+                            @if (borrow.finePaid) {
+                              <span class="fine-paid-badge">✔ Paid</span>
+                            }
+                          </div>
+                          <div class="progress-track">
+                            <div class="progress-fill" [ngClass]="getProgressColorClass(borrow.dueAt)"
+                              [style.width.%]="getBorrowProgress(borrow.borrowedAt, borrow.dueAt)">
+                            </div>
+                          </div>
+                        </div>
+                        <!-- Actions -->
+                        <div class="borrow-card-actions">
+                          <button type="button" class="btn btn-small btn-success action-btn" (click)="markReturned(borrow)">
+                            ✅ Mark Returned
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+              <!-- Empty state when filters yield no results -->
+              @if (vm.active.length === 0) {
+                <div class="empty-state">
+                  <span class="empty-icon">🔍</span>
+                  <p class="empty-text">No matches found</p>
+                  <p class="empty-sub">Try clearing your filters or search query.</p>
+                </div>
+              }
+            } @else {
+              <div class="empty-state">
+                <span class="empty-icon">📭</span>
+                <p class="empty-text">No active borrowings.</p>
+                <p class="empty-sub">Use the form on the left to borrow a book.</p>
+              </div>
+            }
+          </section>
+          <!-- ===== BORROWING HISTORY ===== -->
+          <section class="column history-column">
+            <div class="column-header">
+              <div class="column-icon">📜</div>
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <h3>Borrowing History</h3>
+                  @if (vm.history.length > 0) {
+                    <span class="history-count-badge">{{ vm.history.length }} records</span>
+                  }
+                </div>
+                <p class="section-subtitle">A log of all previously returned books.</p>
+              </div>
+            </div>
+            <div class="filter-controls" style="margin-bottom: 1rem;">
+              <div class="search-bar" style="width: 100%;">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" placeholder="Search history by student, book..." (input)="setHistorySearchQuery($event)" />
+              </div>
+            </div>
+            @if (vm.history.length > 0) {
+              <div class="scroll-container">
+                <div class="cards-grid">
+                  @for (borrow of vm.history; track $index) {
+                    <div class="borrow-card history-card">
+                      <!-- Card Cover Band -->
+                      <div class="card-cover-band cover-returned">
+                        <span class="cover-emoji">📘</span>
+                      </div>
+                      <!-- Card Body -->
+                      <div class="card-body">
+                        <div class="borrow-card-header">
+                          <div class="borrow-card-title">{{ borrow.bookTitle }}</div>
+                          <span class="status-badge bg-gray">{{ borrow.status | titlecase }}</span>
+                        </div>
+                        <div class="borrow-card-dates">
+                          <div class="date-col">
+                            <span class="date-label">Borrowed</span>
+                            <span class="date-val">{{ asDate(borrow.borrowedAt) | date: 'MMM d, y' }}</span>
+                          </div>
+                          <div class="date-divider"></div>
+                          <div class="date-col">
+                            <span class="date-label">Returned</span>
+                            <span class="date-val">{{ asDate(borrow.returnedAt) | date: 'MMM d, y' }}</span>
+                          </div>
+                        </div>
+                        @if (borrow.fineAmount > 0) {
+                          <div class="history-fine-row">
+                            <span class="fine-amount">💸 Fine: {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}</span>
+                            @if (borrow.finePaid) {
+                              <span class="fine-paid-badge">
+                                ✔ Paid {{ borrow.finePaidAt | date:'shortDate' }}
+                              </span>
+                            }
+                            @if (!borrow.finePaid) {
+                              <span class="muted-dash">— Unpaid</span>
+                            }
+                          </div>
+                        }
+                        <div class="borrow-card-actions border-top">
+                          @if (borrow.fineAmount > 0 && !borrow.finePaid) {
+                            <button type="button" class="btn btn-small btn-danger"
+                              (click)="payFine(borrow)">
+                              💳 Pay Fine
+                            </button>
+                          }
+                          @if (!borrow.rating) {
+                            <button type="button" class="btn btn-small btn-outline action-btn"
+                              (click)="openReviewModal(borrow)">
+                              ⭐ Rate Book
+                            </button>
+                          }
+                          @if (borrow.rating) {
+                            <div class="review-display">
+                              <span class="stars-display">{{ '⭐'.repeat(borrow.rating) }}</span>
+                              <button type="button" class="btn-icon btn-icon-small" (click)="openReviewModal(borrow)"
+                              title="Edit Review">✎</button>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <div class="empty-state">
+                <span class="empty-icon">📋</span>
+                <p class="empty-text">No borrowing history yet.</p>
+                <p class="empty-sub">Your past borrowings will appear here.</p>
+              </div>
+            }
+          </section>
+        </div>
+      </div>
+    }
+    <!-- ===== BORROW VIA QR ===== -->
+    @if (mode === 'qrBorrow') {
+      <section class="qr-section">
+        <div class="qr-layout">
+          <div class="qr-column">
+            <h3>📷 Borrow via QR</h3>
+            <p class="section-subtitle">
+              Optionally scan a student QR ID, then scan a book QR to start a borrowing.
+            </p>
+            <app-qr-scanner title="Student QR (optional)" hint="Scan the student QR ID first if available."
+            (scanned)="onStudentQrScanned($event)" (scanError)="onScannerError($event)"></app-qr-scanner>
+            @if (scannedStudentId) {
+              <div class="scan-pill">
+                <span class="scan-pill-icon">✔</span>
+                <span>Student ID: {{ scannedStudentId }}</span>
+              </div>
+            }
+            <app-qr-scanner class="qr-scanner-spacing" title="Book QR" hint="Scan the book QR code to fetch its details."
+            (scanned)="onBookQrScannedForBorrow($event, vm.books)" (scanError)="onScannerError($event)"></app-qr-scanner>
+            @if (scannedBook) {
+              <div class="scan-pill">
+                <span class="scan-pill-icon">✔</span>
+                <div class="scan-pill-details">
+                  <div class="scan-pill-title">{{ scannedBook.title }}</div>
+                  <div class="scan-pill-sub">
+                    {{ scannedBook.author }} · {{ scannedBook.quantityAvailable }} copies available
                   </div>
                 </div>
-                <span class="status-badge" [class.badge-overdue]="borrow.status === 'overdue' && !borrow.finePaid"
-                  [class.badge-borrowed]="borrow.status === 'borrowed'">
-                  {{ borrow.status | titlecase }}
-                </span>
               </div>
-
-              <div class="borrow-card-dates">
-                <div class="date-col">
-                  <span class="date-label">Borrowed</span>
-                  <span class="date-val">{{ asDate(borrow.borrowedAt) | date: 'MMM d, y' }}</span>
-                </div>
-                <div class="date-divider"></div>
-                <div class="date-col">
-                  <span class="date-label">Due Date</span>
-                  <span class="date-val" [class.date-val--overdue]="borrow.status === 'overdue'">
-                    {{ asDate(borrow.dueAt) | date: 'MMM d, y' }}
-                  </span>
-                </div>
+            }
+          </div>
+          <div class="qr-column">
+            <h3>📅 Borrow Details</h3>
+            <p class="section-subtitle">Choose a due date and confirm the transaction.</p>
+            <form [formGroup]="qrBorrowForm" (ngSubmit)="openBorrowConfirm(vm.user?.uid, vm.active)" class="form">
+              <div class="form-field">
+                <label class="form-label" for="qr-due-date">
+                  <span class="label-icon">📅</span> Due date
+                </label>
+                <input id="qr-due-date" type="date" formControlName="dueDate" class="form-input" />
               </div>
-
-              <!-- Due Date Progress Bar -->
-              <div class="progress-section">
-                <div class="progress-header">
-                  <span class="progress-text" [class.text-overdue]="borrow.status === 'overdue'">
-                    {{ dueCountdown(borrow.dueAt) }}
-                  </span>
-                  <span class="fine-amount" *ngIf="borrow.fineAmount > 0 && !borrow.finePaid">
-                    💸 {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}
-                  </span>
-                  <span class="fine-paid-badge" *ngIf="borrow.finePaid">✔ Paid</span>
-                </div>
-                <div class="progress-track">
-                  <div class="progress-fill" [ngClass]="getProgressColorClass(borrow.dueAt)"
-                    [style.width.%]="getBorrowProgress(borrow.borrowedAt, borrow.dueAt)">
-                  </div>
-                </div>
-              </div>
-
-              <!-- Actions -->
-              <div class="borrow-card-actions">
-                <button type="button" class="btn btn-small btn-success action-btn" (click)="markReturned(borrow)">
-                  ✅ Mark Returned
-                </button>
-              </div>
-            </div>
+              <button type="submit" class="btn btn-primary btn-submit" [disabled]="!scannedBook">
+                <span class="btn-icon">🔍</span> Review &amp; Confirm Borrow
+              </button>
+            </form>
           </div>
         </div>
-        </div>
-        <!-- Empty state when filters yield no results -->
-        <div class="empty-state" *ngIf="vm.active.length === 0">
-          <span class="empty-icon">🔍</span>
-          <p class="empty-text">No matches found</p>
-          <p class="empty-sub">Try clearing your filters or search query.</p>
-        </div>
-      </ng-container>
-
-      <ng-template #noActive>
-        <div class="empty-state">
-          <span class="empty-icon">📭</span>
-          <p class="empty-text">No active borrowings.</p>
-          <p class="empty-sub">Use the form on the left to borrow a book.</p>
-        </div>
-      </ng-template>
-    </section>
-
-    <!-- ===== BORROWING HISTORY ===== -->
-    <section class="column history-column">
-      <div class="column-header">
-        <div class="column-icon">📜</div>
-        <div style="flex: 1;">
-          <div style="display: flex; align-items: center; justify-content: space-between;">
-            <h3>Borrowing History</h3>
-            <span class="history-count-badge" *ngIf="vm.history.length > 0">{{ vm.history.length }} records</span>
+      </section>
+    }
+    <!-- ===== RETURN VIA QR ===== -->
+    @if (mode === 'qrReturn') {
+      <section class="qr-section">
+        <h3>🔄 Return via QR</h3>
+        <p class="section-subtitle">Scan a book QR to look up the active borrowing and confirm its return.</p>
+        <div class="qr-layout">
+          <div class="qr-column">
+            <app-qr-scanner title="Book QR" hint="Scan the borrowed book QR code."
+              (scanned)="onBookQrScannedForReturnWithBooks($event, vm.active, vm.books)"
+            (scanError)="onScannerError($event)"></app-qr-scanner>
           </div>
-          <p class="section-subtitle">A log of all previously returned books.</p>
+          <div class="qr-column">
+            @if (scannedBorrowForReturn) {
+              <div class="return-match-card">
+                <div class="match-icon">📗</div>
+                <h4>Matched Borrowing</h4>
+                <p><strong>{{ scannedBorrowForReturn.bookTitle }}</strong></p>
+                <p>Borrowed: {{ asDate(scannedBorrowForReturn.borrowedAt) | date: 'short' }}</p>
+                <p>Due: {{ asDate(scannedBorrowForReturn.dueAt) | date: 'shortDate' }}</p>
+                <p>Status: <strong>{{ scannedBorrowForReturn.status | titlecase }}</strong></p>
+              </div>
+            } @else {
+              <div class="empty-state">
+                <span class="empty-icon">📷</span>
+                <p class="empty-text">Scan a book QR</p>
+                <p class="empty-sub">Matched borrow details will appear here.</p>
+              </div>
+            }
+          </div>
         </div>
+      </section>
+    }
+    <!-- Feedback Banner -->
+    @if (qrError || qrSuccessMessage) {
+      <div class="feedback">
+        @if (qrError) {
+          <p class="feedback-error">⚠️ {{ qrError }}</p>
+        }
+        @if (qrSuccessMessage) {
+          <p class="feedback-success">🎉 {{ qrSuccessMessage }}</p>
+        }
       </div>
-
-      <div class="filter-controls" style="margin-bottom: 1rem;">
-        <div class="search-bar" style="width: 100%;">
-          <span class="search-icon">🔍</span>
-          <input type="text" class="search-input" placeholder="Search history by student, book..." (input)="setHistorySearchQuery($event)" />
-        </div>
-      </div>
-
-      <ng-container *ngIf="vm.history.length > 0; else noHistory">
-        <div class="scroll-container">
-          <div class="cards-grid">
-          <div class="borrow-card history-card" *ngFor="let borrow of vm.history">
-
-            <!-- Card Cover Band -->
-            <div class="card-cover-band cover-returned">
-              <span class="cover-emoji">📘</span>
-            </div>
-
-            <!-- Card Body -->
-            <div class="card-body">
-              <div class="borrow-card-header">
-                <div class="borrow-card-title">{{ borrow.bookTitle }}</div>
-                <span class="status-badge bg-gray">{{ borrow.status | titlecase }}</span>
-              </div>
-
-              <div class="borrow-card-dates">
-                <div class="date-col">
-                  <span class="date-label">Borrowed</span>
-                  <span class="date-val">{{ asDate(borrow.borrowedAt) | date: 'MMM d, y' }}</span>
-                </div>
-                <div class="date-divider"></div>
-                <div class="date-col">
-                  <span class="date-label">Returned</span>
-                  <span class="date-val">{{ asDate(borrow.returnedAt) | date: 'MMM d, y' }}</span>
-                </div>
-              </div>
-
-              <div class="history-fine-row" *ngIf="borrow.fineAmount > 0">
-                <span class="fine-amount">💸 Fine: {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}</span>
-                <span class="fine-paid-badge" *ngIf="borrow.finePaid">
-                  ✔ Paid {{ borrow.finePaidAt | date:'shortDate' }}
-                </span>
-                <span class="muted-dash" *ngIf="!borrow.finePaid">— Unpaid</span>
-              </div>
-
-              <div class="borrow-card-actions border-top">
-                <button type="button" class="btn btn-small btn-danger"
-                  *ngIf="borrow.fineAmount > 0 && !borrow.finePaid" (click)="payFine(borrow)">
-                  💳 Pay Fine
-                </button>
-                <button type="button" class="btn btn-small btn-outline action-btn" *ngIf="!borrow.rating"
-                  (click)="openReviewModal(borrow)">
-                  ⭐ Rate Book
-                </button>
-                <div class="review-display" *ngIf="borrow.rating">
-                  <span class="stars-display">{{ '⭐'.repeat(borrow.rating) }}</span>
-                  <button type="button" class="btn-icon btn-icon-small" (click)="openReviewModal(borrow)"
-                    title="Edit Review">✎</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
-      </ng-container>
-
-      <ng-template #noHistory>
-        <div class="empty-state">
-          <span class="empty-icon">📋</span>
-          <p class="empty-text">No borrowing history yet.</p>
-          <p class="empty-sub">Your past borrowings will appear here.</p>
-        </div>
-      </ng-template>
-    </section>
-  </div>
-  </div>
-
-  <!-- ===== BORROW VIA QR ===== -->
-  <section class="qr-section" *ngIf="mode === 'qrBorrow'">
-    <div class="qr-layout">
-      <div class="qr-column">
-        <h3>📷 Borrow via QR</h3>
-        <p class="section-subtitle">
-          Optionally scan a student QR ID, then scan a book QR to start a borrowing.
-        </p>
-
-        <app-qr-scanner title="Student QR (optional)" hint="Scan the student QR ID first if available."
-          (scanned)="onStudentQrScanned($event)" (scanError)="onScannerError($event)"></app-qr-scanner>
-
-        <div class="scan-pill" *ngIf="scannedStudentId">
-          <span class="scan-pill-icon">✔</span>
-          <span>Student ID: {{ scannedStudentId }}</span>
-        </div>
-
-        <app-qr-scanner class="qr-scanner-spacing" title="Book QR" hint="Scan the book QR code to fetch its details."
-          (scanned)="onBookQrScannedForBorrow($event, vm.books)" (scanError)="onScannerError($event)"></app-qr-scanner>
-
-        <div class="scan-pill" *ngIf="scannedBook">
-          <span class="scan-pill-icon">✔</span>
-          <div class="scan-pill-details">
-            <div class="scan-pill-title">{{ scannedBook.title }}</div>
-            <div class="scan-pill-sub">
-              {{ scannedBook.author }} · {{ scannedBook.quantityAvailable }} copies available
-            </div>
+    }
+    <!-- ===== BORROW CONFIRM MODAL ===== -->
+    @if (showBorrowConfirm && scannedBook) {
+      <div class="dialog-backdrop">
+        <div class="dialog">
+          <div class="dialog-icon">📚</div>
+          <h3>Confirm Borrow</h3>
+          <p>You are about to borrow: <strong>{{ scannedBook.title }}</strong></p>
+          @if (scannedStudentId) {
+            <p>For student ID: <strong>{{ scannedStudentId }}</strong></p>
+          }
+          <p>Due date: <strong>{{ qrBorrowForm.get('dueDate')?.value }}</strong></p>
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-secondary" (click)="cancelBorrowConfirm()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="confirmQrBorrow(vm.user?.uid)">✓ Confirm Borrow</button>
           </div>
         </div>
       </div>
-
-      <div class="qr-column">
-        <h3>📅 Borrow Details</h3>
-        <p class="section-subtitle">Choose a due date and confirm the transaction.</p>
-
-        <form [formGroup]="qrBorrowForm" (ngSubmit)="openBorrowConfirm(vm.user?.uid, vm.active)" class="form">
-          <div class="form-field">
-            <label class="form-label" for="qr-due-date">
-              <span class="label-icon">📅</span> Due date
-            </label>
-            <input id="qr-due-date" type="date" formControlName="dueDate" class="form-input" />
+    }
+    <!-- ===== RETURN CONFIRM MODAL ===== -->
+    @if (showReturnConfirm && scannedBorrowForReturn) {
+      <div class="dialog-backdrop">
+        <div class="dialog">
+          <div class="dialog-icon">🔄</div>
+          <h3>Confirm Return</h3>
+          <p>Mark <strong>{{ scannedBorrowForReturn.bookTitle }}</strong> as returned?</p>
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-secondary" (click)="cancelReturnConfirm()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="confirmQrReturn()">✅ Confirm Return</button>
           </div>
-
-          <button type="submit" class="btn btn-primary btn-submit" [disabled]="!scannedBook">
-            <span class="btn-icon">🔍</span> Review &amp; Confirm Borrow
-          </button>
-        </form>
+        </div>
       </div>
-    </div>
+    }
+    <!-- ===== REVIEW MODAL ===== -->
+    @if (selectedBorrowForReview) {
+      <div class="dialog-backdrop">
+        <div class="dialog">
+          <div class="dialog-icon">⭐</div>
+          <h3>Review Book</h3>
+          <p>How was <strong>{{ selectedBorrowForReview.bookTitle }}</strong>?</p>
+          <div class="rating-stars">
+            @for (star of [1,2,3,4,5]; track $index) {
+              <button type="button" class="star-btn" (click)="setRating(star)"
+                (mouseenter)="setHover(star)" (mouseleave)="setHover(0)"
+                [class.active]="star <= (hoverRating || reviewRating)">
+                ★
+              </button>
+            }
+          </div>
+          <label class="form-field full-width" style="margin-top: 1rem;">
+            <span class="form-label">Written review (optional)</span>
+            <textarea rows="3" class="form-textarea" [value]="reviewText" (input)="updateReviewText($event)"
+            placeholder="What did you think of the book?"></textarea>
+          </label>
+          <div class="dialog-actions">
+            <button type="button" class="btn btn-secondary" (click)="closeReviewModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="submitReview()" [disabled]="reviewRating === 0">
+              ✓ Submit Review
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   </section>
-
-  <!-- ===== RETURN VIA QR ===== -->
-  <section class="qr-section" *ngIf="mode === 'qrReturn'">
-    <h3>🔄 Return via QR</h3>
-    <p class="section-subtitle">Scan a book QR to look up the active borrowing and confirm its return.</p>
-
-    <div class="qr-layout">
-      <div class="qr-column">
-        <app-qr-scanner title="Book QR" hint="Scan the borrowed book QR code."
-          (scanned)="onBookQrScannedForReturnWithBooks($event, vm.active, vm.books)"
-          (scanError)="onScannerError($event)"></app-qr-scanner>
-      </div>
-
-      <div class="qr-column">
-        <div *ngIf="scannedBorrowForReturn; else noBorrowSelected" class="return-match-card">
-          <div class="match-icon">📗</div>
-          <h4>Matched Borrowing</h4>
-          <p><strong>{{ scannedBorrowForReturn.bookTitle }}</strong></p>
-          <p>Borrowed: {{ asDate(scannedBorrowForReturn.borrowedAt) | date: 'short' }}</p>
-          <p>Due: {{ asDate(scannedBorrowForReturn.dueAt) | date: 'shortDate' }}</p>
-          <p>Status: <strong>{{ scannedBorrowForReturn.status | titlecase }}</strong></p>
-        </div>
-
-        <ng-template #noBorrowSelected>
-          <div class="empty-state">
-            <span class="empty-icon">📷</span>
-            <p class="empty-text">Scan a book QR</p>
-            <p class="empty-sub">Matched borrow details will appear here.</p>
-          </div>
-        </ng-template>
-      </div>
-    </div>
-  </section>
-
-  <!-- Feedback Banner -->
-  <div class="feedback" *ngIf="qrError || qrSuccessMessage">
-    <p class="feedback-error" *ngIf="qrError">⚠️ {{ qrError }}</p>
-    <p class="feedback-success" *ngIf="qrSuccessMessage">🎉 {{ qrSuccessMessage }}</p>
-  </div>
-
-  <!-- ===== BORROW CONFIRM MODAL ===== -->
-  <div class="dialog-backdrop" *ngIf="showBorrowConfirm && scannedBook">
-    <div class="dialog">
-      <div class="dialog-icon">📚</div>
-      <h3>Confirm Borrow</h3>
-      <p>You are about to borrow: <strong>{{ scannedBook.title }}</strong></p>
-      <p *ngIf="scannedStudentId">For student ID: <strong>{{ scannedStudentId }}</strong></p>
-      <p>Due date: <strong>{{ qrBorrowForm.get('dueDate')?.value }}</strong></p>
-
-      <div class="dialog-actions">
-        <button type="button" class="btn btn-secondary" (click)="cancelBorrowConfirm()">Cancel</button>
-        <button type="button" class="btn btn-primary" (click)="confirmQrBorrow(vm.user?.uid)">✓ Confirm Borrow</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== RETURN CONFIRM MODAL ===== -->
-  <div class="dialog-backdrop" *ngIf="showReturnConfirm && scannedBorrowForReturn">
-    <div class="dialog">
-      <div class="dialog-icon">🔄</div>
-      <h3>Confirm Return</h3>
-      <p>Mark <strong>{{ scannedBorrowForReturn.bookTitle }}</strong> as returned?</p>
-
-      <div class="dialog-actions">
-        <button type="button" class="btn btn-secondary" (click)="cancelReturnConfirm()">Cancel</button>
-        <button type="button" class="btn btn-primary" (click)="confirmQrReturn()">✅ Confirm Return</button>
-      </div>
-    </div>
-  </div>
-
-
-  <!-- ===== REVIEW MODAL ===== -->
-  <div class="dialog-backdrop" *ngIf="selectedBorrowForReview">
-    <div class="dialog">
-      <div class="dialog-icon">⭐</div>
-      <h3>Review Book</h3>
-      <p>How was <strong>{{ selectedBorrowForReview.bookTitle }}</strong>?</p>
-
-      <div class="rating-stars">
-        <button type="button" class="star-btn" *ngFor="let star of [1,2,3,4,5]" (click)="setRating(star)"
-          (mouseenter)="setHover(star)" (mouseleave)="setHover(0)"
-          [class.active]="star <= (hoverRating || reviewRating)">
-          ★
-        </button>
-      </div>
-
-      <label class="form-field full-width" style="margin-top: 1rem;">
-        <span class="form-label">Written review (optional)</span>
-        <textarea rows="3" class="form-textarea" [value]="reviewText" (input)="updateReviewText($event)"
-          placeholder="What did you think of the book?"></textarea>
-      </label>
-
-      <div class="dialog-actions">
-        <button type="button" class="btn btn-secondary" (click)="closeReviewModal()">Cancel</button>
-        <button type="button" class="btn btn-primary" (click)="submitReview()" [disabled]="reviewRating === 0">
-          ✓ Submit Review
-        </button>
-      </div>
-    </div>
-  </div>
-
-</section>
+}

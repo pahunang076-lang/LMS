@@ -3,7 +3,9 @@
     <div class="qr-header-top">
       <div>
         <h4 class="qr-title">{{ title }}</h4>
-        <p class="qr-hint" *ngIf="hint">{{ hint }}</p>
+        @if (hint) {
+          <p class="qr-hint">{{ hint }}</p>
+        }
       </div>
       <div class="qr-header-controls">
         <!-- Camera toggle switch -->
@@ -16,56 +18,88 @@
         </button>
 
         <!-- Switch camera button (only when camera is on and multiple cameras) -->
-        <button *ngIf="isCameraOn && availableCameras.length > 1" type="button" class="btn btn-camera-selector"
-          (click)="toggleCameraSelector()" title="Switch camera">
-          <span class="camera-icon">📷</span>
-          Switch
+        @if (isCameraOn && availableCameras.length > 1) {
+          <button type="button" class="btn btn-camera-selector"
+            (click)="toggleCameraSelector()" title="Switch camera">
+            <span class="camera-icon">📷</span>
+            Switch
+          </button>
+        }
+
+        <button type="button" class="btn btn-upload" (click)="triggerFileUpload()" title="Upload QR Image">
+          <span class="camera-icon">📂</span>
+          Upload
         </button>
+        <input type="file" #fileInput (change)="onFileSelected($event)" accept="image/*" style="display: none;" />
       </div>
     </div>
-    <div class="qr-camera-selector" *ngIf="showCameraSelector && availableCameras.length > 1">
-      <label class="camera-selector-label">Select Camera:</label>
-      <select class="camera-select" [value]="selectedCameraId || ''" (change)="switchCamera($any($event.target).value)">
-        <option *ngFor="let camera of availableCameras" [value]="camera.deviceId">
-          {{ camera.label }}
-        </option>
-      </select>
-    </div>
+    @if (showCameraSelector && availableCameras.length > 1) {
+      <div class="qr-camera-selector">
+        <label class="camera-selector-label">Select Camera:</label>
+        <select class="camera-select" [value]="selectedCameraId || ''" (change)="switchCamera($any($event.target).value)">
+          @for (camera of availableCameras; track $index) {
+            <option [value]="camera.deviceId">
+              {{ camera.label }}
+            </option>
+          }
+        </select>
+      </div>
+    }
   </header>
 
   <!-- Camera off state -->
-  <div class="qr-camera-off" *ngIf="!isCameraOn">
-    <span class="camera-off-icon">📷</span>
-    <p>Camera is off. Toggle the switch above to start scanning.</p>
-  </div>
+  @if (!isCameraOn) {
+    <div class="qr-camera-off">
+      @if (isInitializing) {
+        <div class="loading-spinner loading-spinner--dark"></div>
+        <p>Reading QR code from image...</p>
+      } @else if (errorMessage) {
+        <span class="camera-off-icon">⚠️</span>
+        <p class="qr-upload-error">{{ errorMessage }}</p>
+        <button type="button" class="btn btn-upload-retry" (click)="errorMessage = null">Dismiss</button>
+      } @else {
+        <span class="camera-off-icon">📷</span>
+        <p>Camera is off. Toggle the switch above to start scanning,<br>or click <strong>Upload</strong> to decode a QR image from your PC.</p>
+      }
+    </div>
+  }
 
   <!-- Camera on state -->
-  <div class="qr-scanner-host" *ngIf="isCameraOn">
-    <div class="qr-scanner-wrapper" *ngIf="!errorMessage">
-      <video #videoElement class="qr-video" autoplay playsinline muted [class.hidden]="isInitializing"></video>
-
-      <div class="qr-scanner-overlay" *ngIf="!isInitializing">
-        <div class="qr-scanner-box"></div>
-      </div>
-
-      <div class="qr-scanner-loading" *ngIf="isInitializing">
-        <div class="loading-spinner"></div>
-        <p>Initializing camera...</p>
-      </div>
+  @if (isCameraOn) {
+    <div class="qr-scanner-host">
+      @if (!errorMessage) {
+        <div class="qr-scanner-wrapper">
+          <video #videoElement class="qr-video" autoplay playsinline muted [class.hidden]="isInitializing"></video>
+          @if (!isInitializing) {
+            <div class="qr-scanner-overlay">
+              <div class="qr-scanner-box"></div>
+            </div>
+          }
+          @if (isInitializing) {
+            <div class="qr-scanner-loading">
+              <div class="loading-spinner"></div>
+              <p>Initializing camera...</p>
+            </div>
+          }
+        </div>
+      }
+      @if (errorMessage) {
+        <div class="qr-scanner-error">
+          <p class="error-text">{{ errorMessage }}</p>
+          <button type="button" class="btn btn-primary" (click)="initializeScanner()">
+            Retry
+          </button>
+        </div>
+      }
     </div>
+  }
 
-    <div class="qr-scanner-error" *ngIf="errorMessage">
-      <p class="error-text">{{ errorMessage }}</p>
-      <button type="button" class="btn btn-primary" (click)="initializeScanner()">
-        Retry
-      </button>
+  @if (lastResult) {
+    <div class="qr-status">
+      <span class="qr-status-icon" [class.qr-status-icon--success]="hasScanSuccess">
+        ✔
+      </span>
+      <span class="qr-status-text">Last scanned: {{ lastResult }}</span>
     </div>
-  </div>
-
-  <div class="qr-status" *ngIf="lastResult">
-    <span class="qr-status-icon" [class.qr-status-icon--success]="hasScanSuccess">
-      ✔
-    </span>
-    <span class="qr-status-text">Last scanned: {{ lastResult }}</span>
-  </div>
+  }
 </section>

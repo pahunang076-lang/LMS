@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { CommonModule, NgForOf, NgIf, KeyValuePipe } from '@angular/common';
+import { CommonModule, KeyValuePipe } from '@angular/common';
 import { DashboardService } from './dashboard.service';
 import { EntryLogsService } from '../entry-logs/entry-logs.service';
 import { CirculationService } from '../circulation/circulation.service';
@@ -8,7 +8,7 @@ import { map } from 'rxjs';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, NgIf, NgForOf, KeyValuePipe],
+  imports: [CommonModule, KeyValuePipe],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })

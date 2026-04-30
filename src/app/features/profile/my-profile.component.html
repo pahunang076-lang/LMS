@@ -1,119 +1,138 @@
-<section class="profile-root" *ngIf="user$ | async as user">
+@if (user$ | async; as user) {
+  <section class="profile-root">
     <!-- Header Card -->
     <header class="profile-hero">
-        <div class="avatar" [class.avatar-student]="user.role === 'student'"
-            [class.avatar-admin]="user.role === 'admin'" [class.avatar-librarian]="user.role === 'librarian'">
-            {{ getInitials(user.name) }}
+      <div class="avatar" [class.avatar-student]="user.role === 'student'"
+        [class.avatar-admin]="user.role === 'admin'" [class.avatar-librarian]="user.role === 'librarian'">
+        {{ getInitials(user.name) }}
+      </div>
+      <div class="profile-info">
+        <h1 class="profile-name">{{ user.name }}</h1>
+        <div class="profile-meta">
+          <span class="role-badge">{{ user.role | titlecase }}</span>
+          <span class="meta-dot">·</span>
+          <span class="profile-email">{{ user.email }}</span>
+          @if (user.studentId) {
+            <span class="meta-dot">·</span>
+            <span class="profile-sid">ID: {{ user.studentId }}</span>
+          }
         </div>
-        <div class="profile-info">
-            <h1 class="profile-name">{{ user.name }}</h1>
-            <div class="profile-meta">
-                <span class="role-badge">{{ user.role | titlecase }}</span>
-                <span class="meta-dot">·</span>
-                <span class="profile-email">{{ user.email }}</span>
-                <ng-container *ngIf="user.studentId">
-                    <span class="meta-dot">·</span>
-                    <span class="profile-sid">ID: {{ user.studentId }}</span>
-                </ng-container>
-            </div>
-        </div>
-        <div class="hero-watermark">
-            <i class="pi pi-book"></i>
-        </div>
+      </div>
+      <div class="hero-watermark">
+        <i class="pi pi-book"></i>
+      </div>
     </header>
-
     <!-- Stats Grid -->
-    <ng-container *ngIf="stats$ | async as s">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">📚</div>
-                <div class="stat-val">{{ s.total }}</div>
-                <div class="stat-lbl">Total Borrowed</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">✅</div>
-                <div class="stat-val">{{ s.returned }}</div>
-                <div class="stat-lbl">Returned</div>
-            </div>
-            <div class="stat-card stat-warn" *ngIf="s.overdue > 0">
-                <div class="stat-icon">⚠️</div>
-                <div class="stat-val">{{ s.overdue }}</div>
-                <div class="stat-lbl">Overdue</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon">💳</div>
-                <div class="stat-val">₱{{ s.totalFines }}</div>
-                <div class="stat-lbl">Total Fines</div>
-            </div>
-            <div class="stat-card stat-purple" *ngIf="s.reviews > 0">
-                <div class="stat-icon">⭐</div>
-                <div class="stat-val">{{ s.avgRating | number: '1.1-1' }}</div>
-                <div class="stat-lbl">Avg Rating Given</div>
-            </div>
-            <div class="stat-card stat-indigo" *ngIf="s.favoriteCategory">
-                <div class="stat-icon">🏷️</div>
-                <div class="stat-val fav-cat">{{ s.favoriteCategory }}</div>
-                <div class="stat-lbl">Fav Category</div>
-            </div>
+    @if (stats$ | async; as s) {
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <div class="stat-val">{{ s.total }}</div>
+          <div class="stat-lbl">Total Borrowed</div>
         </div>
-    </ng-container>
-
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-val">{{ s.returned }}</div>
+          <div class="stat-lbl">Returned</div>
+        </div>
+        @if (s.overdue > 0) {
+          <div class="stat-card stat-warn">
+            <div class="stat-icon">⚠️</div>
+            <div class="stat-val">{{ s.overdue }}</div>
+            <div class="stat-lbl">Overdue</div>
+          </div>
+        }
+        <div class="stat-card">
+          <div class="stat-icon">💳</div>
+          <div class="stat-val">₱{{ s.totalFines }}</div>
+          <div class="stat-lbl">Total Fines</div>
+        </div>
+        @if (s.reviews > 0) {
+          <div class="stat-card stat-purple">
+            <div class="stat-icon">⭐</div>
+            <div class="stat-val">{{ s.avgRating | number: '1.1-1' }}</div>
+            <div class="stat-lbl">Avg Rating Given</div>
+          </div>
+        }
+        @if (s.favoriteCategory) {
+          <div class="stat-card stat-indigo">
+            <div class="stat-icon">🏷️</div>
+            <div class="stat-val fav-cat">{{ s.favoriteCategory }}</div>
+            <div class="stat-lbl">Fav Category</div>
+          </div>
+        }
+      </div>
+    }
     <!-- Borrow History -->
     <section class="history-section">
-        <div class="history-header">
-            <h2 class="section-title">📖 Reading History</h2>
-            <div class="history-tabs">
-                <button [class.active]="historyFilter() === 'all'" (click)="historyFilter.set('all')">All</button>
-                <button [class.active]="historyFilter() === 'borrowed'" (click)="historyFilter.set('borrowed')">Currently Borrowed</button>
-                <button [class.active]="historyFilter() === 'returned'" (click)="historyFilter.set('returned')">Returned</button>
-            </div>
+      <div class="history-header">
+        <h2 class="section-title">📖 Reading History</h2>
+        <div class="history-tabs">
+          <button [class.active]="historyFilter() === 'all'" (click)="historyFilter.set('all')">All</button>
+          <button [class.active]="historyFilter() === 'borrowed'" (click)="historyFilter.set('borrowed')">Currently Borrowed</button>
+          <button [class.active]="historyFilter() === 'returned'" (click)="historyFilter.set('returned')">Returned</button>
         </div>
-
-        <ng-container *ngIf="filteredHistory$ | async as history">
-            <div class="empty-history" *ngIf="history.length === 0">
-                <span class="empty-emoji">🔍</span>
-                <p>No borrowing history found for this filter.</p>
-            </div>
-
-            <div class="history-list-container" *ngIf="history.length > 0">
-                <ul class="history-list">
-                    <li class="history-card" *ngFor="let b of history" [class.hc-overdue]="b.status === 'overdue'"
-                        [class.hc-active]="b.status === 'borrowed'">
-
-                    <div class="hc-icon" [ngClass]="'icon-' + b.status">
+      </div>
+      @if (filteredHistory$ | async; as history) {
+        @if (history.length === 0) {
+          <div class="empty-history">
+            <span class="empty-emoji">🔍</span>
+            <p>No borrowing history found for this filter.</p>
+          </div>
+        }
+        @if (history.length > 0) {
+          <div class="history-list-container">
+            <ul class="history-list">
+              @for (b of history; track $index) {
+                <li class="history-card" [class.hc-overdue]="b.status === 'overdue'"
+                  [class.hc-active]="b.status === 'borrowed'">
+                  <div class="hc-icon" [ngClass]="'icon-' + b.status">
                         <i class="pi" [ngClass]="{
                             'pi-check-circle': b.status === 'returned',
                             'pi-book': b.status === 'borrowed',
                             'pi-exclamation-triangle': b.status === 'overdue'
                         }"></i>
+                  </div>
+                  <div class="hc-body">
+                    <div class="hc-title">{{ b.bookTitle }}</div>
+                    <div class="hc-dates">
+                      Borrowed {{ asDate(b.borrowedAt) | date: 'mediumDate' }}
+                      @if (b.returnedAt) {
+                        · Returned {{ asDate(b.returnedAt) | date: 'mediumDate' }}
+                      }
                     </div>
-
-                    <div class="hc-body">
-                        <div class="hc-title">{{ b.bookTitle }}</div>
-                        <div class="hc-dates">
-                            Borrowed {{ asDate(b.borrowedAt) | date: 'mediumDate' }}
-                            <ng-container *ngIf="b.returnedAt">
-                                · Returned {{ asDate(b.returnedAt) | date: 'mediumDate' }}
-                            </ng-container>
-                        </div>
-                        <div class="hc-review" *ngIf="b.rating">
-                            <span class="star" *ngFor="let s of stars(b.rating)">{{ s }}</span>
-                            <span class="review-text" *ngIf="b.review">{{ b.review }}</span>
-                        </div>
-                    </div>
-
-                    <div class="hc-right">
-                        <span class="status-chip" [class]="'chip-' + b.status">
-                            {{ b.status | titlecase }}
-                        </span>
-                        <div class="fine-chip" *ngIf="b.fineAmount > 0">
-                            <span *ngIf="b.finePaid" class="paid">✅ ₱{{ b.fineAmount }} Paid</span>
-                            <span *ngIf="!b.finePaid" class="unpaid">₱{{ b.fineAmount }} Fine</span>
-                        </div>
-                    </div>
+                    @if (b.rating) {
+                      <div class="hc-review">
+                        @for (s of stars(b.rating); track $index) {
+                          <span class="star">{{ s }}</span>
+                        }
+                        @if (b.review) {
+                          <span class="review-text">{{ b.review }}</span>
+                        }
+                      </div>
+                    }
+                  </div>
+                  <div class="hc-right">
+                    <span class="status-chip" [class]="'chip-' + b.status">
+                      {{ b.status | titlecase }}
+                    </span>
+                    @if (b.fineAmount > 0) {
+                      <div class="fine-chip">
+                        @if (b.finePaid) {
+                          <span class="paid">✅ ₱{{ b.fineAmount }} Paid</span>
+                        }
+                        @if (!b.finePaid) {
+                          <span class="unpaid">₱{{ b.fineAmount }} Fine</span>
+                        }
+                      </div>
+                    }
+                  </div>
                 </li>
-                </ul>
-            </div>
-        </ng-container>
+              }
+            </ul>
+          </div>
+        }
+      }
     </section>
-</section>
+  </section>
+}

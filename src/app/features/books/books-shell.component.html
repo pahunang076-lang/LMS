@@ -36,261 +36,257 @@
       </svg>
       <input type="search" placeholder="Search by title, author, or category..."
         (input)="onSearch($any($event.target).value)" class="search-input" />
+      </div>
+
+      <select (change)="onStatusFilterChange($any($event.target).value)" aria-label="Filter by availability"
+        class="filter-select">
+        <option value="all">All statuses</option>
+        <option value="available">Available</option>
+        <option value="unavailable">Unavailable</option>
+      </select>
     </div>
 
-    <select (change)="onStatusFilterChange($any($event.target).value)" aria-label="Filter by availability"
-      class="filter-select">
-      <option value="all">All statuses</option>
-      <option value="available">Available</option>
-      <option value="unavailable">Unavailable</option>
-    </select>
-  </div>
-
-  <div class="table-container">
-    <ng-container *ngIf="books$ | async as books; else loading">
-      <p-table [value]="books | filterBooks: searchTerm():statusFilter():'all'" [paginator]="true" [rows]="10"
-        [showCurrentPageReport]="true" currentPageReportTemplate="{first} to {last} of {totalRecords} books"
-        [showFirstLastIcon]="false" responsiveLayout="scroll" styleClass="p-datatable-sm">
-        <ng-template pTemplate="header">
-          <tr>
-            <th style="width: 80px;">Cover</th>
-            <th pSortableColumn="title">Title <p-sortIcon field="title"></p-sortIcon></th>
-            <th pSortableColumn="author">Author <p-sortIcon field="author"></p-sortIcon></th>
-            <th pSortableColumn="category">Category <p-sortIcon field="category"></p-sortIcon></th>
-            <th pSortableColumn="isbn">ISBN <p-sortIcon field="isbn"></p-sortIcon></th>
-            <th pSortableColumn="quantityAvailable">Available <p-sortIcon field="quantityAvailable"></p-sortIcon></th>
-            <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
-            <th class="actions-col">Actions</th>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-book>
-          <tr>
-            <td>
-              <div style="display:flex;justify-content:center;align-items:center;">
-                <img *ngIf="book.coverImage; else defaultCover" [src]="book.coverImage"
-                  alt="{{ book.title }} cover" style="width:48px;height:64px;object-fit:cover;border-radius:4px;" />
-                <ng-template #defaultCover>
-                  <div
-                    style="width:48px;height:64px;border-radius:4px;border:1px dashed #d1d5db;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:#9ca3af;">
-                    📚
-                  </div>
-                </ng-template>
-              </div>
-            </td>
-            <td class="table-cell-title">
-              <div class="book-title-wrapper">
-                <span>{{ book.title }}</span>
-              </div>
-            </td>
-            <td>{{ book.author }}</td>
-            <td>
-              <span class="category-badge">{{ book.category }}</span>
-            </td>
-            <td class="isbn-cell">{{ book.isbn }}</td>
-            <td>
-              <span class="availability-badge">
-                <span class="available-count">{{ book.quantityAvailable }}</span>
-                <span class="separator">/</span>
-                <span class="total-count">{{ book.quantityTotal }}</span>
-              </span>
-            </td>
-            <td>
-              <span class="status-badge" [class.status-available]="book.status === 'available'"
-                [class.status-unavailable]="book.status === 'unavailable'">
-                {{ book.status | titlecase }}
-              </span>
-            </td>
-            <td class="actions-col">
-              <div class="action-buttons">
-                <button type="button" class="btn-action btn-edit" (click)="openEditDialog(book)" title="Edit book">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                  </svg>
-                </button>
-                <button type="button" class="btn-action btn-qr" (click)="openQrDialog(book)" title="Show QR code">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="5" height="5"></rect>
-                    <rect x="16" y="3" width="5" height="5"></rect>
-                    <rect x="3" y="16" width="5" height="5"></rect>
-                    <path d="M21 16h-3a2 2 0 0 0-2 2v3"></path>
-                    <path d="M21 21v.01"></path>
-                    <path d="M12 7v3a2 2 0 0 1-2 2H7"></path>
-                    <path d="M21 12v.01"></path>
-                    <path d="M12 21h.01"></path>
-                  </svg>
-                </button>
-                <button type="button" class="btn-action btn-delete" (click)="delete(book)" title="Delete book">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-          <tr>
-            <td colspan="8" style="text-align: center; padding: 0;">
-              <div class="empty-state">
-                No books found. Click "Add Book" to create one.
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </ng-container>
-    <ng-template #loading>
-      <div style="display: flex; justify-content: center; padding: 3rem;">
-        <p-progressSpinner></p-progressSpinner>
-      </div>
-    </ng-template>
-  </div>
-
-  <!-- Dialog -->
-  <div class="dialog-backdrop" *ngIf="isDialogOpen()" (click)="closeDialog()">
-    <div class="dialog" (click)="$event.stopPropagation()">
-      <div class="dialog-header">
-        <h3>{{ editingBook() ? 'Edit Book' : 'Add New Book' }}</h3>
-        <button type="button" class="btn-close" (click)="closeDialog()" aria-label="Close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
-        <label class="form-field">
-          <span class="form-label">Title <span class="required">*</span></span>
-          <input type="text" formControlName="title" class="form-input" placeholder="Enter book title" required />
-        </label>
-
-        <label class="form-field">
-          <span class="form-label">Author <span class="required">*</span></span>
-          <input type="text" formControlName="author" class="form-input" placeholder="Enter author name" required />
-        </label>
-
-        <label class="form-field">
-          <span class="form-label">Category <span class="required">*</span></span>
-          <select formControlName="category" class="form-select" required>
-            <option value="" disabled selected>Select a category</option>
-            <option *ngFor="let subject of (subjects$ | async)" [value]="subject.name">
-              {{ subject.name }}
-            </option>
-          </select>
-        </label>
-
-        <label class="form-field">
-          <span class="form-label">ISBN <span class="required">*</span></span>
-          <input type="text" formControlName="isbn" class="form-input" placeholder="Enter ISBN number" maxlength="13" pattern="\d*" required />
-        </label>
-
-        <label class="form-field">
-          <span class="form-label">Total Quantity <span class="required">*</span></span>
-          <input type="number" formControlName="quantityTotal" class="form-input" min="0" />
-        </label>
-
-        <label class="form-field">
-          <span class="form-label">Available <span class="required">*</span></span>
-          <input type="number" formControlName="quantityAvailable" class="form-input" min="0" />
-        </label>
-
-        <label class="form-field">
-          <span class="form-label">Status <span class="required">*</span></span>
-          <select formControlName="status" class="form-select">
-            <option value="available">Available</option>
-            <option value="unavailable">Unavailable</option>
-          </select>
-        </label>
-
-        <label class="form-field full-width">
-          <span class="form-label">Description</span>
-          <textarea formControlName="description" rows="4" class="form-textarea"
-            placeholder="Enter book description (optional)"></textarea>
-        </label>
-
-        <label class="form-field">
-          <span class="form-label">Shelf Location</span>
-          <input type="text" formControlName="shelfLocation" class="form-input" placeholder="e.g., A1, B3, Reference" />
-        </label>
-
-        <label class="form-field full-width">
-          <span class="form-label">Cover Image</span>
-          <div class="cover-upload">
-            <button type="button" class="btn-cover-upload" (click)="coverFile.click()">
-              <span class="btn-cover-icon">📷</span>
-              <span class="btn-cover-text">
-                <strong>Select cover</strong>
-                <span class="btn-cover-subtext">JPG, PNG up to ~1–2 MB</span>
-              </span>
-            </button>
-            <input #coverFile type="file" accept="image/*" class="cover-file-input"
-              (change)="onCoverSelected($event)" />
-
-            <div *ngIf="form.value.coverImage" class="cover-preview">
-              <img [src]="form.value.coverImage" alt="Cover preview" class="cover-preview-image" />
-              <div class="cover-preview-text">
-                <div class="cover-preview-title">
-                  Preview
-                  <button type="button" class="btn-cover-remove" (click)="removeCover(coverFile)">
-                    Remove cover
+    <div class="table-container">
+      @if (books$ | async; as books) {
+        <p-table [value]="books | filterBooks: searchTerm():statusFilter():'all'" [paginator]="true" [rows]="10"
+          [showCurrentPageReport]="true" currentPageReportTemplate="{first} to {last} of {totalRecords} books"
+          [showFirstLastIcon]="false" responsiveLayout="scroll" styleClass="p-datatable-sm">
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 80px;">Cover</th>
+              <th pSortableColumn="title">Title <p-sortIcon field="title"></p-sortIcon></th>
+              <th pSortableColumn="author">Author <p-sortIcon field="author"></p-sortIcon></th>
+              <th pSortableColumn="category">Category <p-sortIcon field="category"></p-sortIcon></th>
+              <th pSortableColumn="isbn">ISBN <p-sortIcon field="isbn"></p-sortIcon></th>
+              <th pSortableColumn="quantityAvailable">Available <p-sortIcon field="quantityAvailable"></p-sortIcon></th>
+              <th pSortableColumn="status">Status <p-sortIcon field="status"></p-sortIcon></th>
+              <th class="actions-col">Actions</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-book>
+            <tr>
+              <td>
+                <div style="display:flex;justify-content:center;align-items:center;">
+                  @if (book.coverImage) {
+                    <img [src]="book.coverImage"
+                      alt="{{ book.title }} cover" style="width:48px;height:64px;object-fit:cover;border-radius:4px;" />
+                  } @else {
+                    <div
+                      style="width:48px;height:64px;border-radius:4px;border:1px dashed #d1d5db;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:#9ca3af;">
+                      📚
+                    </div>
+                  }
+                </div>
+              </td>
+              <td class="table-cell-title">
+                <div class="book-title-wrapper">
+                  <span>{{ book.title }}</span>
+                </div>
+              </td>
+              <td>{{ book.author }}</td>
+              <td>
+                <span class="category-badge">{{ book.category }}</span>
+              </td>
+              <td class="isbn-cell">{{ book.isbn }}</td>
+              <td>
+                <span class="availability-badge">
+                  <span class="available-count">{{ book.quantityAvailable }}</span>
+                  <span class="separator">/</span>
+                  <span class="total-count">{{ book.quantityTotal }}</span>
+                </span>
+              </td>
+              <td>
+                <span class="status-badge" [class.status-available]="book.status === 'available'"
+                  [class.status-unavailable]="book.status === 'unavailable'">
+                  {{ book.status | titlecase }}
+                </span>
+              </td>
+              <td class="actions-col">
+                <div class="action-buttons">
+                  <button type="button" class="btn-action btn-edit" (click)="openEditDialog(book)" title="Edit book">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-action btn-qr" (click)="openQrDialog(book)" title="Show QR code">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="3" width="5" height="5"></rect>
+                      <rect x="16" y="3" width="5" height="5"></rect>
+                      <rect x="3" y="16" width="5" height="5"></rect>
+                      <path d="M21 16h-3a2 2 0 0 0-2 2v3"></path>
+                      <path d="M21 21v.01"></path>
+                      <path d="M12 7v3a2 2 0 0 1-2 2H7"></path>
+                      <path d="M21 12v.01"></path>
+                      <path d="M12 21h.01"></path>
+                    </svg>
+                  </button>
+                  <button type="button" class="btn-action btn-delete" (click)="delete(book)" title="Delete book">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
                   </button>
                 </div>
-                <div class="cover-preview-subtitle">
-                  This is how the book cover will appear in the list.
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="8" style="text-align: center; padding: 0;">
+                <div class="empty-state">
+                  No books found. Click "Add Book" to create one.
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      } @else {
+        <div style="display: flex; justify-content: center; padding: 3rem;">
+          <p-progressSpinner></p-progressSpinner>
+        </div>
+      }
+    </div>
+
+    <!-- Dialog -->
+    @if (isDialogOpen()) {
+      <div class="dialog-backdrop" (click)="closeDialog()">
+        <div class="dialog" (click)="$event.stopPropagation()">
+          <div class="dialog-header">
+            <h3>{{ editingBook() ? 'Edit Book' : 'Add New Book' }}</h3>
+            <button type="button" class="btn-close" (click)="closeDialog()" aria-label="Close">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
+            <label class="form-field">
+              <span class="form-label">Title <span class="required">*</span></span>
+              <input type="text" formControlName="title" class="form-input" placeholder="Enter book title" required />
+            </label>
+            <label class="form-field">
+              <span class="form-label">Author <span class="required">*</span></span>
+              <input type="text" formControlName="author" class="form-input" placeholder="Enter author name" required />
+            </label>
+            <label class="form-field">
+              <span class="form-label">Category <span class="required">*</span></span>
+              <select formControlName="category" class="form-select" required>
+                <option value="" disabled selected>Select a category</option>
+                @for (subject of (subjects$ | async); track $index) {
+                  <option [value]="subject.name">
+                    {{ subject.name }}
+                  </option>
+                }
+              </select>
+            </label>
+            <label class="form-field">
+              <span class="form-label">ISBN <span class="required">*</span></span>
+              <input type="text" formControlName="isbn" class="form-input" placeholder="Enter ISBN number" maxlength="13" pattern="\d*" required />
+            </label>
+            <label class="form-field">
+              <span class="form-label">Total Quantity <span class="required">*</span></span>
+              <input type="number" formControlName="quantityTotal" class="form-input" min="0" />
+            </label>
+            <label class="form-field">
+              <span class="form-label">Available <span class="required">*</span></span>
+              <input type="number" formControlName="quantityAvailable" class="form-input" min="0" />
+            </label>
+            <label class="form-field">
+              <span class="form-label">Status <span class="required">*</span></span>
+              <select formControlName="status" class="form-select">
+                <option value="available">Available</option>
+                <option value="unavailable">Unavailable</option>
+              </select>
+            </label>
+            <label class="form-field full-width">
+              <span class="form-label">Description</span>
+              <textarea formControlName="description" rows="4" class="form-textarea"
+              placeholder="Enter book description (optional)"></textarea>
+            </label>
+            <label class="form-field">
+              <span class="form-label">Shelf Location</span>
+              <input type="text" formControlName="shelfLocation" class="form-input" placeholder="e.g., A1, B3, Reference" />
+            </label>
+            <label class="form-field full-width">
+              <span class="form-label">Cover Image</span>
+              <div class="cover-upload">
+                <button type="button" class="btn-cover-upload" (click)="coverFile.click()">
+                  <span class="btn-cover-icon">📷</span>
+                  <span class="btn-cover-text">
+                    <strong>Select cover</strong>
+                    <span class="btn-cover-subtext">JPG, PNG up to ~1–2 MB</span>
+                  </span>
+                </button>
+                <input #coverFile type="file" accept="image/*" class="cover-file-input"
+                  (change)="onCoverSelected($event)" />
+                  @if (form.value.coverImage) {
+                    <div class="cover-preview">
+                      <img [src]="form.value.coverImage" alt="Cover preview" class="cover-preview-image" />
+                      <div class="cover-preview-text">
+                        <div class="cover-preview-title">
+                          Preview
+                          <button type="button" class="btn-cover-remove" (click)="removeCover(coverFile)">
+                            Remove cover
+                          </button>
+                        </div>
+                        <div class="cover-preview-subtitle">
+                          This is how the book cover will appear in the list.
+                        </div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </label>
+              <div class="dialog-actions full-width">
+                <button type="button" class="btn btn-secondary" (click)="closeDialog()">
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">Save</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      }
+
+      <!-- QR dialog -->
+      @if (qrBook()) {
+        <div class="dialog-backdrop" (click)="closeQrDialog()">
+          <div class="dialog dialog--qr" (click)="$event.stopPropagation()">
+            <div class="dialog-header">
+              <h3>Book QR Code</h3>
+              <button type="button" class="btn-close" (click)="closeQrDialog()" aria-label="Close">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            <p class="dialog-subtitle">
+              Scan this QR code to borrow or return this book quickly
+            </p>
+            @if (qrBook(); as b) {
+              <div class="qr-preview">
+                <div class="qr-code-wrapper">
+                  <app-qr-code [value]="b.id || b.isbn" type="book" [size]="240"></app-qr-code>
+                </div>
+                <div class="qr-meta">
+                  <div class="qr-title">{{ b.title }}</div>
+                  <div class="qr-author">{{ b.author }}</div>
+                  <div class="qr-id">
+                    <span class="qr-id-label">Encoded ID:</span>
+                    <span class="qr-id-value">{{ b.id || b.isbn }}</span>
+                  </div>
                 </div>
               </div>
+            }
+            <div class="dialog-actions full-width">
+              <button type="button" class="btn btn-secondary" (click)="closeQrDialog()">
+                Close
+              </button>
             </div>
           </div>
-        </label>
-
-        <div class="dialog-actions full-width">
-          <button type="button" class="btn btn-secondary" (click)="closeDialog()">
-            Cancel
-          </button>
-          <button type="submit" class="btn btn-primary">Save</button>
         </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- QR dialog -->
-  <div class="dialog-backdrop" *ngIf="qrBook()" (click)="closeQrDialog()">
-    <div class="dialog dialog--qr" (click)="$event.stopPropagation()">
-      <div class="dialog-header">
-        <h3>Book QR Code</h3>
-        <button type="button" class="btn-close" (click)="closeQrDialog()" aria-label="Close">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-      <p class="dialog-subtitle">
-        Scan this QR code to borrow or return this book quickly
-      </p>
-
-      <div class="qr-preview" *ngIf="qrBook() as b">
-        <div class="qr-code-wrapper">
-          <app-qr-code [value]="b.id || b.isbn" [size]="240"></app-qr-code>
-        </div>
-        <div class="qr-meta">
-          <div class="qr-title">{{ b.title }}</div>
-          <div class="qr-author">{{ b.author }}</div>
-          <div class="qr-id">
-            <span class="qr-id-label">Encoded ID:</span>
-            <span class="qr-id-value">{{ b.id || b.isbn }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="dialog-actions full-width">
-        <button type="button" class="btn btn-secondary" (click)="closeQrDialog()">
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-</section>
+      }
+    </section>

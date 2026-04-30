@@ -15,94 +15,111 @@ import { ActivatedRoute } from '@angular/router';
     standalone: true,
     imports: [CommonModule],
     template: `
-    <section class="profile-root" *ngIf="vm$ | async as vm">
-      <header class="profile-header">
-        <button class="btn-back" (click)="goBack()">← Back</button>
-        <div class="avatar">{{ getInitials(vm.user?.name ?? '') }}</div>
-        <div class="profile-info">
-          <h1>{{ vm.user?.name }}</h1>
-          <p class="role-tag">{{ vm.user?.role | titlecase }}</p>
-          <p class="email">{{ vm.user?.email }}</p>
-          <p class="student-id" *ngIf="vm.user?.studentId">ID: {{ vm.user?.studentId }}</p>
+    @if (vm$ | async; as vm) {
+      <section class="profile-root">
+        <header class="profile-header">
+          <button class="btn-back" (click)="goBack()">← Back</button>
+          <div class="avatar">{{ getInitials(vm.user?.name ?? '') }}</div>
+          <div class="profile-info">
+            <h1>{{ vm.user?.name }}</h1>
+            <p class="role-tag">{{ vm.user?.role | titlecase }}</p>
+            <p class="email">{{ vm.user?.email }}</p>
+            @if (vm.user?.studentId) {
+              <p class="student-id">ID: {{ vm.user?.studentId }}</p>
+            }
+          </div>
+        </header>
+        <div class="stats-row">
+          <div class="stat-card">
+            <span class="stat-num">{{ vm.activeBorrows.length }}</span>
+            <span class="stat-label">Active Borrows</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num">{{ vm.totalBorrows }}</span>
+            <span class="stat-label">Total Borrows</span>
+          </div>
+          <div class="stat-card fine-card">
+            <span class="stat-num">₱{{ vm.totalFines }}</span>
+            <span class="stat-label">Total Fines</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-num">{{ vm.visits }}</span>
+            <span class="stat-label">Library Visits</span>
+          </div>
         </div>
-      </header>
-
-      <div class="stats-row">
-        <div class="stat-card">
-          <span class="stat-num">{{ vm.activeBorrows.length }}</span>
-          <span class="stat-label">Active Borrows</span>
+        <div class="sections">
+          <section class="card">
+            <h3>Active Borrows</h3>
+            @if (vm.activeBorrows.length > 0) {
+              <table class="table">
+                <thead><tr><th>Book</th><th>Borrowed</th><th>Due</th><th>Status</th><th>Fine</th></tr></thead>
+                <tbody>
+                  @for (b of vm.activeBorrows; track $index) {
+                    <tr>
+                      <td>{{ b.bookTitle }}</td>
+                      <td>{{ asDate(b.borrowedAt) | date:'shortDate' }}</td>
+                      <td>{{ asDate(b.dueAt) | date:'shortDate' }}</td>
+                      <td><span class="badge" [class.badge-overdue]="b.status==='overdue'">{{ b.status | titlecase }}</span></td>
+                      <td [class.fine-red]="b.fineAmount > 0 && !b.finePaid">₱{{ b.fineAmount }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="muted">No active borrows.</p>
+            }
+          </section>
+          <section class="card">
+            <h3>Borrow History</h3>
+            @if (vm.borrowHistory.length > 0) {
+              <table class="table">
+                <thead><tr><th>Book</th><th>Borrowed</th><th>Returned</th><th>Fine</th></tr></thead>
+                <tbody>
+                  @for (b of vm.borrowHistory; track $index) {
+                    <tr>
+                      <td>{{ b.bookTitle }}</td>
+                      <td>{{ asDate(b.borrowedAt) | date:'shortDate' }}</td>
+                      <td>{{ asDate(b.returnedAt) | date:'shortDate' }}</td>
+                      <td>₱{{ b.fineAmount }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="muted">No borrow history.</p>
+            }
+          </section>
+          <section class="card">
+            <h3>Visit History</h3>
+            @if (vm.visitLogs.length > 0) {
+              <table class="table">
+                <thead><tr><th>Purpose</th><th>Time In</th><th>Time Out</th><th>Duration</th><th>Status</th></tr></thead>
+                <tbody>
+                  @for (v of vm.visitLogs; track $index) {
+                    <tr>
+                      <td>{{ v.purpose }}</td>
+                      <td>{{ asDate(v.timeIn) | date:'short' }}</td>
+                      <td>{{ asDate(v.timeOut) | date:'short' }}</td>
+                      <td>{{ v.durationMinutes ?? '-' }} min</td>
+                      <td>{{ v.status }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="muted">No visit records.</p>
+            }
+          </section>
         </div>
-        <div class="stat-card">
-          <span class="stat-num">{{ vm.totalBorrows }}</span>
-          <span class="stat-label">Total Borrows</span>
-        </div>
-        <div class="stat-card fine-card">
-          <span class="stat-num">₱{{ vm.totalFines }}</span>
-          <span class="stat-label">Total Fines</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-num">{{ vm.visits }}</span>
-          <span class="stat-label">Library Visits</span>
-        </div>
-      </div>
-
-      <div class="sections">
-        <section class="card">
-          <h3>Active Borrows</h3>
-          <table class="table" *ngIf="vm.activeBorrows.length > 0; else noActive">
-            <thead><tr><th>Book</th><th>Borrowed</th><th>Due</th><th>Status</th><th>Fine</th></tr></thead>
-            <tbody>
-              <tr *ngFor="let b of vm.activeBorrows">
-                <td>{{ b.bookTitle }}</td>
-                <td>{{ asDate(b.borrowedAt) | date:'shortDate' }}</td>
-                <td>{{ asDate(b.dueAt) | date:'shortDate' }}</td>
-                <td><span class="badge" [class.badge-overdue]="b.status==='overdue'">{{ b.status | titlecase }}</span></td>
-                <td [class.fine-red]="b.fineAmount > 0 && !b.finePaid">₱{{ b.fineAmount }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <ng-template #noActive><p class="muted">No active borrows.</p></ng-template>
-        </section>
-
-        <section class="card">
-          <h3>Borrow History</h3>
-          <table class="table" *ngIf="vm.borrowHistory.length > 0; else noHist">
-            <thead><tr><th>Book</th><th>Borrowed</th><th>Returned</th><th>Fine</th></tr></thead>
-            <tbody>
-              <tr *ngFor="let b of vm.borrowHistory">
-                <td>{{ b.bookTitle }}</td>
-                <td>{{ asDate(b.borrowedAt) | date:'shortDate' }}</td>
-                <td>{{ asDate(b.returnedAt) | date:'shortDate' }}</td>
-                <td>₱{{ b.fineAmount }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <ng-template #noHist><p class="muted">No borrow history.</p></ng-template>
-        </section>
-
-        <section class="card">
-          <h3>Visit History</h3>
-          <table class="table" *ngIf="vm.visitLogs.length > 0; else noVisit">
-            <thead><tr><th>Purpose</th><th>Time In</th><th>Time Out</th><th>Duration</th><th>Status</th></tr></thead>
-            <tbody>
-              <tr *ngFor="let v of vm.visitLogs">
-                <td>{{ v.purpose }}</td>
-                <td>{{ asDate(v.timeIn) | date:'short' }}</td>
-                <td>{{ asDate(v.timeOut) | date:'short' }}</td>
-                <td>{{ v.durationMinutes ?? '-' }} min</td>
-                <td>{{ v.status }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <ng-template #noVisit><p class="muted">No visit records.</p></ng-template>
-        </section>
-      </div>
-    </section>
-
-    <section class="profile-root" *ngIf="!(vm$ | async)">
-      <p class="muted">Loading profile...</p>
-    </section>
-  `,
+      </section>
+    }
+    
+    @if (!(vm$ | async)) {
+      <section class="profile-root">
+        <p class="muted">Loading profile...</p>
+      </section>
+    }
+    `,
     styles: [`
     .profile-root { display: flex; flex-direction: column; gap: 2rem; }
     .btn-back { background: none; border: none; color: #4f46e5; font-size: .9rem; cursor: pointer; font-weight: 500; padding: 0; margin-bottom: .5rem; }

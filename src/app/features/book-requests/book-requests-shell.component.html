@@ -1,126 +1,146 @@
-<section class="req-root" *ngIf="user$ | async as user">
+@if (user$ | async; as user) {
+  <section class="req-root">
     <header class="header">
-        <div>
-            <h1 class="page-title">Book Requests</h1>
-            <p class="subtitle">Request books that are not yet in the library's collection</p>
+      <div>
+        <h1 class="page-title">Book Requests</h1>
+        <p class="subtitle">Request books that are not yet in the library's collection</p>
+      </div>
+      @if ((pendingCount$ | async); as count) {
+        <div class="header-badge">
+          <span class="pending-chip">{{ count }} pending</span>
         </div>
-        <div class="header-badge" *ngIf="(pendingCount$ | async) as count">
-            <span class="pending-chip">{{ count }} pending</span>
-        </div>
+      }
     </header>
-
     <!-- ── Student: submit request form ─────────────────────────────────── -->
-    <ng-container *ngIf="!(isAdminOrLibrarian$ | async)">
-        <section class="card form-card">
-            <h3>📚 Request a Book</h3>
-            <p class="section-sub">Can't find what you're looking for? Submit a request and we'll try to get it.</p>
-
-            <form [formGroup]="form" (ngSubmit)="submit(user)" class="form-grid">
-                <label class="form-field full-width">
-                    <span class="form-label">Book Title <span class="required">*</span></span>
-                    <input type="text" formControlName="title" class="form-input"
-                        placeholder="e.g., Thinking, Fast and Slow" />
-                    <span class="error" *ngIf="form.controls.title.touched && form.controls.title.invalid">Title is
-                        required.</span>
-                </label>
-
-                <label class="form-field">
-                    <span class="form-label">Author (optional)</span>
-                    <input type="text" formControlName="author" class="form-input"
-                        placeholder="e.g., Daniel Kahneman" />
-                </label>
-
-                <label class="form-field">
-                    <span class="form-label">ISBN (optional)</span>
-                    <input type="text" formControlName="isbn" class="form-input" placeholder="ISBN-13 or ISBN-10" />
-                </label>
-
-                <label class="form-field full-width">
-                    <span class="form-label">Additional notes (optional)</span>
-                    <textarea formControlName="notes" rows="3" class="form-textarea"
-                        placeholder="Why do you need this book? Subject, course, etc."></textarea>
-                </label>
-
-                <div class="form-actions full-width">
-                    <button type="submit" class="btn btn-primary" [disabled]="submitting">
-                        {{ submitting ? 'Submitting…' : '📩 Submit Request' }}
-                    </button>
-                    <p class="success-msg" *ngIf="submitSuccess">✅ Request submitted! Our librarians will review it
-                        soon.</p>
-                </div>
+    @if (!(isAdminOrLibrarian$ | async)) {
+      <section class="card form-card">
+        <h3>📚 Request a Book</h3>
+        <p class="section-sub">Can't find what you're looking for? Submit a request and we'll try to get it.</p>
+        <form [formGroup]="form" (ngSubmit)="submit(user)" class="form-grid">
+          <label class="form-field full-width">
+            <span class="form-label">Book Title <span class="required">*</span></span>
+            <input type="text" formControlName="title" class="form-input"
+              placeholder="e.g., Thinking, Fast and Slow" />
+              @if (form.controls.title.touched && form.controls.title.invalid) {
+                <span class="error">Title is
+                required.</span>
+              }
+            </label>
+            <label class="form-field">
+              <span class="form-label">Author (optional)</span>
+              <input type="text" formControlName="author" class="form-input"
+                placeholder="e.g., Daniel Kahneman" />
+              </label>
+              <label class="form-field">
+                <span class="form-label">ISBN (optional)</span>
+                <input type="text" formControlName="isbn" class="form-input" placeholder="ISBN-13 or ISBN-10" />
+              </label>
+              <label class="form-field full-width">
+                <span class="form-label">Additional notes (optional)</span>
+                <textarea formControlName="notes" rows="3" class="form-textarea"
+                placeholder="Why do you need this book? Subject, course, etc."></textarea>
+              </label>
+              <div class="form-actions full-width">
+                <button type="submit" class="btn btn-primary" [disabled]="submitting">
+                  {{ submitting ? 'Submitting…' : '📩 Submit Request' }}
+                </button>
+                @if (submitSuccess) {
+                  <p class="success-msg">✅ Request submitted! Our librarians will review it
+                  soon.</p>
+                }
+              </div>
             </form>
-        </section>
-
-        <!-- Student: My requests list -->
-        <section class="card" *ngIf="requests$ | async as reqs">
-            <h3>My Requests</h3>
-            <div class="empty" *ngIf="reqs.length === 0">You haven't submitted any requests yet.</div>
-            <table class="table" *ngIf="reqs.length > 0">
-                <thead>
+          </section>
+          <!-- Student: My requests list -->
+          @if (requests$ | async; as reqs) {
+            <section class="card">
+              <h3>My Requests</h3>
+              @if (reqs.length === 0) {
+                <div class="empty">You haven't submitted any requests yet.</div>
+              }
+              @if (reqs.length > 0) {
+                <table class="table">
+                  <thead>
                     <tr>
-                        <th>Title</th>
-                        <th>Author</th>
-                        <th>Status</th>
-                        <th>Submitted</th>
-                        <th>Admin Note</th>
+                      <th>Title</th>
+                      <th>Author</th>
+                      <th>Status</th>
+                      <th>Submitted</th>
+                      <th>Admin Note</th>
                     </tr>
-                </thead>
-                <tbody>
-                    <tr *ngFor="let r of reqs" class="table-row">
+                  </thead>
+                  <tbody>
+                    @for (r of reqs; track $index) {
+                      <tr class="table-row">
                         <td><strong>{{ r.title }}</strong></td>
                         <td>{{ r.author || '—' }}</td>
                         <td><span class="badge" [ngClass]="statusClass(r.status)">{{ statusLabel(r.status) }}</span>
-                        </td>
-                        <td>{{ r.requestedAt | date: 'mediumDate' }}</td>
-                        <td class="admin-note">{{ r.adminNote || '—' }}</td>
+                      </td>
+                      <td>{{ r.requestedAt | date: 'mediumDate' }}</td>
+                      <td class="admin-note">{{ r.adminNote || '—' }}</td>
                     </tr>
+                  }
                 </tbody>
-            </table>
-        </section>
-    </ng-container>
-
-    <!-- ── Admin / Librarian: manage all requests ────────────────────────── -->
-    <ng-container *ngIf="isAdminOrLibrarian$ | async">
-        <section class="card" *ngIf="requests$ | async as reqs">
+              </table>
+            }
+          </section>
+        }
+      }
+      <!-- ── Admin / Librarian: manage all requests ────────────────────────── -->
+      @if (isAdminOrLibrarian$ | async) {
+        @if (requests$ | async; as reqs) {
+          <section class="card">
             <div class="admin-header">
-                <h3>All Book Requests</h3>
+              <h3>All Book Requests</h3>
             </div>
-            <div class="empty" *ngIf="reqs.length === 0">No book requests yet.</div>
-            <table class="table" *ngIf="reqs.length > 0">
+            @if (reqs.length === 0) {
+              <div class="empty">No book requests yet.</div>
+            }
+            @if (reqs.length > 0) {
+              <table class="table">
                 <thead>
-                    <tr>
-                        <th>Title</th>
-                        <th>Author</th>
-                        <th>Student</th>
-                        <th>Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                    </tr>
+                  <tr>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Student</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
                 </thead>
                 <tbody>
-                    <tr *ngFor="let r of reqs" class="table-row">
-                        <td><strong>{{ r.title }}</strong></td>
-                        <td>{{ r.author || '—' }}</td>
-                        <td>{{ r.userName }}</td>
-                        <td>{{ r.requestedAt | date: 'mediumDate' }}</td>
-                        <td><span class="badge" [ngClass]="statusClass(r.status)">{{ statusLabel(r.status) }}</span>
-                        </td>
-                        <td class="actions-cell">
-                            <ng-container *ngIf="r.status === 'pending'">
-                                <button class="btn btn-small btn-approve" (click)="updateStatus(r, 'approved')">✅
-                                    Approve</button>
-                                <button class="btn btn-small btn-reject" (click)="updateStatus(r, 'rejected')">❌
-                                    Reject</button>
-                            </ng-container>
-                            <button class="btn btn-small btn-fulfill" *ngIf="r.status === 'approved'"
-                                (click)="updateStatus(r, 'fulfilled')">📦 Mark Completed</button>
-                            <span class="resolved" *ngIf="r.status === 'rejected' || r.status === 'fulfilled'">
-                                {{ r.resolvedAt | date: 'shortDate' }}
-                            </span>
-                        </td>
-                    </tr>
-                </tbody>
+                  @for (r of reqs; track $index) {
+                    <tr class="table-row">
+                      <td><strong>{{ r.title }}</strong></td>
+                      <td>{{ r.author || '—' }}</td>
+                      <td>{{ r.userName }}</td>
+                      <td>{{ r.requestedAt | date: 'mediumDate' }}</td>
+                      <td><span class="badge" [ngClass]="statusClass(r.status)">{{ statusLabel(r.status) }}</span>
+                    </td>
+                    <td class="actions-cell">
+                      @if (r.status === 'pending') {
+                        <button class="btn btn-small btn-approve" (click)="updateStatus(r, 'approved')">✅
+                        Approve</button>
+                        <button class="btn btn-small btn-reject" (click)="updateStatus(r, 'rejected')">❌
+                        Reject</button>
+                      }
+                      @if (r.status === 'approved') {
+                        <button class="btn btn-small btn-fulfill"
+                        (click)="updateStatus(r, 'fulfilled')">📦 Mark Completed</button>
+                      }
+                      @if (r.status === 'rejected' || r.status === 'fulfilled') {
+                        <span class="resolved">
+                          {{ r.resolvedAt | date: 'shortDate' }}
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
             </table>
+          }
         </section>
-    </ng-container>
-</section>
+      }
+    }
+  </section>
+}

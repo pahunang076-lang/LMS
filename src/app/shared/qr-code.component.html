@@ -1,16 +1,17 @@
-<div class="qr-code-root" *ngIf="dataUrl; else noCode">
-  <img
-    class="qr-image"
-    [src]="dataUrl"
-    alt="QR code"
-    [style.width.px]="size"
-    [style.height.px]="size"
-  />
-</div>
+@if (dataUrl) {
+  <div class="qr-code-root">
+    <img
+      class="qr-image"
+      [src]="dataUrl"
+      alt="QR code"
+      [style.width.px]="size"
+      [style.height.px]="size"
+      />
+    </div>
+  } @else {
+    <div class="qr-code-root qr-code-root--empty">
+      <span class="qr-empty-text">QR not available</span>
+    </div>
+  }
 
-<ng-template #noCode>
-  <div class="qr-code-root qr-code-root--empty">
-    <span class="qr-empty-text">QR not available</span>
-  </div>
-</ng-template>
 

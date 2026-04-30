@@ -1,115 +1,135 @@
 <section class="res-root">
-    <header class="header">
-        <div>
-            <h1 class="page-title">Book Reservations</h1>
-            <p class="subtitle">Reserve books that are currently unavailable and get notified when ready.</p>
+  <header class="header">
+    <div>
+      <h1 class="page-title">Book Reservations</h1>
+      <p class="subtitle">Reserve books that are currently unavailable and get notified when ready.</p>
+    </div>
+    @if (isAdmin$ | async) {
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Pending</span>
+          <span class="stat-value">{{ pendingCount$ | async }}</span>
         </div>
-        <div class="stats" *ngIf="isAdmin$ | async">
-            <div class="stat">
-                <span class="stat-label">Pending</span>
-                <span class="stat-value">{{ pendingCount$ | async }}</span>
-            </div>
-        </div>
-    </header>
+      </div>
+    }
+  </header>
 
-    <!-- ADMIN / LIBRARIAN: All reservations -->
-    <ng-container *ngIf="isAdmin$ | async; else studentView">
-        <section class="card">
-            <h3>All Reservations</h3>
-            <ng-container *ngIf="allReservations$ | async as all">
-                <table class="table" *ngIf="all.length > 0; else noData">
-                    <thead>
-                        <tr>
-                            <th>Student</th>
-                            <th>Book</th>
-                            <th>Reserved At</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let r of all" class="table-row" [class.row-ready]="r.status === 'ready'">
-                            <td>{{ r.userName }}</td>
-                            <td>{{ r.bookTitle }}</td>
-                            <td>{{ asDate(r.reservedAt) | date: 'short' }}</td>
-                            <td>
-                                <span class="status-badge" [ngClass]="'badge-' + r.status">
-                                    {{ statusLabel(r.status) }} <ng-container
-                                        *ngIf="r.status === 'pending'">(#{{r._queuePosition}})</ng-container>
-                                </span>
-                            </td>
-                            <td class="actions-cell">
-                                <button class="btn btn-small btn-success" *ngIf="r.status === 'pending'"
-                                    (click)="markReady(r)">
-                                    Mark Ready
-                                </button>
-                                <button class="btn btn-small btn-primary" *ngIf="r.status === 'ready'"
-                                    (click)="markFulfilled(r)">
-                                    Fulfill
-                                </button>
-                                <button class="btn btn-small btn-secondary"
-                                    *ngIf="r.status === 'pending' || r.status === 'ready'" (click)="cancel(r)">
-                                    Cancel
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <ng-template #noData>
-                    <p class="muted">No reservations yet.</p>
-                </ng-template>
-            </ng-container>
-        </section>
-    </ng-container>
+  <!-- ADMIN / LIBRARIAN: All reservations -->
+  @if (isAdmin$ | async) {
+    <section class="card">
+      <h3>All Reservations</h3>
+      @if (allReservations$ | async; as all) {
+        @if (all.length > 0) {
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Book</th>
+                <th>Reserved At</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (r of all; track $index) {
+                <tr class="table-row" [class.row-ready]="r.status === 'ready'">
+                  <td>{{ r.userName }}</td>
+                  <td>{{ r.bookTitle }}</td>
+                  <td>{{ asDate(r.reservedAt) | date: 'short' }}</td>
+                  <td>
+                    <span class="status-badge" [ngClass]="'badge-' + r.status">
+                      {{ statusLabel(r.status) }} @if (r.status === 'pending') {
+                      (#{{r._queuePosition}})
+                    }
+                  </span>
+                </td>
+                <td class="actions-cell">
+                  @if (r.status === 'pending') {
+                    <button class="btn btn-small btn-success"
+                      (click)="markReady(r)">
+                      Mark Ready
+                    </button>
+                  }
+                  @if (r.status === 'ready') {
+                    <button class="btn btn-small btn-primary"
+                      (click)="markFulfilled(r)">
+                      Fulfill
+                    </button>
+                  }
+                  @if (r.status === 'pending' || r.status === 'ready') {
+                    <button class="btn btn-small btn-secondary"
+                      (click)="cancel(r)">
+                      Cancel
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      } @else {
+        <p class="muted">No reservations yet.</p>
+      }
+    }
+  </section>
+} @else {
+  <section class="card">
+    <h3>My Reservations</h3>
+    <p class="subtitle-sm">You can reserve books from the <a routerLink="/catalog" class="link">Book Catalog</a>
+  when a book is out of stock.</p>
+  @if (myReservations$ | async; as mine) {
+    @if (mine.length > 0) {
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Book</th>
+            <th>Reserved At</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of mine; track $index) {
+            <tr class="table-row" [class.row-ready]="r.status === 'ready'">
+              <td>
+                <div class="book-title-cell">
+                  {{ r.bookTitle }}
+                  @if (r.status === 'ready') {
+                    <span class="pickup-banner">
+                      🔔 Ready for Pickup!
+                    </span>
+                  }
+                </div>
+              </td>
+              <td>{{ asDate(r.reservedAt) | date: 'short' }}</td>
+              <td>
+                <span class="status-badge" [ngClass]="'badge-' + r.status">
+                  {{ statusLabel(r.status) }}
+                </span>
+                @if (r.status === 'pending') {
+                  <span class="queue-chip">
+                    #{{ r._queuePosition }} in queue
+                  </span>
+                }
+              </td>
+              <td>
+                @if (r.status === 'pending' || r.status === 'ready') {
+                  <button class="btn btn-small btn-secondary"
+                    (click)="cancel(r)">
+                    Cancel
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    } @else {
+      <p class="muted">You have no active reservations.</p>
+    }
+  }
+</section>
+}
 
-    <!-- STUDENT: My reservations -->
-    <ng-template #studentView>
-        <section class="card">
-            <h3>My Reservations</h3>
-            <p class="subtitle-sm">You can reserve books from the <a routerLink="/catalog" class="link">Book Catalog</a>
-                when a book is out of stock.</p>
-            <ng-container *ngIf="myReservations$ | async as mine">
-                <table class="table" *ngIf="mine.length > 0; else noMine">
-                    <thead>
-                        <tr>
-                            <th>Book</th>
-                            <th>Reserved At</th>
-                            <th>Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let r of mine" class="table-row" [class.row-ready]="r.status === 'ready'">
-                            <td>
-                                <div class="book-title-cell">
-                                    {{ r.bookTitle }}
-                                    <span class="pickup-banner" *ngIf="r.status === 'ready'">
-                                        🔔 Ready for Pickup!
-                                    </span>
-                                </div>
-                            </td>
-                            <td>{{ asDate(r.reservedAt) | date: 'short' }}</td>
-                            <td>
-                                <span class="status-badge" [ngClass]="'badge-' + r.status">
-                                    {{ statusLabel(r.status) }}
-                                </span>
-                                <span class="queue-chip" *ngIf="r.status === 'pending'">
-                                    #{{ r._queuePosition }} in queue
-                                </span>
-                            </td>
-                            <td>
-                                <button class="btn btn-small btn-secondary"
-                                    *ngIf="r.status === 'pending' || r.status === 'ready'" (click)="cancel(r)">
-                                    Cancel
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-                <ng-template #noMine>
-                    <p class="muted">You have no active reservations.</p>
-                </ng-template>
-            </ng-container>
-        </section>
-    </ng-template>
+<!-- STUDENT: My reservations -->
 </section>

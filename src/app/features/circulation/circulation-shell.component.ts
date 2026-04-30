@@ -313,15 +313,36 @@ export class CirculationShellComponent {
   }
 
   onStudentQrScanned(raw: string): void {
-    this.scannedStudentId = raw.trim();
+    let finalCode = raw.trim();
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.type === 'user' && parsed.value) {
+        finalCode = parsed.value;
+      } else if (parsed.type) {
+        this.qrError = 'Invalid QR code type. Expected a Student/User QR code.';
+        return;
+      }
+    } catch {}
+
+    this.scannedStudentId = finalCode;
     this.qrError = null;
   }
 
   onBookQrScannedForBorrow(raw: string, books: Book[]): void {
     this.qrError = null;
-    const code = raw.trim();
+    let finalCode = raw.trim();
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.type === 'book' && parsed.value) {
+        finalCode = parsed.value;
+      } else if (parsed.type) {
+        this.qrError = 'Invalid QR code type. Expected a Book QR code.';
+        return;
+      }
+    } catch {}
+
     const match = books.find(
-      (b) => b.id === code || b.isbn === code
+      (b) => b.id === finalCode || b.isbn === finalCode
     );
 
     if (!match) {
@@ -406,8 +427,18 @@ export class CirculationShellComponent {
 
   onBookQrScannedForReturn(raw: string, activeBorrows: Borrow[]): void {
     this.qrError = null;
-    const code = raw.trim();
-    const directMatch = activeBorrows.find((b) => b.bookId === code);
+    let finalCode = raw.trim();
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.type === 'book' && parsed.value) {
+        finalCode = parsed.value;
+      } else if (parsed.type) {
+        this.qrError = 'Invalid QR code type. Expected a Book QR code.';
+        return;
+      }
+    } catch {}
+
+    const directMatch = activeBorrows.find((b) => b.bookId === finalCode);
 
     if (directMatch) {
       this.scannedBorrowForReturn = directMatch;
@@ -428,16 +459,25 @@ export class CirculationShellComponent {
     books: Book[]
   ): void {
     this.qrError = null;
-    const code = raw.trim();
+    let finalCode = raw.trim();
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed.type === 'book' && parsed.value) {
+        finalCode = parsed.value;
+      } else if (parsed.type) {
+        this.qrError = 'Invalid QR code type. Expected a Book QR code.';
+        return;
+      }
+    } catch {}
 
-    const directMatch = activeBorrows.find((b) => b.bookId === code);
+    const directMatch = activeBorrows.find((b) => b.bookId === finalCode);
     if (directMatch) {
       this.scannedBorrowForReturn = directMatch;
       this.showReturnConfirm = true;
       return;
     }
 
-    const book = books.find((b) => b.id === code || b.isbn === code);
+    const book = books.find((b) => b.id === finalCode || b.isbn === finalCode);
     const resolvedBookId = book?.id ?? null;
     const resolvedMatch = resolvedBookId
       ? activeBorrows.find((b) => b.bookId === resolvedBookId)

@@ -10,72 +10,77 @@
         <i class="pi pi-search search-icon"></i>
         <input #searchInput type="text" pInputText placeholder="Search by title, author, or category..."
           class="p-inputtext p-component search-input" (input)="onSearch(searchInput.value)" />
-      </div>
-      <button class="filter-btn" (click)="onSearch(''); onStatusFilterChange('all'); searchInput.value = ''"
-        aria-label="Clear Filters">
-        <i class="pi pi-filter-slash"></i> Clear
-      </button>
-    </div>
-  </header>
-
-  <section class="subjects-section" *ngIf="subjects$ | async as subjects">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <h2 class="section-title" style="margin-bottom: 0;">Subjects section</h2>
-      <button *ngIf="canEditCatalog$ | async" class="btn-reserve" (click)="onAddSubject()">
-        <i class="pi pi-plus"></i> Add Catalog
-      </button>
-    </div>
-    <div class="subjects-grid">
-      <article
-        class="subject-card"
-        *ngFor="let sub of subjects"
-        [ngClass]="'subject-' + sub.name.toLowerCase()"
-        (click)="onCategoryFilterChange(sub.name === 'Others' ? 'others' : sub.name)"
-      >
-        <div class="subject-info">
-          <h3 class="subject-name">{{ sub.name }}</h3>
-          <span class="subject-icon">{{ sub.icon }}</span>
         </div>
-        <div class="subject-stats">
-          <span class="subject-count">{{ sub.count }}</span>
-          <span class="subject-label">Books</span>
-        </div>
-      </article>
-    </div>
-  </section>
-
-  <section class="data-section">
-    <div class="table-header">
-      <h2 class="section-title">All books</h2>
-
-      <div class="table-actions">
-        <select #statusSelect class="status-select" (change)="onStatusFilterChange($any(statusSelect.value)); showAll = false"
-          aria-label="Filter by availability">
-          <option value="all">All statuses</option>
-          <option value="available">Available</option>
-          <option value="unavailable">Unavailable</option>
-        </select>
-        <button class="show-all-btn"
-          (click)="onShowAll(); statusSelect.value = 'all'; searchInput.value = ''"
-          aria-label="Show All Books">
-          Show all <i class="pi pi-chevron-right"></i>
+        <button class="filter-btn" (click)="onSearch(''); onStatusFilterChange('all'); searchInput.value = ''"
+          aria-label="Clear Filters">
+          <i class="pi pi-filter-slash"></i> Clear
         </button>
       </div>
-    </div>
+    </header>
 
-    <div class="premium-table-container">
-      <ng-container *ngIf="books$ | async as books; else loading">
-        <p-table [value]="books | filterBooks: searchTerm():statusFilter():categoryFilter()"
-          [paginator]="!showAll"
-          [rows]="showAll ? books.length : 10"
-          [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} books"
-          [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-premium">
-          <ng-template pTemplate="header">
-            <tr>
-              <th pSortableColumn="title" style="width: 35%">Title & Author <p-sortIcon field="title"></p-sortIcon></th>
-              <th pSortableColumn="category" style="width: 20%">Subject <p-sortIcon field="category"></p-sortIcon></th>
-              <th pSortableColumn="status" style="width: 15%">Status <p-sortIcon field="status"></p-sortIcon></th>
-              <th pSortableColumn="_avgRating" style="width: 15%">Rating <p-sortIcon field="_avgRating"></p-sortIcon>
+    @if (subjects$ | async; as subjects) {
+      <section class="subjects-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 class="section-title" style="margin-bottom: 0;">Subjects section</h2>
+          @if (canEditCatalog$ | async) {
+            <button class="btn-reserve" (click)="onAddSubject()">
+              <i class="pi pi-plus"></i> Add Catalog
+            </button>
+          }
+        </div>
+        <div class="subjects-grid">
+          @for (sub of subjects; track $index) {
+            <article
+              class="subject-card"
+              [ngClass]="'subject-' + sub.name.toLowerCase()"
+              (click)="onCategoryFilterChange(sub.name === 'Others' ? 'others' : sub.name)"
+              >
+              <div class="subject-info">
+                <h3 class="subject-name">{{ sub.name }}</h3>
+                <span class="subject-icon">{{ sub.icon }}</span>
+              </div>
+              <div class="subject-stats">
+                <span class="subject-count">{{ sub.count }}</span>
+                <span class="subject-label">Books</span>
+              </div>
+            </article>
+          }
+        </div>
+      </section>
+    }
+
+    <section class="data-section">
+      <div class="table-header">
+        <h2 class="section-title">All books</h2>
+
+        <div class="table-actions">
+          <select #statusSelect class="status-select" (change)="onStatusFilterChange($any(statusSelect.value)); showAll = false"
+            aria-label="Filter by availability">
+            <option value="all">All statuses</option>
+            <option value="available">Available</option>
+            <option value="unavailable">Unavailable</option>
+          </select>
+          <button class="show-all-btn"
+            (click)="onShowAll(); statusSelect.value = 'all'; searchInput.value = ''"
+            aria-label="Show All Books">
+            Show all <i class="pi pi-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="premium-table-container">
+        @if (books$ | async; as books) {
+          <p-table [value]="books | filterBooks: searchTerm():statusFilter():categoryFilter()"
+            [paginator]="!showAll"
+            [rows]="showAll ? books.length : 10"
+            [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} books"
+            [rowsPerPageOptions]="[10, 25, 50]" responsiveLayout="scroll" styleClass="p-datatable-premium">
+            <ng-template pTemplate="header">
+              <tr>
+                <th pSortableColumn="title" style="width: 35%">Title & Author <p-sortIcon field="title"></p-sortIcon></th>
+                <th pSortableColumn="category" style="width: 20%">Subject <p-sortIcon field="category"></p-sortIcon></th>
+                <th pSortableColumn="status" style="width: 15%">Status <p-sortIcon field="status"></p-sortIcon></th>
+                <th pSortableColumn="_avgRating" style="width: 15%">Rating <p-sortIcon field="_avgRating"></p-sortIcon>
               </th>
               <th style="width: 15%">Actions</th>
             </tr>
@@ -85,8 +90,11 @@
               <td>
                 <div class="book-cell">
                   <div class="book-cover-placeholder">
-                    <img *ngIf="book.coverImage; else noCoverTable" [src]="book.coverImage" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" alt="cover" />
-                    <ng-template #noCoverTable>📚</ng-template>
+                    @if (book.coverImage) {
+                      <img [src]="book.coverImage" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px;" alt="cover" />
+                    } @else {
+                      📚
+                    }
                   </div>
                   <div class="book-info">
                     <span class="book-title">{{ book.title }}</span>
@@ -107,23 +115,25 @@
                 </div>
               </td>
               <td>
-                <div class="rating-display" *ngIf="book._avgRating as rating; else noRating">
-                  <span class="star-icon">★</span>
-                  <span class="rating-value">{{ rating | number:'1.1-1' }}</span>
-                  <span class="rating-count">({{ book._reviewCount }})</span>
-                </div>
-                <ng-template #noRating>
+                @if (book._avgRating; as rating) {
+                  <div class="rating-display">
+                    <span class="star-icon">★</span>
+                    <span class="rating-value">{{ rating | number:'1.1-1' }}</span>
+                    <span class="rating-count">({{ book._reviewCount }})</span>
+                  </div>
+                } @else {
                   <span class="no-rating">No reviews</span>
-                </ng-template>
+                }
               </td>
               <td>
-                <button
-                  *ngIf="(isStudent$ | async) && (book.status === 'unavailable' || book.quantityAvailable <= 0)"
-                  class="btn-reserve"
-                  (click)="$event.stopPropagation(); reserve(book)"
-                >
-                  <i class="pi pi-bookmark"></i> Reserve
-                </button>
+                @if ((isStudent$ | async) && (book.status === 'unavailable' || book.quantityAvailable <= 0)) {
+                  <button
+                    class="btn-reserve"
+                    (click)="$event.stopPropagation(); reserve(book)"
+                    >
+                    <i class="pi pi-bookmark"></i> Reserve
+                  </button>
+                }
               </td>
             </tr>
           </ng-template>
@@ -136,107 +146,105 @@
             </tr>
           </ng-template>
         </p-table>
-      </ng-container>
-      <ng-template #loading>
+      } @else {
         <div class="loading-state">
           <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
           <p>Loading library catalog...</p>
         </div>
-      </ng-template>
+      }
     </div>
   </section>
 
-  <p-dialog
-    [(visible)]="bookDialogVisible"
-    [modal]="true"
-    [style]="{ width: '650px' }"
-    [dismissableMask]="true"
-    [breakpoints]="{ '960px': '90vw', '640px': '95vw' }"
-    [draggable]="false"
-    [resizable]="false"
-    styleClass="book-dialog"
-    *ngIf="selectedBook as book"
-  >
-    <ng-template pTemplate="header">
-      <span class="book-dialog-title">Book Details</span>
-    </ng-template>
-
-    <div class="book-modal-container">
-      <div class="left-column">
-        <div class="cover-wrapper">
-          <ng-container *ngIf="book.coverImage || book.isbn; else noIsbn">
-            <img 
-              [src]="book.coverImage ? book.coverImage : 'https://covers.openlibrary.org/b/isbn/' + book.isbn + '-M.jpg?default=false'" 
-              class="book-cover-img"
-              alt="Book cover"
-              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-            />
-            <div class="gradient-fallback" style="display: none;">
-              <span class="fallback-icon">📚</span>
+  @if (selectedBook; as book) {
+    <p-dialog
+      [(visible)]="bookDialogVisible"
+      [modal]="true"
+      [style]="{ width: '650px' }"
+      [dismissableMask]="true"
+      [breakpoints]="{ '960px': '90vw', '640px': '95vw' }"
+      [draggable]="false"
+      [resizable]="false"
+      styleClass="book-dialog"
+      >
+      <ng-template pTemplate="header">
+        <span class="book-dialog-title">Book Details</span>
+      </ng-template>
+      <div class="book-modal-container">
+        <div class="left-column">
+          <div class="cover-wrapper">
+            @if (book.coverImage || book.isbn) {
+              <img
+                [src]="book.coverImage ? book.coverImage : 'https://covers.openlibrary.org/b/isbn/' + book.isbn + '-M.jpg?default=false'"
+                class="book-cover-img"
+                alt="Book cover"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                />
+                <div class="gradient-fallback" style="display: none;">
+                  <span class="fallback-icon">📚</span>
+                </div>
+              } @else {
+                <div class="gradient-fallback">
+                  <span class="fallback-icon">📚</span>
+                </div>
+              }
             </div>
-          </ng-container>
-          <ng-template #noIsbn>
-            <div class="gradient-fallback">
-              <span class="fallback-icon">📚</span>
+          </div>
+          <div class="right-column">
+            <h2 class="book-modal-heading">{{ book.title }}</h2>
+            <p class="book-modal-author">by {{ book.author }}</p>
+            <div class="category-pills">
+              <span class="category-pill">{{ book.category }}</span>
             </div>
-          </ng-template>
-        </div>
-      </div>
-
-      <div class="right-column">
-        <h2 class="book-modal-heading">{{ book.title }}</h2>
-        <p class="book-modal-author">by {{ book.author }}</p>
-
-        <div class="category-pills">
-          <span class="category-pill">{{ book.category }}</span>
-        </div>
-
-        <div class="book-modal-row" *ngIf="book._avgRating as rating">
-          <span class="rating-inline">
-            <span class="star-icon">★</span>
-            <span class="rating-value">{{ rating | number: '1.1-1' }}</span>
-            <span class="rating-count">({{ book._reviewCount ?? 0 }} reviews)</span>
-          </span>
-        </div>
-
-        <div class="book-modal-desc-container" *ngIf="book.description">
-          <p class="book-modal-description">
-            {{ book.description }}
-          </p>
-        </div>
-
-        <div class="book-modal-meta">
-          <div class="meta-item">
-            <span class="meta-label">Status</span>
-             <span
-                class="badge-status"
+            @if (book._avgRating; as rating) {
+              <div class="book-modal-row">
+                <span class="rating-inline">
+                  <span class="star-icon">★</span>
+                  <span class="rating-value">{{ rating | number: '1.1-1' }}</span>
+                  <span class="rating-count">({{ book._reviewCount ?? 0 }} reviews)</span>
+                </span>
+              </div>
+            }
+            @if (book.description) {
+              <div class="book-modal-desc-container">
+                <p class="book-modal-description">
+                  {{ book.description }}
+                </p>
+              </div>
+            }
+            <div class="book-modal-meta">
+              <div class="meta-item">
+                <span class="meta-label">Status</span>
+                <span
+                  class="badge-status"
                 [ngClass]="{
                   'status-available': book.status === 'available',
                   'status-unavailable': book.status === 'unavailable'
                 }"
-              >
-                {{ book.status | titlecase }}
-              </span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Availability</span>
-            <span class="meta-value">{{ book.quantityAvailable }} / {{ book.quantityTotal }} copies</span>
-          </div>
-          <div class="meta-item" *ngIf="book.isbn">
-            <span class="meta-label">ISBN</span>
-            <span class="meta-value">{{ book.isbn }}</span>
+                  >
+                  {{ book.status | titlecase }}
+                </span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">Availability</span>
+                <span class="meta-value">{{ book.quantityAvailable }} / {{ book.quantityTotal }} copies</span>
+              </div>
+              @if (book.isbn) {
+                <div class="meta-item">
+                  <span class="meta-label">ISBN</span>
+                  <span class="meta-value">{{ book.isbn }}</span>
+                </div>
+              }
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <ng-template pTemplate="footer">
-      <div class="book-dialog-footer">
-        <span class="footer-hint">Tap anywhere outside to close.</span>
-        <button type="button" class="btn-close-dialog" (click)="closeBookDetails()">
-          Close
-        </button>
-      </div>
-    </ng-template>
-  </p-dialog>
-</section>
+        <ng-template pTemplate="footer">
+          <div class="book-dialog-footer">
+            <span class="footer-hint">Tap anywhere outside to close.</span>
+            <button type="button" class="btn-close-dialog" (click)="closeBookDetails()">
+              Close
+            </button>
+          </div>
+        </ng-template>
+      </p-dialog>
+    }
+  </section>

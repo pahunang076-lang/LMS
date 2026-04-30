@@ -10,12 +10,12 @@ import {
   ChangeDetectorRef,
   inject,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-qr-scanner',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './qr-scanner.component.html',
   styleUrl: './qr-scanner.component.css',
 })
@@ -42,6 +42,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
   @Output() scanError = new EventEmitter<string>();
 
   @ViewChild('videoElement', { static: false }) videoElement?: ElementRef<HTMLVideoElement>;
+  @ViewChild('fileInput', { static: false }) fileInputElement?: ElementRef<HTMLInputElement>;
 
   private reader: any | null = null;
   private scanning = false;
@@ -461,6 +462,59 @@ export class QrScannerComponent implements OnInit, OnDestroy {
       const stream = this.videoElement.nativeElement.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
       this.videoElement.nativeElement.srcObject = null;
+    }
+  }
+
+  triggerFileUpload(): void {
+    if (this.fileInputElement?.nativeElement) {
+      this.fileInputElement.nativeElement.click();
+    }
+  }
+
+  async onFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) {
+      return;
+    }
+
+    const file = input.files[0];
+    const objectUrl = URL.createObjectURL(file);
+
+    try {
+      this.isInitializing = true;
+      this.errorMessage = null;
+      this.hasScanSuccess = false;
+
+      const zxing = await import('@zxing/library');
+      const reader = new zxing.BrowserMultiFormatReader();
+
+      // Cast to any to bypass missing TypeScript definitions for decodeFromImageUrl
+      const result = await (reader as any).decodeFromImageUrl(objectUrl);
+      
+      if (result) {
+        const decodedText = result.getText();
+        this.lastResult = decodedText;
+        this.hasScanSuccess = true;
+        this.scanned.emit(decodedText);
+
+        setTimeout(() => {
+          this.hasScanSuccess = false;
+        }, 1500);
+      }
+    } catch (err: any) {
+      console.error('File scan error', err);
+      const errorName = err?.name || err?.constructor?.name || '';
+      if (errorName === 'NotFoundException' || err?.message?.includes('not found')) {
+        this.errorMessage = 'No QR code found in the image. Please try another image.';
+      } else {
+        this.errorMessage = err?.message || 'Failed to read QR code from image.';
+      }
+      this.scanError.emit(this.errorMessage || 'Scan error');
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+      this.isInitializing = false;
+      // Reset input so the same file can be selected again
+      input.value = '';
     }
   }
 }

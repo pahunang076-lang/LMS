@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { animate, style, transition, trigger } from '@angular/animations';
-import { CommonModule } from '@angular/common';
+
 import {
   FormBuilder,
   ReactiveFormsModule,
@@ -14,7 +14,7 @@ import { QrScannerComponent } from '../../shared/qr-scanner.component';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, QrScannerComponent],
+  imports: [ReactiveFormsModule, QrScannerComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css',
   animations: [
@@ -119,9 +119,23 @@ export class LoginComponent {
     this.form.reset();
   }
 
-  async onQrScanned(qrCode: string): Promise<void> {
+  async onQrScanned(rawQr: string): Promise<void> {
     try {
-      await this.authService.loginWithQrCode(qrCode);
+      let finalCode = rawQr;
+      try {
+        const parsed = JSON.parse(rawQr);
+        if (parsed.type === 'user' && parsed.value) {
+          finalCode = parsed.value;
+        } else if (parsed.type) {
+          // It's a JSON QR but for something else (e.g. book)
+          this.authService['errorSignal'].set('Invalid QR code type. Expected a user login QR code.');
+          return;
+        }
+      } catch {
+        // Fallback: not a JSON string, treat as raw string
+      }
+
+      await this.authService.loginWithQrCode(finalCode);
       const user = await firstValueFrom(this.authService.currentUser$);
       await this.authService.redirectAfterLogin(user ?? null);
     } catch {

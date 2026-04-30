@@ -1,94 +1,114 @@
-<section class="dashboard-root" *ngIf="dashboardData$ | async as data">
+@if (dashboardData$ | async; as data) {
+  <section class="dashboard-root">
     <header class="header">
-        <div>
-            <h1 class="page-title">Welcome back, {{ data.user?.name || 'Student' }}! 👋</h1>
-            <p class="subtitle">Here's what's happening with your library account today.</p>
-        </div>
+      <div>
+        <h1 class="page-title">Welcome back, {{ data.user?.name || 'Student' }}! 👋</h1>
+        <p class="subtitle">Here's what's happening with your library account today.</p>
+      </div>
     </header>
-
     <!-- Announcement Banner -->
-    <div class="announcement-banner" *ngIf="data.announcement">
+    @if (data.announcement) {
+      <div class="announcement-banner">
         <div class="banner-icon">📢</div>
         <div class="banner-content">
-            <strong>{{ data.announcement.title }}</strong>
-            <p>{{ data.announcement.body }}</p>
+          <strong>{{ data.announcement.title }}</strong>
+          <p>{{ data.announcement.body }}</p>
         </div>
         <a routerLink="/announcements" class="btn btn-small btn-outline">View All</a>
-    </div>
-
+      </div>
+    }
     <div class="grid">
-        <!-- Active Borrows Panel -->
-        <article class="panel">
-            <header class="panel-header">
-                <h3>My Active Borrows</h3>
-                <span class="count-badge">{{ data.borrows.length }} / 3</span>
-            </header>
-
-            <div class="empty-state" *ngIf="data.borrows.length === 0">
-                <span class="emoji">📚</span>
-                <p>You have no active physical books.<br>Browse the catalog to find your next read!</p>
-                <a routerLink="/catalog" class="btn btn-primary margin-top">Browse Catalog</a>
-            </div>
-
-            <ul class="item-list" *ngIf="data.borrows.length > 0">
-                <li class="item-card" *ngFor="let b of data.borrows" [class.overdue]="b.status === 'overdue'">
-                    <div class="item-info">
-                        <h4>{{ b.bookTitle }}</h4>
-                        <p class="status-text">
-                            <span *ngIf="b.status === 'overdue'">⚠️ Overdue (₱{{b.fineAmount}} fine)</span>
-                            <span *ngIf="b.status !== 'overdue'">Due {{ dueCountdown(b.dueAt) }}</span>
-                        </p>
-                    </div>
-                    <a routerLink="/circulation" class="btn-icon">➔</a>
-                </li>
-            </ul>
-        </article>
-
-        <!-- Requested Books Panel -->
-        <article class="panel">
-            <header class="panel-header">
-                <h3>My Book Requests & Holds</h3>
-                <span class="count-badge bg-blue">{{ data.requests.length }}</span>
-            </header>
-
-            <div class="empty-state" *ngIf="data.requests.length === 0">
-                <span class="emoji">🔖</span>
-                <p>No active reservations or requests.</p>
-                <a routerLink="/book-requests" class="btn btn-outline margin-top">Request a Book</a>
-            </div>
-
-            <ul class="item-list" *ngIf="data.requests.length > 0">
-                <li class="item-card" *ngFor="let r of data.requests" [class.ready]="r.status === 'ready'">
-                    <div class="item-info">
-                        <h4>{{ r.bookTitle || 'Custom Book Request' }}</h4>
-                        <p class="status-text">
-                            <span *ngIf="r.status === 'pending'">🕒 Waitlisted: Position #{{r._queuePosition}}</span>
-                            <span *ngIf="r.status === 'ready'">✅ Ready for Pickup!</span>
-                        </p>
-                    </div>
-                    <a routerLink="/reservations" class="btn-icon">➔</a>
-                </li>
-            </ul>
-        </article>
+      <!-- Active Borrows Panel -->
+      <article class="panel">
+        <header class="panel-header">
+          <h3>My Active Borrows</h3>
+          <span class="count-badge">{{ data.borrows.length }} / 3</span>
+        </header>
+        @if (data.borrows.length === 0) {
+          <div class="empty-state">
+            <span class="emoji">📚</span>
+            <p>You have no active physical books.<br>Browse the catalog to find your next read!</p>
+            <a routerLink="/catalog" class="btn btn-primary margin-top">Browse Catalog</a>
+          </div>
+        }
+        @if (data.borrows.length > 0) {
+          <ul class="item-list">
+            @for (b of data.borrows; track $index) {
+              <li class="item-card" [class.overdue]="b.status === 'overdue'">
+                <div class="item-info">
+                  <h4>{{ b.bookTitle }}</h4>
+                  <p class="status-text">
+                    @if (b.status === 'overdue') {
+                      <span>⚠️ Overdue (₱{{b.fineAmount}} fine)</span>
+                    }
+                    @if (b.status !== 'overdue') {
+                      <span>Due {{ dueCountdown(b.dueAt) }}</span>
+                    }
+                  </p>
+                </div>
+                <a routerLink="/circulation" class="btn-icon">➔</a>
+              </li>
+            }
+          </ul>
+        }
+      </article>
+      <!-- Requested Books Panel -->
+      <article class="panel">
+        <header class="panel-header">
+          <h3>My Book Requests & Holds</h3>
+          <span class="count-badge bg-blue">{{ data.requests.length }}</span>
+        </header>
+        @if (data.requests.length === 0) {
+          <div class="empty-state">
+            <span class="emoji">🔖</span>
+            <p>No active reservations or requests.</p>
+            <a routerLink="/book-requests" class="btn btn-outline margin-top">Request a Book</a>
+          </div>
+        }
+        @if (data.requests.length > 0) {
+          <ul class="item-list">
+            @for (r of data.requests; track $index) {
+              <li class="item-card" [class.ready]="r.status === 'ready'">
+                <div class="item-info">
+                  <h4>{{ r.bookTitle || 'Custom Book Request' }}</h4>
+                  <p class="status-text">
+                    @if (r.status === 'pending') {
+                      <span>🕒 Waitlisted: Position #{{r._queuePosition}}</span>
+                    }
+                    @if (r.status === 'ready') {
+                      <span>✅ Ready for Pickup!</span>
+                    }
+                  </p>
+                </div>
+                <a routerLink="/reservations" class="btn-icon">➔</a>
+              </li>
+            }
+          </ul>
+        }
+      </article>
     </div>
-
     <!-- Feature 5: Most Borrowed Books -->
-    <ng-container *ngIf="topBooks$ | async as topBooks">
-        <section class="popular-section" *ngIf="topBooks.length > 0">
-            <h3 class="section-heading">📈 Most Borrowed Books</h3>
-            <div class="popular-grid">
-                <a routerLink="/catalog" class="popular-card" *ngFor="let book of topBooks; let i = index">
-                    <div class="popular-rank" [class.rank-gold]="i === 0" [class.rank-silver]="i === 1"
-                        [class.rank-bronze]="i === 2">
-                        #{{ i + 1 }}
-                    </div>
-                    <div class="popular-info">
-                        <div class="popular-title">{{ book.title }}</div>
-                        <div class="popular-author">{{ book.author }}</div>
-                    </div>
-                    <span class="borrow-badge">{{ book.borrowCount }} borrows</span>
-                </a>
-            </div>
+    @if (topBooks$ | async; as topBooks) {
+      @if (topBooks.length > 0) {
+        <section class="popular-section">
+          <h3 class="section-heading">📈 Most Borrowed Books</h3>
+          <div class="popular-grid">
+            @for (book of topBooks; track $index; let i = $index) {
+              <a routerLink="/catalog" class="popular-card">
+                <div class="popular-rank" [class.rank-gold]="i === 0" [class.rank-silver]="i === 1"
+                  [class.rank-bronze]="i === 2">
+                  #{{ i + 1 }}
+                </div>
+                <div class="popular-info">
+                  <div class="popular-title">{{ book.title }}</div>
+                  <div class="popular-author">{{ book.author }}</div>
+                </div>
+                <span class="borrow-badge">{{ book.borrowCount }} borrows</span>
+              </a>
+            }
+          </div>
         </section>
-    </ng-container>
-</section>
+      }
+    }
+  </section>
+}

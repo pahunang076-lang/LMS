@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import {
   Component,
   Input,
@@ -9,7 +9,7 @@ import {
 @Component({
   selector: 'app-qr-code',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './qr-code.component.html',
   styleUrl: './qr-code.component.css',
 })
@@ -19,6 +19,11 @@ export class QrCodeComponent implements OnChanges {
    * For books this should be the unique book ID (or ISBN).
    */
   @Input() value = '';
+
+  /**
+   * Optional type to encode the QR as a JSON payload {"type": "...", "value": "..."}
+   */
+  @Input() type?: 'user' | 'book';
 
   /**
    * Rendered image size in pixels.
@@ -60,10 +65,15 @@ export class QrCodeComponent implements OnChanges {
       hints.set(EncodeHintType.MARGIN, 0);
       hints.set(EncodeHintType.ERROR_CORRECTION, 'M');
 
+      // Prepare payload
+      const payload = this.type 
+        ? JSON.stringify({ type: this.type, value: trimmed })
+        : trimmed;
+
       // Create writer and encode the data
       const writer = new QRCodeWriter();
       const bitMatrix = writer.encode(
-        trimmed,
+        payload,
         BarcodeFormat.QR_CODE,
         this.size,
         this.size,

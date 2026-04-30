@@ -1,56 +1,63 @@
 <section class="announcements-root">
-    <header class="header">
-        <div>
-            <h1 class="page-title">Announcements</h1>
-            <p class="subtitle">Important updates from the library administration</p>
-        </div>
-    </header>
-
-    <div class="content">
-        <div class="admin-panel panel" *ngIf="(isAdminOrLibrarian$ | async)">
-            <h3>Post New Announcement</h3>
-            <form class="post-form" (ngSubmit)="postAnnouncement()">
-                <label class="form-field full-width">
-                    <span class="form-label">Title</span>
-                    <input type="text" class="form-input" name="title" [(ngModel)]="newTitle" required
-                        placeholder="e.g. Library closed for holidays" />
-                </label>
-
-                <label class="form-field full-width">
-                    <span class="form-label">Message</span>
-                    <textarea class="form-textarea" name="body" [(ngModel)]="newBody" rows="4" required
-                        placeholder="Type the announcement message..."></textarea>
-                </label>
-
-                <div class="form-actions">
-                    <button type="submit" class="btn btn-primary" [disabled]="!newTitle.trim() || !newBody.trim()">Post
-                        Announcement</button>
-                </div>
-            </form>
-        </div>
-
-        <div class="announcements-list" *ngIf="(announcements$ | async) as announcements">
-            <div class="empty" *ngIf="announcements.length === 0">
-                <p>No announcements right now.</p>
-            </div>
-
-            <article class="announcement-card panel" *ngFor="let msg of announcements">
-                <header class="msg-header">
-                    <div class="msg-meta">
-                        <h4>{{ msg.title }}</h4>
-                        <div class="meta-row">
-                            <span class="author">By {{ msg.createdBy }}</span>
-                            <span class="dot">•</span>
-                            <span class="date">{{ msg.createdAt | date:'medium' }}</span>
-                        </div>
-                    </div>
-                    <button *ngIf="(isAdminOrLibrarian$ | async)" class="btn-icon btn-small btn-delete"
-                        (click)="deleteAnnouncement(msg.id)" title="Delete">🗑️</button>
-                </header>
-                <div class="msg-body">
-                    {{ msg.body }}
-                </div>
-            </article>
-        </div>
+  <header class="header">
+    <div>
+      <h1 class="page-title">Announcements</h1>
+      <p class="subtitle">Important updates from the library administration</p>
     </div>
-</section>
+  </header>
+
+  <div class="content">
+    @if ((isAdminOrLibrarian$ | async)) {
+      <div class="admin-panel panel">
+        <h3>Post New Announcement</h3>
+        <form class="post-form" (ngSubmit)="postAnnouncement()">
+          <label class="form-field full-width">
+            <span class="form-label">Title</span>
+            <input type="text" class="form-input" name="title" [(ngModel)]="newTitle" required
+              placeholder="e.g. Library closed for holidays" />
+            </label>
+            <label class="form-field full-width">
+              <span class="form-label">Message</span>
+              <textarea class="form-textarea" name="body" [(ngModel)]="newBody" rows="4" required
+              placeholder="Type the announcement message..."></textarea>
+            </label>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary" [disabled]="!newTitle.trim() || !newBody.trim()">Post
+              Announcement</button>
+            </div>
+          </form>
+        </div>
+      }
+
+      @if ((announcements$ | async); as announcements) {
+        <div class="announcements-list">
+          @if (announcements.length === 0) {
+            <div class="empty">
+              <p>No announcements right now.</p>
+            </div>
+          }
+          @for (msg of announcements; track $index) {
+            <article class="announcement-card panel">
+              <header class="msg-header">
+                <div class="msg-meta">
+                  <h4>{{ msg.title }}</h4>
+                  <div class="meta-row">
+                    <span class="author">By {{ msg.createdBy }}</span>
+                    <span class="dot">•</span>
+                    <span class="date">{{ msg.createdAt | date:'medium' }}</span>
+                  </div>
+                </div>
+                @if ((isAdminOrLibrarian$ | async)) {
+                  <button class="btn-icon btn-small btn-delete"
+                  (click)="deleteAnnouncement(msg.id)" title="Delete">🗑️</button>
+                }
+              </header>
+              <div class="msg-body">
+                {{ msg.body }}
+              </div>
+            </article>
+          }
+        </div>
+      }
+    </div>
+  </section>

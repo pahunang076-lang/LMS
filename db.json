@@ -12,6 +12,45 @@
       "createdAt": "2025-01-01T00:00:00.000Z",
       "lastLoginAt": "2026-03-02T16:11:17.907Z",
       "isActive": true
+    },
+    {
+      "id": "librarian-demo-001",
+      "uid": "librarian-demo-001",
+      "name": "Maria Santos",
+      "email": "librarian@example.edu",
+      "password": "librarian123",
+      "role": "librarian",
+      "studentId": null,
+      "qrCode": "LMS-MO4DH70M-QA7L4D0RZ2S",
+      "createdAt": "2025-01-02T00:00:00.000Z",
+      "lastLoginAt": null,
+      "isActive": true
+    },
+    {
+      "id": "student-demo-001",
+      "uid": "student-demo-001",
+      "name": "Juan Dela Cruz",
+      "email": "student1@example.edu",
+      "password": "student123",
+      "role": "student",
+      "studentId": "2021-00001",
+      "qrCode": "LMS-STUDENT-001-QRCODE",
+      "createdAt": "2025-01-03T00:00:00.000Z",
+      "lastLoginAt": null,
+      "isActive": true
+    },
+    {
+      "id": "student-demo-002",
+      "uid": "student-demo-002",
+      "name": "Ana Reyes",
+      "email": "student2@example.edu",
+      "password": "student123",
+      "role": "student",
+      "studentId": "2021-00002",
+      "qrCode": "LMS-STUDENT-002-QRCODE",
+      "createdAt": "2025-01-04T00:00:00.000Z",
+      "lastLoginAt": null,
+      "isActive": true
     }
   ],
   "books": [

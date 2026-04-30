@@ -23,97 +23,125 @@
   </header>
 
   <section class="cards">
-    <article class="card" *ngIf="borrows$ | async as borrows">
-      <h3>Total borrows</h3>
-      <p class="value">{{ borrows.length }}</p>
-      <button type="button" class="btn btn-secondary" (click)="exportBorrowsCsv(borrows)" [disabled]="!borrows.length">
-        Export borrows CSV
-      </button>
-    </article>
+    @if (borrows$ | async; as borrows) {
+      <article class="card">
+        <h3>Total borrows</h3>
+        <p class="value">{{ borrows.length }}</p>
+        <button type="button" class="btn btn-secondary" (click)="exportBorrowsCsv(borrows)" [disabled]="!borrows.length">
+          Export borrows CSV
+        </button>
+      </article>
+    }
 
-    <article class="card" *ngIf="entries$ | async as entries">
-      <h3>Total visits</h3>
-      <p class="value">{{ entries.length }}</p>
-      <button type="button" class="btn btn-secondary" (click)="exportEntriesCsv(entries)" [disabled]="!entries.length">
-        Export visits CSV
-      </button>
-    </article>
+    @if (entries$ | async; as entries) {
+      <article class="card">
+        <h3>Total visits</h3>
+        <p class="value">{{ entries.length }}</p>
+        <button type="button" class="btn btn-secondary" (click)="exportEntriesCsv(entries)" [disabled]="!entries.length">
+          Export visits CSV
+        </button>
+      </article>
+    }
   </section>
 
   <section class="grid">
-    <article class="panel" *ngIf="topBooks$ | async as topBooks">
-      <h3>Most borrowed books</h3>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Title</th>
-            <th>Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let book of topBooks" class="table-row">
-            <td>{{ book.title }}</td>
-            <td>{{ book.count }}</td>
-          </tr>
-          <tr *ngIf="topBooks.length === 0">
-            <td colspan="2" class="muted">No borrowing data.</td>
-          </tr>
-        </tbody>
-      </table>
-    </article>
+    @if (topBooks$ | async; as topBooks) {
+      <article class="panel">
+        <h3>Most borrowed books</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (book of topBooks; track $index) {
+              <tr class="table-row">
+                <td>{{ book.title }}</td>
+                <td>{{ book.count }}</td>
+              </tr>
+            }
+            @if (topBooks.length === 0) {
+              <tr>
+                <td colspan="2" class="muted">No borrowing data.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </article>
+    }
 
-    <article class="panel" *ngIf="userActivity$ | async as users">
-      <h3>User activity</h3>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Visits</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let u of users" class="table-row">
-            <td>{{ u.name }}</td>
-            <td>{{ u.visits }}</td>
-          </tr>
-          <tr *ngIf="users.length === 0">
-            <td colspan="2" class="muted">No visit data.</td>
-          </tr>
-        </tbody>
-      </table>
-    </article>
+    @if (userActivity$ | async; as users) {
+      <article class="panel">
+        <h3>User activity</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Visits</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of users; track $index) {
+              <tr class="table-row">
+                <td>{{ u.name }}</td>
+                <td>{{ u.visits }}</td>
+              </tr>
+            }
+            @if (users.length === 0) {
+              <tr>
+                <td colspan="2" class="muted">No visit data.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </article>
+    }
 
-    <article class="panel" *ngIf="visitPurposes$ | async as purposes">
-      <h3>Visit purposes</h3>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Purpose</th>
-            <th>Count</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let p of purposes" class="table-row">
-            <td>{{ p.purpose }}</td>
-            <td>{{ p.count }}</td>
-          </tr>
-          <tr *ngIf="purposes.length === 0">
-            <td colspan="2" class="muted">No purpose data.</td>
-          </tr>
-        </tbody>
-      </table>
-    </article>
+    @if (visitPurposes$ | async; as purposes) {
+      <article class="panel">
+        <h3>Visit purposes</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Purpose</th>
+              <th>Count</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of purposes; track $index) {
+              <tr class="table-row">
+                <td>{{ p.purpose }}</td>
+                <td>{{ p.count }}</td>
+              </tr>
+            }
+            @if (purposes.length === 0) {
+              <tr>
+                <td colspan="2" class="muted">No purpose data.</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </article>
+    }
 
-    <article class="panel" *ngIf="peakHours$ | async as hours">
-      <h3>Peak hours</h3>
-      <div class="bar-chart">
-        <div class="bar-wrapper" *ngFor="let count of hours; let i = index">
-          <div class="bar" [style.height.%]="count * 10"></div>
-          <div class="bar-label" *ngIf="i % 3 === 0">
-            {{ i }}
-          </div>
+    @if (peakHours$ | async; as hours) {
+      <article class="panel">
+        <h3>Peak hours</h3>
+        <div class="bar-chart">
+          @for (count of hours; track $index; let i = $index) {
+            <div class="bar-wrapper">
+              <div class="bar" [style.height.%]="count * 10"></div>
+              @if (i % 3 === 0) {
+                <div class="bar-label">
+                  {{ i }}
+                </div>
+              }
+            </div>
+          }
         </div>
-      </div>
-    </article>
+      </article>
+    }
   </section>
 </section>

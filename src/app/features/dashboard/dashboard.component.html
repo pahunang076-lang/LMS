@@ -71,10 +71,11 @@
       <div class="stat-card-body">
         <h3 class="stat-label">Last Entry Time</h3>
         <p class="stat-value stat-value-small">
-          <ng-container *ngIf="lastEntryTime$ | async as last; else noLast">
+          @if (lastEntryTime$ | async; as last) {
             {{ last | date: 'shortTime' }}
-          </ng-container>
-          <ng-template #noLast>—</ng-template>
+          } @else {
+            —
+          }
         </p>
         <p class="stat-change">
           <span class="change-icon">🕐</span>
@@ -126,29 +127,37 @@
         </div>
       </div>
       <div class="chart-body">
-        <div class="bar-chart-container" *ngIf="hourlyTraffic$ | async as hours">
-          <div class="bar-chart">
-            <div class="bar-wrapper" *ngFor="let count of hours; let i = index">
-              <div class="bar-container">
-                <div class="bar" [style.height.%]="Math.max(count * 10, count > 0 ? 5 : 0)"
-                  [attr.aria-label]="'Hour ' + i + ': ' + count + ' visits'"
-                  [title]="'Hour ' + i + ': ' + count + ' visits'"></div>
-                <span class="bar-value" *ngIf="count > 0">{{ count }}</span>
-              </div>
-              <div class="bar-label" *ngIf="i % 3 === 0 || i === hours.length - 1">
-                {{ i }}:00
+        @if (hourlyTraffic$ | async; as hours) {
+          <div class="bar-chart-container">
+            <div class="bar-chart">
+              @for (count of hours; track $index; let i = $index) {
+                <div class="bar-wrapper">
+                  <div class="bar-container">
+                    <div class="bar" [style.height.%]="Math.max(count * 10, count > 0 ? 5 : 0)"
+                      [attr.aria-label]="'Hour ' + i + ': ' + count + ' visits'"
+                    [title]="'Hour ' + i + ': ' + count + ' visits'"></div>
+                    @if (count > 0) {
+                      <span class="bar-value">{{ count }}</span>
+                    }
+                  </div>
+                  @if (i % 3 === 0 || i === hours.length - 1) {
+                    <div class="bar-label">
+                      {{ i }}:00
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+            <div class="chart-footer">
+              <div class="chart-legend">
+                <span class="legend-item">
+                  <span class="legend-dot"></span>
+                  <span>Visits per hour</span>
+                </span>
               </div>
             </div>
           </div>
-          <div class="chart-footer">
-            <div class="chart-legend">
-              <span class="legend-item">
-                <span class="legend-dot"></span>
-                <span>Visits per hour</span>
-              </span>
-            </div>
-          </div>
-        </div>
+        }
       </div>
     </div>
 
@@ -160,21 +169,27 @@
         </div>
       </div>
       <div class="chart-body">
-        <ul class="purpose-list" *ngIf="purposeDistribution$ | async as dist">
-          <li *ngFor="let key of (dist | keyvalue)" class="purpose-item">
-            <div class="purpose-content">
-              <span class="purpose-label">{{ key.key }}</span>
-              <div class="purpose-bar-container">
-                <div class="purpose-bar" [style.width.%]="getPurposePercentage(key.value, dist)"></div>
-              </div>
-            </div>
-            <span class="purpose-value">{{ key.value }}</span>
-          </li>
-          <li *ngIf="(dist | keyvalue).length === 0" class="purpose-empty">
-            <span class="empty-icon">📊</span>
-            <span>No visits logged today yet</span>
-          </li>
-        </ul>
+        @if (purposeDistribution$ | async; as dist) {
+          <ul class="purpose-list">
+            @for (key of (dist | keyvalue); track $index) {
+              <li class="purpose-item">
+                <div class="purpose-content">
+                  <span class="purpose-label">{{ key.key }}</span>
+                  <div class="purpose-bar-container">
+                    <div class="purpose-bar" [style.width.%]="getPurposePercentage(key.value, dist)"></div>
+                  </div>
+                </div>
+                <span class="purpose-value">{{ key.value }}</span>
+              </li>
+            }
+            @if ((dist | keyvalue).length === 0) {
+              <li class="purpose-empty">
+                <span class="empty-icon">📊</span>
+                <span>No visits logged today yet</span>
+              </li>
+            }
+          </ul>
+        }
       </div>
     </div>
   </section>
@@ -188,18 +203,24 @@
           <p class="chart-subtitle">Books borrowed per day over the last 7 days</p>
         </div>
       </div>
-      <div class="chart-body" *ngIf="borrowTrendWeek$ | async as trend">
-        <div class="borrow-bar-chart">
-          <div class="borrow-bar-wrapper" *ngFor="let day of trend">
-            <div class="borrow-bar-container">
-              <span class="borrow-bar-count" *ngIf="day.count > 0">{{ day.count }}</span>
-              <div class="borrow-bar-fill" [style.height.%]="day.count === 0 ? 4 : Math.min(day.count * 18, 100)"
-                [class.borrow-bar-today]="day.label === 'Today'"></div>
-            </div>
-            <span class="borrow-bar-label">{{ day.label }}</span>
+      @if (borrowTrendWeek$ | async; as trend) {
+        <div class="chart-body">
+          <div class="borrow-bar-chart">
+            @for (day of trend; track $index) {
+              <div class="borrow-bar-wrapper">
+                <div class="borrow-bar-container">
+                  @if (day.count > 0) {
+                    <span class="borrow-bar-count">{{ day.count }}</span>
+                  }
+                  <div class="borrow-bar-fill" [style.height.%]="day.count === 0 ? 4 : Math.min(day.count * 18, 100)"
+                  [class.borrow-bar-today]="day.label === 'Today'"></div>
+                </div>
+                <span class="borrow-bar-label">{{ day.label }}</span>
+              </div>
+            }
           </div>
         </div>
-      </div>
+      }
     </div>
   </section>
 
@@ -221,48 +242,54 @@
       </div>
 
       <div class="table-container">
-        <table class="table" *ngIf="recentLogs$ | async as logs">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Purpose</th>
-              <th>Time In</th>
-              <th>Time Out</th>
-              <th>Duration</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let log of logs" class="table-row">
-              <td class="table-cell-name">
-                <span class="name-avatar">{{ getInitials(log.name) }}</span>
-                <span>{{ log.name }}</span>
-              </td>
-              <td>
-                <span class="purpose-badge">{{ log.purpose }}</span>
-              </td>
-              <td class="table-cell-time">{{ asDate(log.timeIn) | date: 'short' }}</td>
-              <td class="table-cell-time">{{ asDate(log.timeOut) | date: 'short' }}</td>
-              <td>
-                <span class="duration-badge">{{ log.durationMinutes ?? '-' }} min</span>
-              </td>
-              <td>
-                <span class="status-badge" [class.status-active]="log.status === 'Inside'"
-                  [class.status-completed]="log.status === 'Left'">
-                  {{ log.status }}
-                </span>
-              </td>
-            </tr>
-            <tr *ngIf="logs.length === 0" class="table-empty">
-              <td colspan="6">
-                <div class="empty-state">
-                  <span class="empty-icon">📋</span>
-                  <span>No recent logs available</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        @if (recentLogs$ | async; as logs) {
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Purpose</th>
+                <th>Time In</th>
+                <th>Time Out</th>
+                <th>Duration</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (log of logs; track $index) {
+                <tr class="table-row">
+                  <td class="table-cell-name">
+                    <span class="name-avatar">{{ getInitials(log.name) }}</span>
+                    <span>{{ log.name }}</span>
+                  </td>
+                  <td>
+                    <span class="purpose-badge">{{ log.purpose }}</span>
+                  </td>
+                  <td class="table-cell-time">{{ asDate(log.timeIn) | date: 'short' }}</td>
+                  <td class="table-cell-time">{{ asDate(log.timeOut) | date: 'short' }}</td>
+                  <td>
+                    <span class="duration-badge">{{ log.durationMinutes ?? '-' }} min</span>
+                  </td>
+                  <td>
+                    <span class="status-badge" [class.status-active]="log.status === 'Inside'"
+                      [class.status-completed]="log.status === 'Left'">
+                      {{ log.status }}
+                    </span>
+                  </td>
+                </tr>
+              }
+              @if (logs.length === 0) {
+                <tr class="table-empty">
+                  <td colspan="6">
+                    <div class="empty-state">
+                      <span class="empty-icon">📋</span>
+                      <span>No recent logs available</span>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
       </div>
     </div>
   </section>

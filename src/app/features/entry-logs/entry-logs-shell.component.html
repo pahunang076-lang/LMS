@@ -1,130 +1,140 @@
-<section class="entry-root" *ngIf="allStudents$ | async as students">
-  <header class="header">
-    <div>
-      <h1 class="page-title">Library Entry &amp; Exit</h1>
-      <p class="subtitle">Log visits, track who is currently inside, and manage checkouts</p>
-    </div>
-    <div class="stats">
-      <div class="stat">
-        <span class="stat-label">Currently inside</span>
-        <span class="stat-value">{{ insideCount$ | async }}</span>
+@if (allStudents$ | async; as students) {
+  <section class="entry-root">
+    <header class="header">
+      <div>
+        <h1 class="page-title">Library Entry &amp; Exit</h1>
+        <p class="subtitle">Log visits, track who is currently inside, and manage checkouts</p>
       </div>
-    </div>
-  </header>
-
-  <!-- Admin manual check-in + QR -->
-  <div class="columns">
-    <section class="column">
-      <h3>Manual Check-In</h3>
-      <p class="section-sub">Log a student's library visit manually.</p>
-      <form [formGroup]="manualForm" class="form" (ngSubmit)="manualCheckIn(students)">
-        <label>
-          <span>Student</span>
-          <select formControlName="studentId">
-            <option value="" disabled>Select student</option>
-            <option *ngFor="let s of students" [value]="s.uid">{{ s.name }} ({{ s.studentId || s.email }})</option>
-          </select>
-        </label>
-        <label>
-          <span>Purpose of visit</span>
-          <select formControlName="purpose">
-            <option *ngFor="let p of purposes" [value]="p">{{ p }}</option>
-          </select>
-        </label>
-        <div class="btn-row">
-          <button type="submit" class="btn btn-primary">Check In</button>
-          <button type="button" class="btn btn-outline" (click)="showQrScanner = !showQrScanner">
-            {{ showQrScanner ? 'Hide QR' : '📷 Scan QR' }}
-          </button>
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Currently inside</span>
+          <span class="stat-value">{{ insideCount$ | async }}</span>
         </div>
-      </form>
-
-      <div [hidden]="!showQrScanner" class="qr-area">
-        <app-qr-scanner title="Student QR Code" hint="Scan the student's QR code to check them in automatically."
-          (scanned)="onStudentQrScanned($event, students)">
-        </app-qr-scanner>
-        <p class="qr-error" *ngIf="qrError">{{ qrError }}</p>
       </div>
-    </section>
-
-    <section class="column">
-      <h3>Currently inside</h3>
-      <table class="table" *ngIf="inside$ | async as inside; else noneInside">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Purpose</th>
-            <th>Time in</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let log of inside" class="table-row">
-            <td>{{ log.name }}</td>
-            <td>{{ log.purpose }}</td>
-            <td>{{ asDate(log.timeIn) | date: 'shortTime' }}</td>
-            <td>
-              <button type="button" class="btn btn-small" (click)="forceCheckout(log)">Force checkout</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <ng-template #noneInside>
-        <p class="muted">No one is currently inside.</p>
-      </ng-template>
-    </section>
-  </div>
-
-  <!-- Search & Filter -->
-  <section class="recent">
-    <div class="recent-header">
-      <h3>Recent entry logs</h3>
+    </header>
+    <!-- Admin manual check-in + QR -->
+    <div class="columns">
+      <section class="column">
+        <h3>Manual Check-In</h3>
+        <p class="section-sub">Log a student's library visit manually.</p>
+        <form [formGroup]="manualForm" class="form" (ngSubmit)="manualCheckIn(students)">
+          <label>
+            <span>Student</span>
+            <select formControlName="studentId">
+              <option value="" disabled>Select student</option>
+              @for (s of students; track $index) {
+                <option [value]="s.uid">{{ s.name }} ({{ s.studentId || s.email }})</option>
+              }
+            </select>
+          </label>
+          <label>
+            <span>Purpose of visit</span>
+            <select formControlName="purpose">
+              @for (p of purposes; track $index) {
+                <option [value]="p">{{ p }}</option>
+              }
+            </select>
+          </label>
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary">Check In</button>
+            <button type="button" class="btn btn-outline" (click)="showQrScanner = !showQrScanner">
+              {{ showQrScanner ? 'Hide QR' : '📷 Scan QR' }}
+            </button>
+          </div>
+        </form>
+        <div [hidden]="!showQrScanner" class="qr-area">
+          <app-qr-scanner title="Student QR Code" hint="Scan the student's QR code to check them in automatically."
+            (scanned)="onStudentQrScanned($event, students)">
+          </app-qr-scanner>
+          @if (qrError) {
+            <p class="qr-error">{{ qrError }}</p>
+          }
+        </div>
+      </section>
+      <section class="column">
+        <h3>Currently inside</h3>
+        @if (inside$ | async; as inside) {
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Purpose</th>
+                <th>Time in</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (log of inside; track $index) {
+                <tr class="table-row">
+                  <td>{{ log.name }}</td>
+                  <td>{{ log.purpose }}</td>
+                  <td>{{ asDate(log.timeIn) | date: 'shortTime' }}</td>
+                  <td>
+                    <button type="button" class="btn btn-small" (click)="forceCheckout(log)">Force checkout</button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        } @else {
+          <p class="muted">No one is currently inside.</p>
+        }
+      </section>
     </div>
-
-    <div class="filters">
-      <input type="search" placeholder="Search by name..." class="filter-input" [value]="searchName"
-        (input)="onSearch($any($event.target).value)" />
-
-      <select class="filter-select" (change)="onPurposeFilter($any($event.target).value)">
-        <option value="all">All purposes</option>
-        <option *ngFor="let p of purposes" [value]="p">{{ p }}</option>
-      </select>
-
-      <div class="date-range">
-        <input type="date" class="filter-input" [value]="filterDateFrom"
-          (change)="onDateFrom($any($event.target).value)" title="From date" />
-        <span class="date-sep">–</span>
-        <input type="date" class="filter-input" [value]="filterDateTo" (change)="onDateTo($any($event.target).value)"
-          title="To date" />
+    <!-- Search & Filter -->
+    <section class="recent">
+      <div class="recent-header">
+        <h3>Recent entry logs</h3>
       </div>
-
-      <button class="btn btn-outline btn-small" (click)="clearFilters()">Clear</button>
-    </div>
-
-    <table class="table" *ngIf="filteredLogs$ | async as recent">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Purpose</th>
-          <th>Time in</th>
-          <th>Time out</th>
-          <th>Duration (min)</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let log of recent" class="table-row">
-          <td>{{ log.name }}</td>
-          <td>{{ log.purpose }}</td>
-          <td>{{ asDate(log.timeIn) | date: 'short' }}</td>
-          <td>{{ asDate(log.timeOut) | date: 'short' }}</td>
-          <td>{{ log.durationMinutes ?? '-' }}</td>
-          <td>{{ log.status }}</td>
-        </tr>
-        <tr *ngIf="recent.length === 0">
-          <td colspan="6" class="muted">No logs match the current filters.</td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
-</section>
+      <div class="filters">
+        <input type="search" placeholder="Search by name..." class="filter-input" [value]="searchName"
+          (input)="onSearch($any($event.target).value)" />
+          <select class="filter-select" (change)="onPurposeFilter($any($event.target).value)">
+            <option value="all">All purposes</option>
+            @for (p of purposes; track $index) {
+              <option [value]="p">{{ p }}</option>
+            }
+          </select>
+          <div class="date-range">
+            <input type="date" class="filter-input" [value]="filterDateFrom"
+              (change)="onDateFrom($any($event.target).value)" title="From date" />
+              <span class="date-sep">–</span>
+              <input type="date" class="filter-input" [value]="filterDateTo" (change)="onDateTo($any($event.target).value)"
+                title="To date" />
+              </div>
+              <button class="btn btn-outline btn-small" (click)="clearFilters()">Clear</button>
+            </div>
+            @if (filteredLogs$ | async; as recent) {
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Purpose</th>
+                    <th>Time in</th>
+                    <th>Time out</th>
+                    <th>Duration (min)</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (log of recent; track $index) {
+                    <tr class="table-row">
+                      <td>{{ log.name }}</td>
+                      <td>{{ log.purpose }}</td>
+                      <td>{{ asDate(log.timeIn) | date: 'short' }}</td>
+                      <td>{{ asDate(log.timeOut) | date: 'short' }}</td>
+                      <td>{{ log.durationMinutes ?? '-' }}</td>
+                      <td>{{ log.status }}</td>
+                    </tr>
+                  }
+                  @if (recent.length === 0) {
+                    <tr>
+                      <td colspan="6" class="muted">No logs match the current filters.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </section>
+        </section>
+      }

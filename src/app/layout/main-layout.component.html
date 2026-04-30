@@ -2,21 +2,22 @@
   <div class="mobile-overlay" [class.open]="sidebarOpen" (click)="closeSidebar()" aria-hidden="true"></div>
 
   <aside class="sidebar" [class.open]="sidebarOpen" [class.collapsed]="sidebarCollapsed">
-  <div class="sidebar-header">
-      <div class="sidebar-greeting-wrapper" *ngIf="!sidebarCollapsed">
-        <ng-container *ngIf="currentUser$ | async as user; else genericSidebarGreeting">
-          <div class="sidebar-greeting">
-            <div class="sidebar-greeting-subtitle">Welcome back,</div>
-            <div class="sidebar-greeting-name">{{ user.name || user.email }}</div>
-          </div>
-        </ng-container>
-        <ng-template #genericSidebarGreeting>
-          <div class="sidebar-greeting">
-            <div class="sidebar-greeting-subtitle">Welcome to</div>
-            <div class="sidebar-greeting-name">Library Management System</div>
-          </div>
-        </ng-template>
-      </div>
+    <div class="sidebar-header">
+      @if (!sidebarCollapsed) {
+        <div class="sidebar-greeting-wrapper">
+          @if (currentUser$ | async; as user) {
+            <div class="sidebar-greeting">
+              <div class="sidebar-greeting-subtitle">Welcome back,</div>
+              <div class="sidebar-greeting-name">{{ user.name || user.email }}</div>
+            </div>
+          } @else {
+            <div class="sidebar-greeting">
+              <div class="sidebar-greeting-subtitle">Welcome to</div>
+              <div class="sidebar-greeting-name">Library Management System</div>
+            </div>
+          }
+        </div>
+      }
 
       <div class="sidebar-actions">
         <button type="button" class="btn-icon collapse-only-desktop" (click)="toggleSidebarCollapsed()"
@@ -32,52 +33,50 @@
     </div>
 
     <nav class="nav" aria-label="Primary navigation" (click)="closeSidebar()">
-      <div class="nav-section" *ngIf="(isAdminOrLibrarian$ | async)">
-        <div class="nav-section-title">Management</div>
-
-        <a routerLink="/dashboard" routerLinkActive="active" class="nav-link" title="Dashboard">
-          <span class="nav-link-inner">
-            <span class="nav-icon">📊</span>
-            <span class="nav-label">Dashboard</span>
-          </span>
-        </a>
-
-        <a routerLink="/books" routerLinkActive="active" class="nav-link" title="Book Management">
-          <span class="nav-link-inner">
-            <span class="nav-icon">📚</span>
-            <span class="nav-label">Book Management</span>
-          </span>
-        </a>
-
-        <a routerLink="/fines" routerLinkActive="active" class="nav-link" title="Fines Management">
-          <span class="nav-link-inner">
-            <span class="nav-icon">💰</span>
-            <span class="nav-label">Fines Management</span>
-          </span>
-        </a>
-
-        <a routerLink="/users" routerLinkActive="active" class="nav-link" title="User Management"
-          *ngIf="isAdmin$ | async">
-          <span class="nav-link-inner">
-            <span class="nav-icon">👥</span>
-            <span class="nav-label">User Management</span>
-          </span>
-        </a>
-
-        <a routerLink="/entry-logs" routerLinkActive="active" class="nav-link" title="Entry Logs">
-          <span class="nav-link-inner">
-            <span class="nav-icon">📝</span>
-            <span class="nav-label">Entry Logs</span>
-          </span>
-        </a>
-
-        <a routerLink="/reports" routerLinkActive="active" class="nav-link" title="Reports">
-          <span class="nav-link-inner">
-            <span class="nav-icon">📈</span>
-            <span class="nav-label">Reports</span>
-          </span>
-        </a>
-      </div>
+      @if ((isAdminOrLibrarian$ | async)) {
+        <div class="nav-section">
+          <div class="nav-section-title">Management</div>
+          <a routerLink="/dashboard" routerLinkActive="active" class="nav-link" title="Dashboard">
+            <span class="nav-link-inner">
+              <span class="nav-icon">📊</span>
+              <span class="nav-label">Dashboard</span>
+            </span>
+          </a>
+          <a routerLink="/books" routerLinkActive="active" class="nav-link" title="Book Management">
+            <span class="nav-link-inner">
+              <span class="nav-icon">📚</span>
+              <span class="nav-label">Book Management</span>
+            </span>
+          </a>
+          <a routerLink="/fines" routerLinkActive="active" class="nav-link" title="Fines Management">
+            <span class="nav-link-inner">
+              <span class="nav-icon">💰</span>
+              <span class="nav-label">Fines Management</span>
+            </span>
+          </a>
+          @if (isAdmin$ | async) {
+            <a routerLink="/users" routerLinkActive="active" class="nav-link" title="User Management"
+              >
+              <span class="nav-link-inner">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">User Management</span>
+              </span>
+            </a>
+          }
+          <a routerLink="/entry-logs" routerLinkActive="active" class="nav-link" title="Entry Logs">
+            <span class="nav-link-inner">
+              <span class="nav-icon">📝</span>
+              <span class="nav-label">Entry Logs</span>
+            </span>
+          </a>
+          <a routerLink="/reports" routerLinkActive="active" class="nav-link" title="Reports">
+            <span class="nav-link-inner">
+              <span class="nav-icon">📈</span>
+              <span class="nav-label">Reports</span>
+            </span>
+          </a>
+        </div>
+      }
 
       <div class="nav-section">
         <div class="nav-section-title">Library</div>
@@ -89,26 +88,32 @@
           </span>
         </a>
 
-        <a routerLink="/circulation" routerLinkActive="active" class="nav-link" title="Borrow & Return"
-          *ngIf="(isAdminOrLibrarian$ | async) || (isStudent$ | async)">
-          <span class="nav-link-inner">
-            <span class="nav-icon">🔁</span>
-            <span class="nav-label" style="flex: 1;">Borrow &amp; Return</span>
-            <ng-container *ngIf="isStudent$ | async">
-              <span class="nav-badge" *ngIf="(overdueNavBadge$ | async) as count" title="Overdue books">
-                {{ count }}
-              </span>
-            </ng-container>
-          </span>
-        </a>
+        @if ((isAdminOrLibrarian$ | async) || (isStudent$ | async)) {
+          <a routerLink="/circulation" routerLinkActive="active" class="nav-link" title="Borrow & Return"
+            >
+            <span class="nav-link-inner">
+              <span class="nav-icon">🔁</span>
+              <span class="nav-label" style="flex: 1;">Borrow &amp; Return</span>
+              @if (isStudent$ | async) {
+                @if ((overdueNavBadge$ | async); as count) {
+                  <span class="nav-badge" title="Overdue books">
+                    {{ count }}
+                  </span>
+                }
+              }
+            </span>
+          </a>
+        }
 
-        <a routerLink="/my-profile" routerLinkActive="active" class="nav-link" title="My Profile"
-          *ngIf="isStudent$ | async">
-          <span class="nav-link-inner">
-            <span class="nav-icon">🧑</span>
-            <span class="nav-label">My Profile</span>
-          </span>
-        </a>
+        @if (isStudent$ | async) {
+          <a routerLink="/my-profile" routerLinkActive="active" class="nav-link" title="My Profile"
+            >
+            <span class="nav-link-inner">
+              <span class="nav-icon">🧑</span>
+              <span class="nav-label">My Profile</span>
+            </span>
+          </a>
+        }
 
         <a routerLink="/reservations" routerLinkActive="active" class="nav-link" title="Reservations">
           <span class="nav-link-inner">
@@ -147,39 +152,42 @@
       <div class="topbar-right">
         <button type="button" class="btn-icon" (click)="toggleDarkMode()"
           [attr.aria-label]="isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'" style="margin-right: 1rem;">
-          <span *ngIf="!isDarkMode">🌙</span>
-          <span *ngIf="isDarkMode">☀️</span>
+          @if (!isDarkMode) {
+            <span>🌙</span>
+          }
+          @if (isDarkMode) {
+            <span>☀️</span>
+          }
         </button>
 
         <!-- Notification bell -->
         <app-notification-bell style="margin-right: 0.75rem;"></app-notification-bell>
 
-        <ng-container *ngIf="currentUser$ | async as user; else guest">
+        @if (currentUser$ | async; as user) {
           <div class="user-info">
             <div class="user-name">{{ user.name || user.email }}</div>
             <div class="user-role">{{ user.role | titlecase }}</div>
           </div>
-
           <div class="user-menu" #userMenuRef>
             <button type="button" class="btn-icon user-menu-trigger" (click)="toggleUserMenu()"
               [attr.aria-expanded]="userMenuOpen" aria-haspopup="true" aria-label="Account settings">
               ⚙
             </button>
-
-            <div class="user-menu-panel" *ngIf="userMenuOpen">
-              <button type="button" class="user-menu-item" routerLink="/account" (click)="closeUserMenu()">
-                Account settings
-              </button>
-              <button type="button" class="user-menu-item user-menu-item-danger" (click)="logout(); closeUserMenu()">
-                Logout
-              </button>
-            </div>
+            @if (userMenuOpen) {
+              <div class="user-menu-panel">
+                <button type="button" class="user-menu-item" routerLink="/account" (click)="closeUserMenu()">
+                  Account settings
+                </button>
+                <button type="button" class="user-menu-item user-menu-item-danger" (click)="logout(); closeUserMenu()">
+                  Logout
+                </button>
+              </div>
+            }
           </div>
-        </ng-container>
-
-        <ng-template #guest>
+        } @else {
           <a routerLink="/login" class="btn btn-primary">Login</a>
-        </ng-template>
+        }
+
       </div>
     </header>
 
