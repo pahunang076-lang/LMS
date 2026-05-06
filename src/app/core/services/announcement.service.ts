@@ -1,11 +1,11 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { isPlatformBrowser } from '@angular/common';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { Announcement } from '../models/announcement.model';
-import { collection, doc, Firestore, getDocs, setDoc, deleteDoc, updateDoc } from '@angular/fire/firestore';
+import { collection, doc, Firestore, getDocs, setDoc, deleteDoc } from '@angular/fire/firestore';
+import { Auth, onAuthStateChanged } from '@angular/fire/auth';
 import { environment } from '../../../environments/environment';
-import { environment as envProd } from '../../../environments/environment.prod';
 
 const JSON_SERVER_URL = 'http://localhost:3000';
 const STORAGE_KEY = 'lms.announcements';
@@ -14,6 +14,7 @@ const STORAGE_KEY = 'lms.announcements';
 export class AnnouncementService {
     private readonly http = inject(HttpClient);
     private readonly platformId = inject(PLATFORM_ID);
+    private readonly auth = inject(Auth, { optional: true });
 
     // Conditionally inject Firestore (since Firebase is deferred, this might throw if not provided, so we wrap it)
     private firestore: Firestore | null = null;
@@ -26,7 +27,8 @@ export class AnnouncementService {
     constructor() {
         try {
             this.firestore = inject(Firestore, { optional: true });
-        } catch {
+        } catch (err) {
+            console.warn('Firestore provider not available. Falling back to local announcement store.', err);
             this.firestore = null;
         }
 
@@ -34,6 +36,18 @@ export class AnnouncementService {
         this.useLocalStore = !environment.firebase || Object.keys(environment.firebase).length === 0 || !this.firestore;
 
         this.loadAnnouncements();
+        this.watchAuthAndReload();
+    }
+
+    private watchAuthAndReload(): void {
+        if (this.useLocalStore || !this.auth || !isPlatformBrowser(this.platformId)) {
+            return;
+        }
+        onAuthStateChanged(this.auth, (user) => {
+            if (user) {
+                this.loadAnnouncements();
+            }
+        });
     }
 
     private async loadAnnouncements(): Promise<void> {
@@ -43,7 +57,9 @@ export class AnnouncementService {
                 if (localData) {
                     try {
                         this.announcementsSubj.next(JSON.parse(localData));
-                    } catch { }
+                    } catch (err) {
+                        console.warn('Could not parse cached announcements. Replacing with server data when available.', err);
+                    }
                 }
 
                 // Try JSON server sync
@@ -52,13 +68,19 @@ export class AnnouncementService {
                         this.announcementsSubj.next(data);
                         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
                     },
-                    error: () => { } // Silent fallback
+                    error: (err) => {
+                        console.warn('Announcement JSON sync failed. Continuing with local cache.', err);
+                    }
                 });
             }
             return;
         }
 
         if (this.firestore) {
+            // Avoid noisy permission-denied logs before Firebase auth is available.
+            if (!this.auth?.currentUser) {
+                return;
+            }
             const colRef = collection(this.firestore, 'announcements');
             try {
                 const snap = await getDocs(colRef);
@@ -83,7 +105,11 @@ export class AnnouncementService {
             this.announcementsSubj.next(current);
             if (isPlatformBrowser(this.platformId)) {
                 window.localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
-                this.http.post(`${JSON_SERVER_URL}/announcements`, newAnnouncement).subscribe({ error: () => { } });
+                this.http.post(`${JSON_SERVER_URL}/announcements`, newAnnouncement).subscribe({
+                    error: (err) => {
+                        console.warn('Failed to persist announcement to JSON server.', err);
+                    }
+                });
             }
             return;
         }
@@ -101,7 +127,11 @@ export class AnnouncementService {
             this.announcementsSubj.next(filtered);
             if (isPlatformBrowser(this.platformId)) {
                 window.localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-                this.http.delete(`${JSON_SERVER_URL}/announcements/${id}`).subscribe({ error: () => { } });
+                this.http.delete(`${JSON_SERVER_URL}/announcements/${id}`).subscribe({
+                    error: (err) => {
+                        console.warn('Failed to delete announcement from JSON server.', err);
+                    }
+                });
             }
             return;
         }

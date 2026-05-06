@@ -128,7 +128,7 @@ export class LoginComponent {
           finalCode = parsed.value;
         } else if (parsed.type) {
           // It's a JSON QR but for something else (e.g. book)
-          this.authService['errorSignal'].set('Invalid QR code type. Expected a user login QR code.');
+          this.authService.setError('Invalid QR code type. Expected a user login QR code.');
           return;
         }
       } catch {
@@ -144,7 +144,11 @@ export class LoginComponent {
   }
 
   onQrScanError(error: string): void {
-    // Errors are handled by the auth service
-    console.error('QR scan error:', error);
+    const normalized = String(error || '').toLowerCase();
+    if (normalized.includes('permission') || normalized.includes('denied')) {
+      this.authService.setError('Camera permission denied. Please allow camera access and try again.');
+      return;
+    }
+    this.authService.setError('Unable to start QR scanner. Check camera access and try again.');
   }
 }

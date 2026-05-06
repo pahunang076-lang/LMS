@@ -13,6 +13,7 @@ import { Auth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEma
 // Firestore
 import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, collectionData } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 // ─── Storage key (session-only for QR logins) ────────────────────────────────
 const SESSION_CURRENT_USER_KEY = 'lms_current_user';
@@ -95,6 +96,10 @@ export class AuthService {
 
   clearError(): void {
     this.errorSignal.set(null);
+  }
+
+  setError(message: string | null): void {
+    this.errorSignal.set(message);
   }
 
   // ─── Login ──────────────────────────────────────────────────────────────────
@@ -228,58 +233,83 @@ export class AuthService {
     this.errorSignal.set(null);
 
     try {
-      // Query Firestore for a user with this QR code
-      const usersCol = collection(this.firestore, 'users');
-      const q = query(usersCol, where('qrCode', '==', qrCode), where('isActive', '==', true));
-      const snap = await getDocs(q);
-
-      let profile: FirestoreUserProfile | null = null;
-      let fromFirestore = false;
-
-      if (!snap.empty) {
-        profile = snap.docs[0].data() as FirestoreUserProfile;
-        fromFirestore = true;
-      } else {
-        // Fallback: check json-server (db.json)
-        try {
-          const res = await fetch(`http://localhost:3000/users?qrCode=${qrCode}`);
-          if (res.ok) {
-            const users = await res.json();
-            if (users && users.length > 0 && users[0].isActive !== false) {
-              profile = users[0];
-            }
-          }
-        } catch {
-          // ignore network errors for fallback
+      let firestoreProfile: FirestoreUserProfile | null = null;
+      try {
+        const usersCol = collection(this.firestore, 'users');
+        const q = query(usersCol, where('qrCode', '==', qrCode), where('isActive', '==', true));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          firestoreProfile = snap.docs[0].data() as FirestoreUserProfile;
         }
+      } catch (firestoreErr) {
+        console.warn('Pre-auth Firestore QR lookup unavailable; using fallback if possible.', firestoreErr);
       }
 
+      let fallbackProfile: (Partial<FirestoreUserProfile> & { email?: string; password?: string }) | null = null;
+      try {
+        const res = await fetch(`http://localhost:3000/users?qrCode=${qrCode}`);
+        if (res.ok) {
+          const users = await res.json();
+          if (users && users.length > 0 && users[0].isActive !== false) {
+            fallbackProfile = users[0];
+          }
+        }
+      } catch {
+        // Ignore fallback connectivity errors.
+      }
+
+      const profile = firestoreProfile ?? (fallbackProfile as FirestoreUserProfile | null);
       if (!profile) {
         this.errorSignal.set('Invalid QR code. Please try again.');
         throw new Error('Invalid QR code');
       }
 
-      // If we recovered a password from the JSON server fallback, perform a real Firebase login
-      // so that Firestore security rules (requiring request.auth != null) will pass.
-      if ((profile as any).password) {
-        try {
-          // This ensures the application gets a valid Firebase auth token.
-          await signInWithEmailAndPassword(this.auth, profile.email, (profile as any).password);
-        } catch (e) {
-          console.warn('Silent Firebase login failed during QR fallback:', e);
+      const isFirebaseMode = !AuthService.isFirebasePlaceholderConfig();
+      const passwordCandidate = fallbackProfile?.password;
+      const emailCandidate = fallbackProfile?.email ?? profile.email;
+
+      let hasFirebaseSession = false;
+      // In Firebase mode, try to establish an actual Firebase Auth session.
+      if (isFirebaseMode) {
+        if (!emailCandidate || !passwordCandidate) {
+          console.warn('QR login continuing without Firebase Auth session: missing fallback credentials.');
+        } else {
+          try {
+            await signInWithEmailAndPassword(this.auth, emailCandidate, passwordCandidate);
+            hasFirebaseSession = true;
+          } catch (authErr) {
+            console.warn('QR Firebase sign-in failed. Continuing with session-only QR login.', authErr);
+          }
         }
       }
 
-      if (fromFirestore) {
-        // Update last login
-        await this.updateLastLogin(profile.uid);
+      // Prefer the profile resolved from the authenticated Firebase UID.
+      let finalProfile = profile;
+      if (hasFirebaseSession && this.auth.currentUser?.uid) {
+        const firestoreByUid = await this.loadProfileFromFirestore(this.auth.currentUser.uid);
+        if (firestoreByUid) {
+          finalProfile = firestoreByUid;
+        }
       }
-      profile.lastLoginAt = new Date().toISOString();
 
-      const appUser = this.profileToAppUser(profile);
-      // Populate the session (without a full Firebase Auth session — demo only)
+      if (!finalProfile.uid) {
+        this.errorSignal.set('QR profile is incomplete. Please contact an administrator.');
+        throw new Error('Missing uid on QR profile');
+      }
+
+      await this.updateLastLogin(finalProfile.uid);
+      finalProfile.lastLoginAt = new Date().toISOString();
+
+      const appUser = this.profileToAppUser(finalProfile as FirestoreUserProfile);
       this.currentUserSubject.next(appUser);
       AuthService.saveCurrentUserToStorage(appUser);
+
+      if (!hasFirebaseSession && isFirebaseMode) {
+        this.showToast(
+          'info',
+          'QR login succeeded in limited mode. If data is missing, use email login or start json-server.'
+        );
+      }
 
       this.showToast('success', `Welcome back, ${appUser.name}!`);
       this.reminderService.checkReminders(appUser.uid);
@@ -633,5 +663,17 @@ export class AuthService {
     // Also clean up any old localStorage key from previous versions
     window.localStorage.removeItem('lms_current_user');
     window.localStorage.removeItem('lms_users');
+  }
+
+  private static isFirebasePlaceholderConfig(): boolean {
+    const fb = environment.firebase as any;
+    const apiKey = String(fb?.apiKey ?? '');
+    const projectId = String(fb?.projectId ?? '');
+    return (
+      apiKey.startsWith('YOUR_') ||
+      projectId.startsWith('YOUR_') ||
+      apiKey.length < 10 ||
+      projectId.length < 2
+    );
   }
 }
