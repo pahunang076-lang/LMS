@@ -124,6 +124,15 @@ export class LoginComponent {
       let finalCode = rawQr;
       try {
         const parsed = JSON.parse(rawQr);
+        
+        // NEW BEHAVIOR: If the QR code contains the full login payload, sign in directly!
+        if (parsed.type === 'login' && parsed.email && parsed.password) {
+          await this.authService.login(parsed.email, parsed.password);
+          const user = await firstValueFrom(this.authService.currentUser$);
+          await this.authService.redirectAfterLogin(user ?? null);
+          return;
+        }
+        
         if (parsed.type === 'user' && parsed.value) {
           finalCode = parsed.value;
         } else if (parsed.type) {

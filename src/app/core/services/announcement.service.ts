@@ -43,9 +43,13 @@ export class AnnouncementService {
         if (this.useLocalStore || !this.auth || !isPlatformBrowser(this.platformId)) {
             return;
         }
+        // Auth state resolves asynchronously — always wait for it before loading Firestore data.
         onAuthStateChanged(this.auth, (user) => {
             if (user) {
-                this.loadAnnouncements();
+                this.loadAnnouncementsFromFirestore();
+            } else {
+                // Clear Firestore announcements when logged out (don't expose data to unauthenticated state)
+                this.announcementsSubj.next([]);
             }
         });
     }
@@ -75,21 +79,19 @@ export class AnnouncementService {
             }
             return;
         }
+        // For Firestore mode, loading is handled via watchAuthAndReload + loadAnnouncementsFromFirestore
+    }
 
-        if (this.firestore) {
-            // Avoid noisy permission-denied logs before Firebase auth is available.
-            if (!this.auth?.currentUser) {
-                return;
-            }
-            const colRef = collection(this.firestore, 'announcements');
-            try {
-                const snap = await getDocs(colRef);
-                const announcements = snap.docs.map(doc => doc.data() as Announcement);
-                announcements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                this.announcementsSubj.next(announcements);
-            } catch (e) {
-                console.error('Failed to load announcements from Firestore', e);
-            }
+    private async loadAnnouncementsFromFirestore(): Promise<void> {
+        if (!this.firestore) return;
+        const colRef = collection(this.firestore, 'announcements');
+        try {
+            const snap = await getDocs(colRef);
+            const announcements = snap.docs.map(d => d.data() as Announcement);
+            announcements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            this.announcementsSubj.next(announcements);
+        } catch (e) {
+            console.error('Failed to load announcements from Firestore', e);
         }
     }
 
@@ -117,7 +119,7 @@ export class AnnouncementService {
         if (this.firestore) {
             const docRef = doc(this.firestore, 'announcements', newAnnouncement.id);
             await setDoc(docRef, newAnnouncement);
-            this.loadAnnouncements(); // Refresh
+            this.loadAnnouncementsFromFirestore(); // Refresh
         }
     }
 
@@ -139,7 +141,7 @@ export class AnnouncementService {
         if (this.firestore) {
             const docRef = doc(this.firestore, 'announcements', id);
             await deleteDoc(docRef);
-            this.loadAnnouncements(); // Refresh
+            this.loadAnnouncementsFromFirestore(); // Refresh
         }
     }
 }

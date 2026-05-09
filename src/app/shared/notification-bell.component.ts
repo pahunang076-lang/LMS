@@ -34,12 +34,14 @@ import { Router, RouterModule } from '@angular/router';
                   [class.notif-ready]="n.type === 'reservation-ready'"
                   [class.notif-new-res]="n.type === 'reservation-new'"
                   [class.notif-book-request]="n.type === 'book-request'"
+                  [class.notif-announcement]="n.type === 'announcement'"
                   (click)="navigate(n)">
                   <span class="notif-icon">
                     {{ n.type === 'overdue' ? '🚨'
                     : n.type === 'due-soon' ? '⏰'
                     : n.type === 'reservation-ready' ? '✅'
                     : n.type === 'reservation-new' ? '📋'
+                    : n.type === 'announcement' ? '📢'
                     : '📖' }}
                   </span>
                   <div class="notif-content">
@@ -53,6 +55,7 @@ import { Router, RouterModule } from '@angular/router';
           <div class="panel-footer">
             <a routerLink="/circulation" class="footer-link" (click)="open = false">View Borrows</a>
             <a routerLink="/reservations" class="footer-link" (click)="open = false">Reservations</a>
+            <a routerLink="/announcements" class="footer-link" (click)="open = false">Announcements</a>
           </div>
         </div>
       }
@@ -118,6 +121,7 @@ import { Router, RouterModule } from '@angular/router';
     .notif-ready { border-left: 3px solid #10b981; }
     .notif-new-res { border-left: 3px solid #8b5cf6; }
     .notif-book-request { border-left: 3px solid #3b82f6; }
+    .notif-announcement { border-left: 3px solid #0891b2; }
     .notif-icon { font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
     .notif-content { display: flex; flex-direction: column; gap: 2px; }
     .notif-msg { font-size: 0.825rem; color: var(--text-main, #374151); line-height: 1.45; }

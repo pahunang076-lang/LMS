@@ -170,23 +170,23 @@
                     </form>
                   }
 
-                  <!-- QR Code Login -->
-                  @if (loginMode() === 'qr') {
-                    <div class="qr-login-container">
-                      <app-qr-scanner title="Scan your QR code to login" hint="Position your QR code in front of the camera"
-                      (scanned)="onQrScanned($event)" (scanError)="onQrScanError($event)"></app-qr-scanner>
-                    </div>
-                  }
+                <!-- QR Code Login -->
+                @if (loginMode() === 'qr' && !isResetPasswordMode) {
+                  <div class="qr-login-container">
+                    <app-qr-scanner title="Scan your QR code to login" hint="Position your QR code in front of the camera"
+                    (scanned)="onQrScanned($event)" (scanError)="onQrScanError($event)"></app-qr-scanner>
+                  </div>
+                }
 
-                  <!-- Global Error -->
-                  @if (error()) {
-                    <p class="error global-error">
-                      ⚠️ {{ error() }}
-                    </p>
-                  }
+                <!-- Global Error -->
+                @if (error()) {
+                  <p class="error global-error">
+                    ⚠️ {{ error() }}
+                  </p>
+                }
 
-                </div>
               </div>
-
             </div>
+
           </div>
+        </div>

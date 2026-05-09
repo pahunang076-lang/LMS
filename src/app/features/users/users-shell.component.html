@@ -25,12 +25,12 @@
         responsiveLayout="scroll" styleClass="p-datatable-sm">
         <ng-template pTemplate="header">
           <tr>
-            <th pSortableColumn="name">Name <p-sortIcon field="name"></p-sortIcon></th>
-            <th pSortableColumn="email">Email <p-sortIcon field="email"></p-sortIcon></th>
-            <th pSortableColumn="phoneNumber">Phone No. <p-sortIcon field="phoneNumber"></p-sortIcon></th>
-            <th pSortableColumn="role">Role <p-sortIcon field="role"></p-sortIcon></th>
-            <th pSortableColumn="studentId">Student ID <p-sortIcon field="studentId"></p-sortIcon></th>
-            <th pSortableColumn="isActive">Status <p-sortIcon field="isActive"></p-sortIcon></th>
+            <th pSortableColumn="name">Name<p-sortIcon field="name"></p-sortIcon></th>
+            <th pSortableColumn="email">Email<p-sortIcon field="email"></p-sortIcon></th>
+            <th pSortableColumn="phoneNumber">Phone No.<p-sortIcon field="phoneNumber"></p-sortIcon></th>
+            <th pSortableColumn="role">Role<p-sortIcon field="role"></p-sortIcon></th>
+            <th pSortableColumn="studentId">Student ID<p-sortIcon field="studentId"></p-sortIcon></th>
+            <th pSortableColumn="isActive">Status<p-sortIcon field="isActive"></p-sortIcon></th>
             <th class="actions-col">Actions</th>
           </tr>
         </ng-template>
@@ -77,6 +77,9 @@
                   (click)="toggleActive(user)"
                   [title]="user.isActive !== false ? 'Deactivate user' : 'Reactivate user'">
                   {{ user.isActive !== false ? 'Deactivate' : 'Reactivate' }}
+                </button>
+                <button type="button" class="btn btn-small btn-danger" (click)="deleteUser(user)" title="Permanently delete user">
+                  🗑️ Delete
                 </button>
               </div>
             </td>

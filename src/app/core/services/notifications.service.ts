@@ -4,10 +4,11 @@ import { CirculationService } from '../../features/circulation/circulation.servi
 import { ReservationService } from '../../features/reservations/reservation.service';
 import { AuthService } from './auth.service';
 import { BookRequestService } from '../../features/book-requests/book-request.service';
+import { AnnouncementService } from './announcement.service';
 
 export interface AppNotification {
     id: string;
-    type: 'overdue' | 'due-soon' | 'reservation-ready' | 'reservation-new' | 'book-request';
+    type: 'overdue' | 'due-soon' | 'reservation-ready' | 'reservation-new' | 'book-request' | 'announcement';
     message: string;
     userId?: string;
     link: string; // route to navigate when clicked
@@ -20,6 +21,7 @@ export class NotificationsService {
     private readonly circulation = inject(CirculationService);
     private readonly reservations = inject(ReservationService);
     private readonly bookRequests = inject(BookRequestService);
+    private readonly announcementService = inject(AnnouncementService);
 
     // Track dismissed notification IDs in local storage
     private get dismissedIds(): string[] {
@@ -48,8 +50,9 @@ export class NotificationsService {
         this.circulation.getAllBorrows$(),
         this.reservations.getAllReservations$(),
         this.bookRequests.getAll$(),
+        this.announcementService.announcements$,
     ]).pipe(
-        map(([user, borrows, reservations, requests]) => {
+        map(([user, borrows, reservations, requests, announcements]) => {
             const alerts: AppNotification[] = [];
             const now = new Date();
             const twoDaysMs = 2 * 24 * 60 * 60 * 1000;
@@ -142,6 +145,16 @@ export class NotificationsService {
                         link: '/book-requests',
                     });
                 }
+            }
+
+            // ── Announcement alerts (all users) ─────────────────────────────
+            for (const ann of announcements) {
+                alerts.push({
+                    id: `announcement-${ann.id}`,
+                    type: 'announcement',
+                    message: `📢 ${ann.title}: ${ann.body.length > 60 ? ann.body.slice(0, 60) + '…' : ann.body}`,
+                    link: '/announcements',
+                });
             }
 
             // Filter out notifications that the user has already dismissed/read

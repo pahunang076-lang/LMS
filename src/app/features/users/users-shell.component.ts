@@ -152,6 +152,32 @@ export class UsersShellComponent {
     }
   }
 
+  async deleteUser(user: AppUser): Promise<void> {
+    const result = await Swal.fire({
+      title: 'Delete User?',
+      text: `Are you sure you want to permanently delete ${user.name}? This action cannot be undone.`,
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Delete',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d',
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await this.authService.deleteUser(user.uid);
+      } catch (error) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Delete Failed',
+          text: (error as Error)?.message || 'Failed to delete user account.',
+          confirmButtonColor: '#4f46e5',
+        });
+      }
+    }
+  }
+
   openQrDialog(user: AppUser): void {
     this.qrUser.set(user);
   }

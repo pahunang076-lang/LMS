@@ -102,32 +102,29 @@
                   @for (borrow of vm.active; track $index) {
                     <div class="borrow-card"
                       [class.card-overdue]="isOverdue(borrow) && !borrow.finePaid">
-                      <!-- Card Cover Band -->
-                      <div class="card-cover-band" [class.cover-overdue]="isOverdue(borrow) && !borrow.finePaid">
-                        <span class="cover-emoji">{{ isOverdue(borrow) && !borrow.finePaid ? '🚨' : '📙' }}</span>
-                      </div>
                       <!-- Card Body -->
                       <div class="card-body">
+                        <!-- Col 1: Title + user + badge -->
                         <div class="borrow-card-header">
-                          <div class="borrow-card-title">
-                            {{ borrow.bookTitle }}
-                            @if (borrow.userName || borrow.studentId) {
-                              <div class="borrow-card-user">
-                                <small>👤 {{ borrow.userName || 'User' }} {{ borrow.studentId ? '(' + borrow.studentId + ')' : '' }}</small>
-                              </div>
-                            }
+                          <div class="borrow-card-title-row">
+                            <span class="borrow-card-title">{{ borrow.bookTitle }}</span>
+                            <span class="status-badge" [class.badge-overdue]="borrow.status === 'overdue' && !borrow.finePaid"
+                              [class.badge-borrowed]="borrow.status === 'borrowed'">
+                              {{ borrow.status | titlecase }}
+                            </span>
                           </div>
-                          <span class="status-badge" [class.badge-overdue]="borrow.status === 'overdue' && !borrow.finePaid"
-                            [class.badge-borrowed]="borrow.status === 'borrowed'">
-                            {{ borrow.status | titlecase }}
-                          </span>
+                          @if (borrow.userName || borrow.studentId) {
+                            <div class="borrow-card-user">
+                              👤 {{ borrow.userName || 'User' }}{{ borrow.studentId ? ' (' + borrow.studentId + ')' : '' }}
+                            </div>
+                          }
                         </div>
+                        <!-- Col 2: Dates -->
                         <div class="borrow-card-dates">
                           <div class="date-col">
                             <span class="date-label">Borrowed</span>
                             <span class="date-val">{{ asDate(borrow.borrowedAt) | date: 'MMM d, y' }}</span>
                           </div>
-                          <div class="date-divider"></div>
                           <div class="date-col">
                             <span class="date-label">Due Date</span>
                             <span class="date-val" [class.date-val--overdue]="borrow.status === 'overdue'">
@@ -135,32 +132,31 @@
                             </span>
                           </div>
                         </div>
-                        <!-- Due Date Progress Bar -->
-                        <div class="progress-section">
-                          <div class="progress-header">
-                            <span class="progress-text" [class.text-overdue]="borrow.status === 'overdue'">
-                              {{ dueCountdown(borrow.dueAt) }}
+                        <!-- Col 3: Countdown + Fine -->
+                        <div class="progress-header">
+                          <span class="progress-text" [class.text-overdue]="borrow.status === 'overdue'">
+                            {{ dueCountdown(borrow.dueAt) }}
+                          </span>
+                          @if (borrow.fineAmount > 0 && !borrow.finePaid) {
+                            <span class="fine-amount">
+                              💸 {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}
                             </span>
-                            @if (borrow.fineAmount > 0 && !borrow.finePaid) {
-                              <span class="fine-amount">
-                                💸 {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}
-                              </span>
-                            }
-                            @if (borrow.finePaid) {
-                              <span class="fine-paid-badge">✔ Paid</span>
-                            }
-                          </div>
-                          <div class="progress-track">
-                            <div class="progress-fill" [ngClass]="getProgressColorClass(borrow.dueAt)"
-                              [style.width.%]="getBorrowProgress(borrow.borrowedAt, borrow.dueAt)">
-                            </div>
-                          </div>
+                          }
+                          @if (borrow.finePaid) {
+                            <span class="fine-paid-badge">✔ Paid</span>
+                          }
                         </div>
-                        <!-- Actions -->
+                        <!-- Col 4: Actions -->
                         <div class="borrow-card-actions">
-                          <button type="button" class="btn btn-small btn-success action-btn" (click)="markReturned(borrow)">
-                            ✅ Mark Returned
+                          <button type="button" class="btn btn-small btn-success action-btn inline-btn" (click)="markReturned(borrow)">
+                            ✅ Return
                           </button>
+                        </div>
+                      </div>
+                      <!-- Edge-to-edge Progress Bar -->
+                      <div class="progress-track">
+                        <div class="progress-fill" [ngClass]="getProgressColorClass(borrow.dueAt)"
+                          [style.width.%]="getBorrowProgress(borrow.borrowedAt, borrow.dueAt)">
                         </div>
                       </div>
                     </div>
@@ -208,41 +204,40 @@
                 <div class="cards-grid">
                   @for (borrow of vm.history; track $index) {
                     <div class="borrow-card history-card">
-                      <!-- Card Cover Band -->
-                      <div class="card-cover-band cover-returned">
-                        <span class="cover-emoji">📘</span>
-                      </div>
                       <!-- Card Body -->
                       <div class="card-body">
+                        <!-- Col 1: Title + badge -->
                         <div class="borrow-card-header">
-                          <div class="borrow-card-title">{{ borrow.bookTitle }}</div>
-                          <span class="status-badge bg-gray">{{ borrow.status | titlecase }}</span>
+                          <div class="borrow-card-title-row">
+                            <span class="borrow-card-title">{{ borrow.bookTitle }}</span>
+                            <span class="status-badge bg-gray">{{ borrow.status | titlecase }}</span>
+                          </div>
                         </div>
+                        <!-- Col 2: Dates -->
                         <div class="borrow-card-dates">
                           <div class="date-col">
                             <span class="date-label">Borrowed</span>
                             <span class="date-val">{{ asDate(borrow.borrowedAt) | date: 'MMM d, y' }}</span>
                           </div>
-                          <div class="date-divider"></div>
                           <div class="date-col">
                             <span class="date-label">Returned</span>
                             <span class="date-val">{{ asDate(borrow.returnedAt) | date: 'MMM d, y' }}</span>
                           </div>
                         </div>
-                        @if (borrow.fineAmount > 0) {
-                          <div class="history-fine-row">
+                        <!-- Col 3: Fines -->
+                        <div class="history-fine-col">
+                          @if (borrow.fineAmount > 0) {
                             <span class="fine-amount">💸 Fine: {{ borrow.fineAmount | currency:'PHP':'symbol':'1.0-0' }}</span>
                             @if (borrow.finePaid) {
-                              <span class="fine-paid-badge">
-                                ✔ Paid {{ borrow.finePaidAt | date:'shortDate' }}
-                              </span>
+                              <span class="fine-paid-badge">✔ Paid {{ borrow.finePaidAt | date:'shortDate' }}</span>
                             }
                             @if (!borrow.finePaid) {
                               <span class="muted-dash">— Unpaid</span>
                             }
-                          </div>
-                        }
-                        <div class="borrow-card-actions border-top">
+                          }
+                        </div>
+                        <!-- Col 4: Actions -->
+                        <div class="borrow-card-actions">
                           @if (borrow.fineAmount > 0 && !borrow.finePaid) {
                             <button type="button" class="btn btn-small btn-danger"
                               (click)="payFine(borrow)">

@@ -11,9 +11,11 @@ import Swal from 'sweetalert2';
 import { Auth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail, updateEmail, updateProfile, User as FirebaseUser } from '@angular/fire/auth';
 
 // Firestore
-import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, collectionData } from '@angular/fire/firestore';
+import { Firestore, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, collectionData, deleteDoc } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { initializeApp, deleteApp } from 'firebase/app';
+import { getAuth as getSecondaryAuth, createUserWithEmailAndPassword as secondaryCreateUser, updateProfile as secondaryUpdateProfile } from 'firebase/auth';
 
 // ─── Storage key (session-only for QR logins) ────────────────────────────────
 const SESSION_CURRENT_USER_KEY = 'lms_current_user';
@@ -343,22 +345,32 @@ export class AuthService {
     this.errorSignal.set(null);
 
     try {
-      // Create Firebase Auth account.
-      // NOTE: This will sign in as the new user in the Firebase Auth SDK.
-      // We immediately re-sign-in the admin below.
-      const credential = await createUserWithEmailAndPassword(
-        this.auth,
+      // Create Firebase Auth account using a secondary app instance
+      // to avoid signing out the current admin user.
+      const secondaryApp = initializeApp(environment.firebase, `SecondaryApp_${Date.now()}`);
+      const secondaryAuth = getSecondaryAuth(secondaryApp);
+
+      const credential = await secondaryCreateUser(
+        secondaryAuth,
         userData.email,
         userData.password
       );
 
       const uid = credential.user.uid;
 
-      // Update Firebase display name
-      await updateProfile(credential.user, { displayName: userData.name });
+      // Update Firebase display name on the secondary auth
+      await secondaryUpdateProfile(credential.user, { displayName: userData.name });
 
-      // Generate a unique QR code
-      const qrCode = AuthService.generateUniqueQrCode();
+      // Clean up the secondary app instance
+      await secondaryAuth.signOut();
+      await deleteApp(secondaryApp);
+
+      // Generate a functional QR code containing login credentials for the defense demo
+      const qrCode = JSON.stringify({
+        type: 'login',
+        email: userData.email,
+        password: userData.password
+      });
 
       const profile: FirestoreUserProfile = {
         uid,
@@ -376,13 +388,6 @@ export class AuthService {
       // Write profile to Firestore
       const userDocRef = doc(this.firestore, 'users', uid);
       await setDoc(userDocRef, profile);
-
-      // Re-sign-in the admin so current session is restored
-      // (createUserWithEmailAndPassword switches the auth state)
-      // We can't re-sign-in silently, so we restore from our BehaviorSubject.
-      // The onAuthStateChanged handler will fire with the new user UID; we override it.
-      this.currentUserSubject.next(current);
-      AuthService.saveCurrentUserToStorage(current);
 
       const appUser: AppUser = this.profileToAppUser(profile);
 
@@ -408,6 +413,8 @@ export class AuthService {
         console.error('Failed to send welcome email:', emailErr);
         // We don't throw the error so the account creation still succeeds
       }
+
+      this.showToast('success', `User account created successfully.`);
 
       return appUser;
     } catch (err: unknown) {
@@ -563,6 +570,41 @@ export class AuthService {
 
       const statusMsg = isActive ? 'reactivated' : 'deactivated';
       this.showToast('success', `User account successfully ${statusMsg}.`);
+    } catch (err: unknown) {
+      const msg = this.mapFirebaseError(err);
+      this.errorSignal.set(msg);
+      throw new Error(msg);
+    } finally {
+      this.loadingSignal.set(false);
+    }
+  }
+
+  // ─── Delete user (admin only) ───────────────────────────────────────────────
+
+  async deleteUser(uid: string): Promise<void> {
+    const current = this.currentUserSubject.value;
+    if (!current || current.role !== 'admin') {
+      this.errorSignal.set('Only administrators can delete user accounts.');
+      throw new Error('Unauthorized');
+    }
+
+    this.loadingSignal.set(true);
+    this.errorSignal.set(null);
+
+    try {
+      const userDocRef = doc(this.firestore, 'users', uid);
+      await deleteDoc(userDocRef);
+
+      // Sync to JSON Server (best-effort)
+      if (isPlatformBrowser(this.platformId)) {
+        try {
+          await fetch(`http://localhost:3000/users/${uid}`, {
+            method: 'DELETE'
+          });
+        } catch { }
+      }
+
+      this.showToast('success', 'User deleted successfully.');
     } catch (err: unknown) {
       const msg = this.mapFirebaseError(err);
       this.errorSignal.set(msg);

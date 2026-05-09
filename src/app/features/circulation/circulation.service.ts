@@ -88,13 +88,15 @@ export class CirculationService {
     let changed = false;
 
     const updated = borrows.map((b) => {
+      // Only process borrows with 'borrowed' status — skip already-overdue, returned, etc.
       if (b.status !== 'borrowed') return b;
       const due = b.dueAt instanceof Date ? b.dueAt : new Date(b.dueAt as any);
       if (due < now) {
         const fine = calculateFine(due, now, this.FINE_PER_DAY);
         changed = true;
-        
-        // ONLY trigger the email the exact moment it transitions from borrowed to overdue
+
+        // Email fires ONLY here: status was 'borrowed' → now transitioning to 'overdue'
+        // This ensures we never spam the user with repeated overdue emails.
         this.emailService.sendOverdueAlert(b.userId, b.bookTitle, fine);
 
         const updatedBorrow: Borrow = { ...b, status: 'overdue', fineAmount: fine };
