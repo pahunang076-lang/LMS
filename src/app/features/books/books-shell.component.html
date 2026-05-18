@@ -183,7 +183,24 @@
             </label>
             <label class="form-field">
               <span class="form-label">ISBN <span class="required">*</span></span>
-              <input type="text" formControlName="isbn" class="form-input" placeholder="Enter ISBN number" maxlength="13" pattern="\d*" required />
+              <input type="tel" formControlName="isbn" class="form-input"
+                placeholder="Please enter a 13-digit ISBN number"
+                maxlength="13"
+                inputmode="numeric"
+                pattern="[0-9]*"
+                (keypress)="onIsbnKeypress($event)"
+                (input)="onIsbnInput($event)"
+                required />
+              <span class="isbn-hint">Numbers only — exactly 13 digits (e.g. 9780306406157)</span>
+              @if (form.controls['isbn'].touched && form.controls['isbn'].errors?.['required']) {
+                <span class="isbn-error">⚠️ ISBN is required.</span>
+              }
+              @if (form.controls['isbn'].touched && (form.controls['isbn'].errors?.['minlength'] || form.controls['isbn'].errors?.['maxlength'])) {
+                <span class="isbn-error">⚠️ ISBN must be exactly 13 digits.</span>
+              }
+              @if (form.controls['isbn'].touched && form.controls['isbn'].errors?.['pattern']) {
+                <span class="isbn-error">⚠️ ISBN must contain numbers only — no letters or special characters.</span>
+              }
             </label>
             <label class="form-field">
               <span class="form-label">Total Quantity <span class="required">*</span></span>

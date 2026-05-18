@@ -19,7 +19,11 @@ import { ActivatedRoute } from '@angular/router';
       <section class="profile-root">
         <header class="profile-header">
           <button class="btn-back" (click)="goBack()">← Back</button>
-          <div class="avatar">{{ getInitials(vm.user?.name ?? '') }}</div>
+          @if (vm.user?.profilePicture) {
+            <img [src]="vm.user?.profilePicture" class="avatar avatar-img" alt="Profile Picture" />
+          } @else {
+            <div class="avatar">{{ getInitials(vm.user?.name ?? '') }}</div>
+          }
           <div class="profile-info">
             <h1>{{ vm.user?.name }}</h1>
             <p class="role-tag">{{ vm.user?.role | titlecase }}</p>
@@ -126,6 +130,7 @@ import { ActivatedRoute } from '@angular/router';
     .btn-back:hover { text-decoration: underline; }
     .profile-header { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
     .avatar { width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg,#4f46e5,#6366f1); color: white; font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .avatar-img { object-fit: cover; border: 2px solid #e2e8f0; }
     .profile-info h1 { margin: 0 0 .25rem 0; font-size: 1.75rem; font-weight: 700; color: #111827; }
     .role-tag { display: inline-block; background: #dbeafe; color: #1e40af; border-radius: 999px; font-size: .75rem; font-weight: 600; padding: .15rem .6rem; margin-bottom: .25rem; }
     .email, .student-id { color: #6b7280; font-size: .875rem; margin: 0; }

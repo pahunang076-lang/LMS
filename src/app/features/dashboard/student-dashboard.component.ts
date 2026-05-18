@@ -29,17 +29,17 @@ export class StudentDashboardComponent {
     );
 
     readonly myActiveBorrows$ = this.user$.pipe(
-        switchMap(u => this.circulation.getAllBorrows$().pipe(
-            map(borrows => borrows.filter(b => b.userId === u?.uid && (b.status === 'borrowed' || b.status === 'overdue'))),
+        switchMap(u => u ? this.circulation.getBorrowsForUser$(u.uid).pipe(
+            map(borrows => borrows.filter(b => b.status === 'borrowed' || b.status === 'overdue')),
             catchError(() => of([]))
-        ))
+        ) : of([]))
     );
 
     readonly myPendingRequests$ = this.user$.pipe(
-        switchMap(u => this.reservations.getAllReservations$().pipe(
-            map(res => res.filter(r => r.userId === u?.uid && (r.status === 'pending' || r.status === 'ready'))),
+        switchMap(u => u ? this.reservations.getUserReservations$(u.uid).pipe(
+            map(res => res.filter(r => r.status === 'pending' || r.status === 'ready')),
             catchError(() => of([]))
-        ))
+        ) : of([]))
     );
 
     /** Feature 5 — Top 4 most-borrowed books */

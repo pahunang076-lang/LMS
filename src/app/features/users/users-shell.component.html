@@ -37,7 +37,11 @@
         <ng-template pTemplate="body" let-user>
           <tr>
             <td class="user-name-cell">
-              <span class="user-avatar">{{ getInitials(user.name) }}</span>
+              @if (user.profilePicture) {
+                <img [src]="user.profilePicture" alt="" class="user-avatar" style="object-fit: cover;" />
+              } @else {
+                <span class="user-avatar">{{ getInitials(user.name) }}</span>
+              }
               <span>{{ user.name }}</span>
             </td>
             <td>{{ user.email }}</td>
@@ -119,13 +123,11 @@
         <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
           <label class="form-field">
             <span class="form-label">Name <span class="required">*</span></span>
-            <input type="text" formControlName="name" class="form-input" placeholder="Enter full name" />
-            @if (
-              form.controls.name.touched && form.controls.name.invalid
-              ) {
-              <span class="error">
-                Name is required.
-              </span>
+            <input type="text" formControlName="name" class="form-input" placeholder="Last Name, First Name, M.I." />
+            @if (form.controls.name.touched && form.controls.name.hasError('required')) {
+              <span class="error">Name is required.</span>
+            } @else if (form.controls.name.touched && form.controls.name.hasError('pattern')) {
+              <span class="error">Format must be: Last Name, First Name, Middle Initial (e.g. Ejercito, Angel Maye E.)</span>
             }
           </label>
           @if (!isEditing) {
@@ -173,7 +175,12 @@
           </label>
           <label class="form-field">
             <span class="form-label">Student ID (optional)</span>
-            <input type="text" formControlName="studentId" class="form-input" placeholder="Enter student ID" />
+            <input type="text" formControlName="studentId" class="form-input" placeholder="Enter 10-digit student ID" maxlength="10" (input)="onStudentIdInput($event)" />
+            @if (form.controls.studentId.touched && form.controls.studentId.hasError('pattern')) {
+              <span class="error">
+                Student ID must be exactly 10 digits.
+              </span>
+            }
           </label>
           <div class="dialog-actions full-width">
             <button type="button" class="btn btn-secondary" (click)="closeDialog()">

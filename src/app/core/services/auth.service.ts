@@ -32,6 +32,7 @@ export interface FirestoreUserProfile {
   createdAt: string;
   lastLoginAt: string | null;
   isActive: boolean;
+  profilePicture?: string | null;
 }
 
 @Injectable({
@@ -235,6 +236,7 @@ export class AuthService {
     this.errorSignal.set(null);
 
     try {
+      // ── Step 1: Look up the user in Firestore by qrCode field ────────────
       let firestoreProfile: FirestoreUserProfile | null = null;
       try {
         const usersCol = collection(this.firestore, 'users');
@@ -244,49 +246,64 @@ export class AuthService {
           firestoreProfile = snap.docs[0].data() as FirestoreUserProfile;
         }
       } catch (firestoreErr) {
-        console.warn('Pre-auth Firestore QR lookup unavailable; using fallback if possible.', firestoreErr);
+        console.warn('Firestore QR lookup error:', firestoreErr);
       }
 
-      let fallbackProfile: (Partial<FirestoreUserProfile> & { email?: string; password?: string }) | null = null;
-      try {
-        const res = await fetch(`http://localhost:3000/users?qrCode=${qrCode}`);
-        if (res.ok) {
-          const users = await res.json();
-          if (users && users.length > 0 && users[0].isActive !== false) {
-            fallbackProfile = users[0];
+      // ── Fallback: if no exact qrCode match, try looking up by email from payload ──
+      if (!firestoreProfile) {
+        try {
+          const payload = JSON.parse(qrCode);
+          if (payload?.type === 'login' && payload.email) {
+            const usersCol = collection(this.firestore, 'users');
+            const q = query(usersCol, where('email', '==', payload.email), where('isActive', '==', true));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+              firestoreProfile = snap.docs[0].data() as FirestoreUserProfile;
+            }
           }
+        } catch {
+          // Not JSON — no fallback possible
         }
-      } catch {
-        // Ignore fallback connectivity errors.
       }
 
-      const profile = firestoreProfile ?? (fallbackProfile as FirestoreUserProfile | null);
-      if (!profile) {
+      if (!firestoreProfile) {
         this.errorSignal.set('Invalid QR code. Please try again.');
         throw new Error('Invalid QR code');
       }
 
-      const isFirebaseMode = !AuthService.isFirebasePlaceholderConfig();
-      const passwordCandidate = fallbackProfile?.password;
-      const emailCandidate = fallbackProfile?.email ?? profile.email;
+      // ── Step 2: Parse credentials from the qrCode JSON payload ───────────
+      // QR codes created by createUser() are stored as JSON:
+      // { "type": "login", "email": "...", "password": "..." }
+      let emailCandidate: string | null = null;
+      let passwordCandidate: string | null = null;
+      try {
+        const payload = JSON.parse(qrCode);
+        if (payload?.type === 'login' && payload.email && payload.password) {
+          emailCandidate = payload.email;
+          passwordCandidate = payload.password;
+        }
+      } catch {
+        // qrCode is not JSON — treat as a legacy opaque code with no embedded credentials
+      }
 
+      // If no JSON credentials found, fall back to profile email (session-only login)
+      if (!emailCandidate) {
+        emailCandidate = firestoreProfile.email;
+      }
+
+      // ── Step 3: Establish a Firebase Auth session using the parsed credentials ──
       let hasFirebaseSession = false;
-      // In Firebase mode, try to establish an actual Firebase Auth session.
-      if (isFirebaseMode) {
-        if (!emailCandidate || !passwordCandidate) {
-          console.warn('QR login continuing without Firebase Auth session: missing fallback credentials.');
-        } else {
-          try {
-            await signInWithEmailAndPassword(this.auth, emailCandidate, passwordCandidate);
-            hasFirebaseSession = true;
-          } catch (authErr) {
-            console.warn('QR Firebase sign-in failed. Continuing with session-only QR login.', authErr);
-          }
+      if (emailCandidate && passwordCandidate) {
+        try {
+          await signInWithEmailAndPassword(this.auth, emailCandidate, passwordCandidate);
+          hasFirebaseSession = true;
+        } catch (authErr) {
+          console.warn('QR Firebase sign-in failed. Continuing with session-only QR login.', authErr);
         }
       }
 
-      // Prefer the profile resolved from the authenticated Firebase UID.
-      let finalProfile = profile;
+      // Prefer profile resolved from the authenticated Firebase UID (most up-to-date)
+      let finalProfile = firestoreProfile;
       if (hasFirebaseSession && this.auth.currentUser?.uid) {
         const firestoreByUid = await this.loadProfileFromFirestore(this.auth.currentUser.uid);
         if (firestoreByUid) {
@@ -302,16 +319,9 @@ export class AuthService {
       await this.updateLastLogin(finalProfile.uid);
       finalProfile.lastLoginAt = new Date().toISOString();
 
-      const appUser = this.profileToAppUser(finalProfile as FirestoreUserProfile);
+      const appUser = this.profileToAppUser(finalProfile);
       this.currentUserSubject.next(appUser);
       AuthService.saveCurrentUserToStorage(appUser);
-
-      if (!hasFirebaseSession && isFirebaseMode) {
-        this.showToast(
-          'info',
-          'QR login succeeded in limited mode. If data is missing, use email login or start json-server.'
-        );
-      }
 
       this.showToast('success', `Welcome back, ${appUser.name}!`);
       this.reminderService.checkReminders(appUser.uid);
@@ -434,7 +444,8 @@ export class AuthService {
     return (collectionData(usersCol, { idField: 'uid' }) as Observable<FirestoreUserProfile[]>).pipe(
       map((profiles) => {
         const current = this.currentUserSubject.value;
-        if (!current || current.role !== 'admin') return [];
+        // Allow both admin and librarian to see all users
+        if (!current || (current.role !== 'admin' && current.role !== 'librarian')) return [];
         return profiles.map((p) => this.profileToAppUser(p));
       }),
       shareReplay({ bufferSize: 1, refCount: true })
@@ -444,7 +455,7 @@ export class AuthService {
   // ─── Update current user's profile ──────────────────────────────────────────
 
   async updateCurrentUser(
-    changes: Partial<Pick<AppUser, 'name' | 'email' | 'studentId'>> & {
+    changes: Partial<Pick<AppUser, 'name' | 'email' | 'studentId' | 'profilePicture'>> & {
       password?: string;
     }
   ): Promise<void> {
@@ -462,6 +473,7 @@ export class AuthService {
       if (changes.name !== undefined) firestoreChanges.name = changes.name;
       if (changes.email !== undefined) firestoreChanges.email = changes.email;
       if (changes.studentId !== undefined) firestoreChanges.studentId = changes.studentId ?? null;
+      if (changes.profilePicture !== undefined) firestoreChanges.profilePicture = changes.profilePicture;
 
       await updateDoc(userDocRef, firestoreChanges as Record<string, unknown>);
 
@@ -520,17 +532,6 @@ export class AuthService {
 
       await updateDoc(userDocRef, firestoreChanges as Record<string, unknown>);
 
-      // Sync to JSON Server (best-effort)
-      if (isPlatformBrowser(this.platformId)) {
-        try {
-          await fetch(`http://localhost:3000/users/${uid}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(firestoreChanges)
-          });
-        } catch { }
-      }
-
       this.showToast('success', 'User updated successfully.');
     } catch (err: unknown) {
       const msg = this.mapFirebaseError(err);
@@ -556,17 +557,6 @@ export class AuthService {
     try {
       const userDocRef = doc(this.firestore, 'users', uid);
       await updateDoc(userDocRef, { isActive });
-
-      // Sync to JSON Server (best-effort)
-      if (isPlatformBrowser(this.platformId)) {
-        try {
-          await fetch(`http://localhost:3000/users/${uid}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isActive })
-          });
-        } catch { }
-      }
 
       const statusMsg = isActive ? 'reactivated' : 'deactivated';
       this.showToast('success', `User account successfully ${statusMsg}.`);
@@ -594,15 +584,6 @@ export class AuthService {
     try {
       const userDocRef = doc(this.firestore, 'users', uid);
       await deleteDoc(userDocRef);
-
-      // Sync to JSON Server (best-effort)
-      if (isPlatformBrowser(this.platformId)) {
-        try {
-          await fetch(`http://localhost:3000/users/${uid}`, {
-            method: 'DELETE'
-          });
-        } catch { }
-      }
 
       this.showToast('success', 'User deleted successfully.');
     } catch (err: unknown) {
@@ -647,6 +628,7 @@ export class AuthService {
       createdAt: profile.createdAt,
       lastLoginAt: profile.lastLoginAt,
       isActive: profile.isActive,
+      profilePicture: profile.profilePicture
     };
   }
 

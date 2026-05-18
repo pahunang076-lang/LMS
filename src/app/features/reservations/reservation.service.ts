@@ -1,7 +1,17 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, map } from 'rxjs';
+import {
+  Firestore,
+  collection,
+  collectionData,
+  addDoc,
+  doc,
+  updateDoc,
+  query,
+  where,
+  Timestamp,
+} from '@angular/fire/firestore';
+import { Observable, map, catchError, of } from 'rxjs';
 import { Reservation, ReservationStatus } from '../../core/models/reservation.model';
 import { AppUser } from '../../core/models/user.model';
 import { Book } from '../../core/models/book.model';
@@ -9,121 +19,112 @@ import { DueDateReminderService } from '../../core/services/due-date-reminder.se
 import { EmailNotificationService } from '../../core/services/email-notification.service';
 import Swal from 'sweetalert2';
 
-const JSON_SERVER_URL = 'http://localhost:3000';
-
 @Injectable({ providedIn: 'root' })
 export class ReservationService {
-    private readonly http = inject(HttpClient);
+    private readonly firestore = inject(Firestore);
     private readonly platformId = inject(PLATFORM_ID);
     private readonly emailService = inject(EmailNotificationService);
-    private readonly storageKey = 'lms_reservations';
 
-    private readonly localSubject = new BehaviorSubject<Reservation[]>(this.load());
-
-    constructor() {
-        if (isPlatformBrowser(this.platformId)) {
-            this.http.get<Reservation[]>(`${JSON_SERVER_URL}/reservations`).subscribe({
-                next: (items) => {
-                    if (items?.length) { this.persist(items); this.localSubject.next(items); }
-                },
-                error: () => { }
-            });
-        }
+    private reservationsCollection() {
+        return collection(this.firestore, 'reservations');
     }
 
     getUserReservations$(userId: string): Observable<Reservation[]> {
-        return this.localSubject.pipe(
-            map(all => this.calculateQueuePositions(all).filter((r) => r.userId === userId))
+        const q = query(this.reservationsCollection(), where('userId', '==', userId));
+        return (collectionData(q, { idField: 'id' }) as unknown as Observable<Reservation[]>).pipe(
+            map(all => this.calculateQueuePositions(all)),
+            catchError((err) => {
+                console.warn('Could not fetch user reservations:', err.message);
+                return of([]);
+            })
         );
     }
 
     getAllReservations$(): Observable<Reservation[]> {
-        return this.localSubject.pipe(map(all => this.calculateQueuePositions(all)));
+        return (collectionData(this.reservationsCollection(), { idField: 'id' }) as unknown as Observable<Reservation[]>).pipe(
+            map(all => this.calculateQueuePositions(all)),
+            catchError((err) => {
+                console.warn('Could not fetch all reservations:', err.message);
+                return of([]);
+            })
+        );
     }
 
     async reserveBook(user: AppUser, book: Book): Promise<void> {
-        const existing = this.localSubject.value.find(
-            (r) => r.userId === user.uid && r.bookId === (book.id ?? book.isbn) &&
-                (r.status === 'pending' || r.status === 'ready')
-        );
-        if (existing) {
-            ReservationService.showToast('warning', 'You already have a pending reservation for this book.');
-            return;
-        }
+        if (!isPlatformBrowser(this.platformId)) return;
 
-        const id = ReservationService.genId();
-        const reservation: Reservation = {
-            id,
+        const reservation = {
             userId: user.uid,
             userName: user.name || user.email,
             bookId: book.id ?? book.isbn,
             bookTitle: book.title,
             reservedAt: new Date().toISOString(),
-            status: 'pending',
+            status: 'pending' as ReservationStatus,
         };
 
-        const updated = [...this.localSubject.value, reservation];
-        this.persist(updated);
-        this.localSubject.next(updated);
-
-        if (isPlatformBrowser(this.platformId)) {
-            this.http.post(`${JSON_SERVER_URL}/reservations`, reservation).subscribe({ error: () => { } });
+        try {
+            await addDoc(this.reservationsCollection(), reservation);
+            ReservationService.showToast('success', `"${book.title}" has been reserved!`);
+        } catch (err) {
+            console.error('Failed to reserve book:', err);
+            ReservationService.showToast('warning', 'Could not save reservation. Please try again.');
         }
-        ReservationService.showToast('success', `"${book.title}" has been reserved!`);
     }
 
     async cancelReservation(id: string): Promise<void> {
-        const updated = this.localSubject.value.map((r) =>
-            r.id === id ? { ...r, status: 'cancelled' as ReservationStatus } : r
-        );
-        this.persist(updated);
-        this.localSubject.next(updated);
-
-        if (isPlatformBrowser(this.platformId)) {
-            this.http.patch(`${JSON_SERVER_URL}/reservations/${id}`, { status: 'cancelled' }).subscribe({ error: () => { } });
+        try {
+            const ref = doc(this.firestore, 'reservations', id);
+            await updateDoc(ref, { status: 'cancelled' as ReservationStatus });
+            ReservationService.showToast('info', 'Reservation cancelled.');
+        } catch (err) {
+            console.error('Failed to cancel reservation:', err);
         }
-        ReservationService.showToast('info', 'Reservation cancelled.');
     }
 
     async updateStatus(id: string, status: ReservationStatus): Promise<void> {
-        const updated = this.localSubject.value.map((r) =>
-            r.id === id ? { ...r, status } : r
-        );
-        this.persist(updated);
-        this.localSubject.next(updated);
-
-        if (isPlatformBrowser(this.platformId)) {
-            this.http.patch(`${JSON_SERVER_URL}/reservations/${id}`, { status }).subscribe({ error: () => { } });
+        try {
+            const ref = doc(this.firestore, 'reservations', id);
+            await updateDoc(ref, { status });
+            const labels: Record<ReservationStatus, string> = {
+                ready: 'Reservation marked as Ready for pickup!',
+                fulfilled: 'Reservation fulfilled.',
+                cancelled: 'Reservation cancelled.',
+                pending: 'Reservation set back to pending.',
+            };
+            ReservationService.showToast('success', labels[status]);
+        } catch (err) {
+            console.error('Failed to update reservation status:', err);
         }
-        const labels: Record<ReservationStatus, string> = {
-            ready: 'Reservation marked as Ready for pickup!',
-            fulfilled: 'Reservation fulfilled.',
-            cancelled: 'Reservation cancelled.',
-            pending: 'Reservation set back to pending.',
-        };
-        ReservationService.showToast('success', labels[status]);
     }
 
     async autoFulfillNextInQueue(bookId: string): Promise<void> {
-        const allPending = this.calculateQueuePositions(this.localSubject.value)
-            .filter(r => r.bookId === bookId && r.status === 'pending');
+        // We fetch the current snapshot from Firestore to find the next in queue
+        try {
+            const { getDocs, query: fsQuery, where: fsWhere, orderBy } = await import('@angular/fire/firestore');
+            const q = fsQuery(
+                this.reservationsCollection(),
+                fsWhere('bookId', '==', bookId),
+                fsWhere('status', '==', 'pending'),
+                orderBy('reservedAt', 'asc')
+            );
+            const snap = await getDocs(q);
+            if (snap.empty) return;
 
-        if (allPending.length === 0) return;
+            const nextDoc = snap.docs[0];
+            const next = { id: nextDoc.id, ...nextDoc.data() } as Reservation;
 
-        const nextInLine = allPending.find(r => r._queuePosition === 1);
-        if (nextInLine && nextInLine.id) {
-            await this.updateStatus(nextInLine.id, 'ready');
-            ReservationService.showToast('info', `Waitlist #1 for "${nextInLine.bookTitle}" has been moved to Ready for pickup.`);
+            await this.updateStatus(next.id!, 'ready');
+            ReservationService.showToast('info', `Waitlist #1 for "${next.bookTitle}" has been moved to Ready for pickup.`);
 
-            // Feature 3: Write persistent notification so student sees it on next login
             DueDateReminderService.addReadyNotification({
-                userId: nextInLine.userId,
-                bookTitle: nextInLine.bookTitle,
-                reservationId: nextInLine.id,
+                userId: next.userId,
+                bookTitle: next.bookTitle,
+                reservationId: next.id!,
             });
 
-            // Feature 4: Fire off the automated email alert
-            await this.emailService.sendReadyForPickup(nextInLine.userId, nextInLine.bookTitle);
+            await this.emailService.sendReadyForPickup(next.userId, next.bookTitle);
+        } catch (err) {
+            console.warn('autoFulfillNextInQueue error:', err);
         }
     }
 
@@ -154,22 +155,5 @@ export class ReservationService {
     private static showToast(icon: 'success' | 'warning' | 'info', title: string): void {
         Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000, timerProgressBar: true })
             .fire({ icon, title });
-    }
-
-    private static genId(): string {
-        return `res-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    }
-
-    private load(): Reservation[] {
-        if (typeof window === 'undefined') return [];
-        try {
-            const raw = window.localStorage.getItem(this.storageKey);
-            return raw ? JSON.parse(raw) : [];
-        } catch { return []; }
-    }
-
-    private persist(items: Reservation[]): void {
-        if (typeof window === 'undefined') return;
-        window.localStorage.setItem(this.storageKey, JSON.stringify(items));
     }
 }

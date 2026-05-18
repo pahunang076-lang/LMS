@@ -11,16 +11,15 @@ service cloud.firestore {
     }
 
     function hasRole(role) {
-      return isSignedIn() && (request.auth.token.get('role', '') == role || getUserData().role == role);
+      return isSignedIn() && getUserData().role == role;
     }
 
     function isAdminOrLibrarian() {
-      return isSignedIn() &&
-        (request.auth.token.get('role', '') in ['admin', 'librarian'] || getUserData().role in ['admin', 'librarian']);
+      return isSignedIn() && (getUserData().role == 'admin' || getUserData().role == 'librarian');
     }
 
     function isStudent() {
-      return isSignedIn() && (request.auth.token.get('role', '') == 'student' || getUserData().role == 'student');
+      return isSignedIn() && getUserData().role == 'student';
     }
 
     function isOwner(userId) {
@@ -96,9 +95,9 @@ service cloud.firestore {
     // Borrowing records
     match /borrows/{borrowId} {
       allow read: if isSignedIn();
-      // Students can create borrows only for themselves
+      // Students can create borrows only for themselves; Staff can create for anyone
       allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid;
+        && (request.resource.data.userId == request.auth.uid || isAdminOrLibrarian());
       // Owners (students) can return/pay/review their own borrow records.
       allow update: if isAdminOrLibrarian() || (isOwner(resource.data.userId) && isValidOwnerBorrowUpdate());
       // Only staff can delete borrowing records.
@@ -120,9 +119,30 @@ service cloud.firestore {
         || (isOwner(resource.data.userId) && isValidOwnerEntryLogExitUpdate());
     }
 
+    // Book Requests
+    match /bookRequests/{requestId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdminOrLibrarian() || isOwner(resource.data.userId);
+      allow update: if isAdminOrLibrarian();
+    }
+
+    // Reservations
+    match /reservations/{reservationId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdminOrLibrarian() || isOwner(resource.data.userId);
+      allow update: if isAdminOrLibrarian() || isOwner(resource.data.userId);
+      allow delete: if isAdminOrLibrarian();
+    }
+
     // Deny everything else by default
     match /{document=**} {
       allow read, write: if false;
+    }
+
+    // Subjects / Categories
+    match /subjects/{subjectId} {
+      allow read: if isSignedIn();
+      allow write: if isAdminOrLibrarian();
     }
   }
 }

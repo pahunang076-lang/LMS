@@ -101,20 +101,37 @@ export class EntryLogsShellComponent {
 
   onStudentQrScanned(raw: string, students: AppUser[]): void {
     this.qrError = null;
-    let finalCode = raw.trim();
+    const trimmed = raw.trim();
+
+    // Try to parse QR as JSON payload
+    let resolvedUid: string | null = null;
+    let resolvedEmail: string | null = null;
     try {
-      const parsed = JSON.parse(raw) as { type?: string; value?: string };
-      if (parsed.type === 'user' && parsed.value) {
-        finalCode = parsed.value;
+      const parsed = JSON.parse(trimmed) as { type?: string; value?: string; email?: string };
+
+      if (parsed.type === 'login' && parsed.email) {
+        // New format: {"type":"login","email":"...","password":"..."}
+        // Match student by email
+        resolvedEmail = parsed.email;
+      } else if (parsed.type === 'user' && parsed.value) {
+        // Old format: {"type":"user","value":"<uid-or-qrCode>"}
+        resolvedUid = parsed.value;
       } else if (parsed.type) {
         this.qrError = 'Invalid QR code type. Expected a Student/User QR code.';
         return;
       }
     } catch {
-      // Not JSON — treat raw as plain string (backward compatibility)
+      // Not JSON — treat raw string as uid/qrCode (backward compat)
+      resolvedUid = trimmed;
     }
 
-    const student = students.find((s) => s.qrCode === finalCode || s.uid === finalCode);
+    let student: AppUser | undefined;
+    if (resolvedEmail) {
+      student = students.find((s) => s.email?.toLowerCase() === resolvedEmail!.toLowerCase());
+    } else if (resolvedUid) {
+      student = students.find((s) => s.qrCode === resolvedUid || s.uid === resolvedUid);
+    }
+
     if (!student) { this.qrError = 'No student found for this QR code.'; return; }
     const purpose = (this.manualForm.get('purpose')?.value ?? 'Study') as VisitPurpose;
     this.entryLogsService.logEntry(student, purpose);

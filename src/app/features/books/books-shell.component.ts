@@ -44,7 +44,7 @@ export class BooksShellComponent {
     title: ['', [Validators.required]],
     author: ['', [Validators.required]],
     category: ['', [Validators.required]],
-    isbn: ['', [Validators.required, Validators.maxLength(13), Validators.pattern('^[0-9]+$')]],
+    isbn: ['', [Validators.required, Validators.minLength(13), Validators.maxLength(13), Validators.pattern('^[0-9]+$')]],
     quantityTotal: [1, [Validators.required, Validators.min(0)]],
     quantityAvailable: [1, [Validators.required, Validators.min(0)]],
     status: ['available' as BookStatus, [Validators.required]],
@@ -112,7 +112,36 @@ export class BooksShellComponent {
     }
 
     const value = this.form.getRawValue();
+    const qtyTotal = Number(value.quantityTotal ?? 0);
     const qtyAvailable = Number(value.quantityAvailable ?? 0);
+
+    // Validation: Available quantity cannot exceed total quantity
+    if (qtyAvailable > qtyTotal) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid Quantity',
+        text: 'Available quantity cannot be greater than total quantity.',
+        confirmButtonColor: '#4f46e5'
+      });
+      return;
+    }
+
+    // Validation: ISBN Uniqueness
+    const currentBooks = await firstValueFrom(this.books$);
+    const isbnExists = currentBooks.some(b => 
+      b.isbn === value.isbn && 
+      (!this.editingBook() || b.id !== this.editingBook()?.id)
+    );
+
+    if (isbnExists) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Duplicate ISBN',
+        text: `A book with ISBN ${value.isbn} already exists in the system.`,
+        confirmButtonColor: '#4f46e5'
+      });
+      return;
+    }
 
     // Auto-sync status based on quantity
     const autoStatus: BookStatus = qtyAvailable <= 0 ? 'unavailable' : 'available';
@@ -122,7 +151,7 @@ export class BooksShellComponent {
       author: value.author ?? '',
       category: value.category ?? '',
       isbn: value.isbn ?? '',
-      quantityTotal: Number(value.quantityTotal ?? 0),
+      quantityTotal: qtyTotal,
       quantityAvailable: qtyAvailable,
       status: autoStatus,
       description: value.description ?? '',
@@ -132,13 +161,30 @@ export class BooksShellComponent {
 
     const current = this.editingBook();
 
-    if (current?.id) {
-      await this.booksService.updateBook(current.id, payload);
-    } else {
-      await this.booksService.addBook(payload);
+    try {
+      if (current?.id) {
+        await this.booksService.updateBook(current.id, payload);
+      } else {
+        await this.booksService.addBook(payload);
+      }
+      this.closeDialog();
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: current?.id ? 'Book updated successfully!' : 'Book created successfully!',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Save Failed',
+        text: (error as Error)?.message || 'Failed to save the book.',
+        confirmButtonColor: '#4f46e5'
+      });
     }
-
-    this.closeDialog();
   }
 
   onCoverSelected(event: Event): void {
@@ -200,6 +246,26 @@ export class BooksShellComponent {
 
   onStatusFilterChange(status: BookStatus | 'all'): void {
     this.statusFilter.set(status);
+  }
+
+  /** Block non-digit keystrokes in the ISBN field */
+  onIsbnKeypress(event: KeyboardEvent): void {
+    const char = event.key;
+    // Allow: digits, Backspace, Delete, Tab, Enter, Arrow keys
+    if (!/^[0-9]$/.test(char) &&
+        !['Backspace', 'Delete', 'Tab', 'Enter', 'ArrowLeft', 'ArrowRight'].includes(char)) {
+      event.preventDefault();
+    }
+  }
+
+  /** Strip any non-digit characters from the ISBN field (handles paste) */
+  onIsbnInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const cleaned = input.value.replace(/[^0-9]/g, '').slice(0, 13);
+    if (input.value !== cleaned) {
+      input.value = cleaned;
+      this.form.patchValue({ isbn: cleaned }, { emitEvent: true });
+    }
   }
 
   /** Feature 6 — Trigger the hidden file input */

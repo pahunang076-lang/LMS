@@ -8,7 +8,7 @@ import {
 } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { AppUser, UserRole } from '../../core/models/user.model';
-import { Observable } from 'rxjs';
+import { Observable, firstValueFrom } from 'rxjs';
 import { QrCodeComponent } from '../../shared/qr-code.component';
 import { TableModule } from 'primeng/table';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
@@ -37,12 +37,15 @@ export class UsersShellComponent {
   readonly editingUser = signal<AppUser | null>(null);
 
   readonly form = this.fb.group({
-    name: ['', [Validators.required]],
+    name: ['', [
+      Validators.required, 
+      Validators.pattern(/^[A-Za-zñÑ\s\-]+,\s*[A-Za-zñÑ\s\-\.]+$/)
+    ]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
     phoneNumber: ['', [Validators.required, Validators.pattern('^[0-9+() -]*$')]],
     role: ['student' as UserRole, [Validators.required]],
-    studentId: [''],
+    studentId: ['', [Validators.pattern('^[0-9]{10}$')]],
   });
 
   get isEditing(): boolean {
@@ -95,6 +98,15 @@ export class UsersShellComponent {
     this.createSuccess.set(false);
   }
 
+  onStudentIdInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const cleanValue = input.value.replace(/[^0-9]/g, '');
+    if (input.value !== cleanValue) {
+      input.value = cleanValue;
+      this.form.controls.studentId.setValue(cleanValue, { emitEvent: false });
+    }
+  }
+
   async save(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -105,6 +117,41 @@ export class UsersShellComponent {
     this.createSuccess.set(false);
 
     const formValue = this.form.getRawValue();
+    const newName = formValue.name?.trim() || '';
+
+    // Normalize name for comparison (remove all spaces, lowercase)
+    const normalizeName = (n: string) => (n || '').replace(/\s+/g, '').toLowerCase();
+    const normalizedNewName = normalizeName(newName);
+
+    // Check if name already exists
+    try {
+      const allUsers = await firstValueFrom(this.users$);
+      const nameExists = allUsers.some(u => 
+        normalizeName(u.name) === normalizedNewName && 
+        (!this.isEditing || u.uid !== this.editingUser()?.uid)
+      );
+
+      if (nameExists) {
+        this.createError.set(`An account with the name "${newName}" already exists in the system.`);
+        return;
+      }
+
+      // Check if student ID already exists
+      const newStudentId = formValue.studentId?.trim();
+      if (newStudentId) {
+        const studentIdExists = allUsers.some(u => 
+          u.studentId === newStudentId && 
+          (!this.isEditing || u.uid !== this.editingUser()?.uid)
+        );
+
+        if (studentIdExists) {
+          this.createError.set(`An account with the Student ID "${newStudentId}" already exists in the system.`);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Error checking name uniqueness', err);
+    }
 
     try {
       if (this.isEditing) {

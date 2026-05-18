@@ -68,20 +68,6 @@ export class EmailNotificationService {
     } catch {
       // Ignore cleanly if offline or permission error
     }
-
-    // Fallback to JSON server (local mock backend)
-    if (typeof window !== 'undefined') {
-      try {
-        const res = await fetch(`http://localhost:3000/users/${userId}`);
-        if (res.ok) {
-          const data = await res.json();
-          return { email: data.email || null, name: data.name || null };
-        }
-      } catch {
-        // Ignore JSON server fetch error
-      }
-    }
-
     return { email: null, name: null };
   }
 }

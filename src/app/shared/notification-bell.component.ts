@@ -1,6 +1,7 @@
-import { Component, inject, HostListener, ElementRef } from '@angular/core';
+import { Component, inject, HostListener, ElementRef, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NotificationsService, AppNotification } from '../core/services/notifications.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterModule } from '@angular/router';
 
 @Component({
@@ -141,6 +142,7 @@ import { Router, RouterModule } from '@angular/router';
 export class NotificationBellComponent {
   private readonly el = inject(ElementRef);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   readonly notificationsService = inject(NotificationsService);
   readonly notifications$ = this.notificationsService.notifications$;
 
@@ -148,7 +150,9 @@ export class NotificationBellComponent {
   open = false;
 
   constructor() {
-    this.notifications$.subscribe((n) => { this.count = n.length; });
+    this.notifications$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((n) => { this.count = n.length; });
   }
 
   toggle(e: MouseEvent): void {

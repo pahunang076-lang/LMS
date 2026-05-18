@@ -1,6 +1,4 @@
-import { Injectable, inject, PLATFORM_ID, DestroyRef } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, inject, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   Firestore,
@@ -12,18 +10,16 @@ import {
   updateDoc,
   where,
   query,
+  getDocs,
 } from '@angular/fire/firestore';
-import { BehaviorSubject, Observable, interval, map, catchError, of } from 'rxjs';
+import { Observable, interval, map, catchError, of } from 'rxjs';
 import { Borrow, BorrowStatus } from '../../core/models/borrow.model';
 import { Book } from '../../core/models/book.model';
 import { BooksService } from '../books/books.service';
 import { ReservationService } from '../reservations/reservation.service';
 import { EmailNotificationService } from '../../core/services/email-notification.service';
 import { calculateFine } from '../../shared/fines.util';
-import { environment } from '../../../environments/environment';
 import Swal from 'sweetalert2';
-
-const JSON_SERVER_URL = 'http://localhost:3000';
 
 @Injectable({
   providedIn: 'root',
@@ -33,101 +29,48 @@ export class CirculationService {
   private readonly booksService = inject(BooksService);
   private readonly reservationService = inject(ReservationService);
   private readonly emailService = inject(EmailNotificationService);
-  private readonly http = inject(HttpClient);
-  private readonly platformId = inject(PLATFORM_ID);
   private readonly destroyRef = inject(DestroyRef);
 
   /** Fine charged per day for overdue books (₱ per day). */
   readonly FINE_PER_DAY = 5;
 
-  private readonly storageKey = 'lms_borrows';
-  private readonly useLocalStore =
-    typeof window !== 'undefined' && CirculationService.isFirebasePlaceholderConfig();
-
-  private readonly localBorrowsSubject = new BehaviorSubject<Borrow[]>(
-    this.useLocalStore ? this.loadLocalBorrows() : []
-  );
-
   constructor() {
-    // On startup, sync borrows from JSON Server then run overdue check
-    if (this.useLocalStore && isPlatformBrowser(this.platformId)) {
-      this.syncBorrowsFromServer();
-    }
-    // Run overdue check immediately on local data
-    if (this.useLocalStore) {
-      this.checkAndMarkOverdue();
-    }
-    // ── Feature 1: Live overdue detection every 60 seconds ──────────────
-    if (this.useLocalStore && isPlatformBrowser(this.platformId)) {
-      interval(60_000)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe(() => this.checkAndMarkOverdue());
-    }
-  }
-
-  private syncBorrowsFromServer(): void {
-    this.http.get<Borrow[]>(`${JSON_SERVER_URL}/borrows`).subscribe({
-      next: (borrows) => {
-        if (borrows && borrows.length > 0) {
-          this.persistLocalBorrows(borrows);
-          this.localBorrowsSubject.next(borrows);
-          // Run overdue check after syncing fresh data from server
-          this.checkAndMarkOverdue();
-        }
-      },
-      error: () => {
-        console.warn('JSON Server not available for borrows. Using local storage data.');
-      },
-    });
-  }
-
-  /** Scans all active borrows and marks any past their due date as overdue with correct fine. */
-  checkAndMarkOverdue(): void {
-    const now = new Date();
-    const borrows = this.localBorrowsSubject.value;
-    let changed = false;
-
-    const updated = borrows.map((b) => {
-      // Only process borrows with 'borrowed' status — skip already-overdue, returned, etc.
-      if (b.status !== 'borrowed') return b;
-      const due = b.dueAt instanceof Date ? b.dueAt : new Date(b.dueAt as any);
-      if (due < now) {
-        const fine = calculateFine(due, now, this.FINE_PER_DAY);
-        changed = true;
-
-        // Email fires ONLY here: status was 'borrowed' → now transitioning to 'overdue'
-        // This ensures we never spam the user with repeated overdue emails.
-        this.emailService.sendOverdueAlert(b.userId, b.bookTitle, fine);
-
-        const updatedBorrow: Borrow = { ...b, status: 'overdue', fineAmount: fine };
-        // Best-effort patch to JSON Server
-        if (isPlatformBrowser(this.platformId) && b.id) {
-          this.http.patch(`${JSON_SERVER_URL}/borrows/${b.id}`, {
-            status: 'overdue', fineAmount: fine,
-          }).subscribe({ error: () => { } });
-        }
-        return updatedBorrow;
-      }
-      return b;
-    });
-
-    if (changed) {
-      this.persistLocalBorrows(updated);
-      this.localBorrowsSubject.next(updated);
-    }
+    // Run overdue check every 60 seconds
+    interval(60_000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.checkAndMarkOverdue());
   }
 
   private borrowsCollection() {
     return collection(this.firestore, 'borrows');
   }
 
-  getBorrowsForUser$(userId: string): Observable<Borrow[]> {
-    if (this.useLocalStore) {
-      return this.localBorrowsSubject.asObservable().pipe(
-        map((items) => items.filter((b) => b.userId === userId))
-      );
-    }
+  /** Scans all active borrows in Firestore and marks any past their due date as overdue. */
+  async checkAndMarkOverdue(): Promise<void> {
+    try {
+      const now = new Date();
+      const q = query(this.borrowsCollection(), where('status', '==', 'borrowed'));
+      const snap = await getDocs(q);
 
+      for (const docSnap of snap.docs) {
+        const b = { id: docSnap.id, ...docSnap.data() } as Borrow;
+        const due =
+          b.dueAt instanceof Timestamp
+            ? b.dueAt.toDate()
+            : new Date(b.dueAt as any);
+
+        if (due < now) {
+          const fine = calculateFine(due, now, this.FINE_PER_DAY);
+          await updateDoc(docSnap.ref, { status: 'overdue', fineAmount: fine });
+          this.emailService.sendOverdueAlert(b.userId, b.bookTitle, fine);
+        }
+      }
+    } catch (err) {
+      console.warn('checkAndMarkOverdue error:', err);
+    }
+  }
+
+  getBorrowsForUser$(userId: string): Observable<Borrow[]> {
     const q = query(this.borrowsCollection(), where('userId', '==', userId));
     return (collectionData(q, { idField: 'id' }) as unknown as Observable<Borrow[]>).pipe(
       catchError((err) => {
@@ -138,12 +81,9 @@ export class CirculationService {
   }
 
   getAllBorrows$(): Observable<Borrow[]> {
-    if (this.useLocalStore) {
-      return this.localBorrowsSubject.asObservable();
-    }
     return (collectionData(this.borrowsCollection(), { idField: 'id' }) as unknown as Observable<Borrow[]>).pipe(
       catchError((err) => {
-        console.warn('Could not fetch all borrows (likely student permission restrictions for ratings):', err.message);
+        console.warn('Could not fetch all borrows:', err.message);
         return of([]);
       })
     );
@@ -156,72 +96,6 @@ export class CirculationService {
     studentId?: string | null,
     userName?: string
   ): Promise<void> {
-    if (this.useLocalStore) {
-      const currentBorrows = this.localBorrowsSubject.value;
-
-      // ── Guard 1: Duplicate borrow check ──────────────────────────────────
-      const alreadyBorrowed = currentBorrows.some(
-        (b) => b.userId === userId && b.bookId === (book.id ?? book.isbn) &&
-          (b.status === 'borrowed' || b.status === 'overdue')
-      );
-      if (alreadyBorrowed) {
-        CirculationService.showToast('error', `You already have an active borrow for "${book.title}".`);
-        return;
-      }
-
-      // ── Guard 2: Max 3 active borrows per student ─────────────────────────
-      const MAX_BORROWS = 3;
-      const activeBorrowCount = currentBorrows.filter(
-        (b) => b.userId === userId && (b.status === 'borrowed' || b.status === 'overdue')
-      ).length;
-      if (activeBorrowCount >= MAX_BORROWS) {
-        CirculationService.showToast(
-          'error',
-          `Borrow limit reached. Students may only have ${MAX_BORROWS} active borrows at a time.`
-        );
-        return;
-      }
-
-      const borrowedAt = new Date();
-      const dueAt = new Date(dueDate);
-
-      const id = CirculationService.generateId('borrow');
-      const next: Borrow = {
-        id,
-        userId,
-        userName: userName || undefined,
-        studentId: studentId ?? null,
-        bookId: book.id ?? book.isbn,
-        bookTitle: book.title,
-        borrowedAt,
-        dueAt,
-        returnedAt: null,
-        status: 'borrowed' as BorrowStatus,
-        fineAmount: 0,
-      };
-
-      const updated = [...currentBorrows, next];
-      this.persistLocalBorrows(updated);
-      this.localBorrowsSubject.next(updated);
-
-      if (book.id) {
-        await this.booksService.adjustAvailability(book.id, -1);
-        this.booksService.incrementBorrowCount(book.id); // Feature 5
-      }
-
-      // Sync to JSON Server (best-effort)
-      if (isPlatformBrowser(this.platformId)) {
-        this.http.post(`${JSON_SERVER_URL}/borrows`, {
-          ...next,
-          borrowedAt: borrowedAt.toISOString(),
-          dueAt: dueAt.toISOString(),
-        }).subscribe({ error: () => { } });
-      }
-
-      CirculationService.showToast('success', `"${book.title}" borrowed successfully!`);
-      return;
-    }
-
     const borrowedAt = Timestamp.now();
     const dueAt = Timestamp.fromDate(dueDate);
 
@@ -245,50 +119,13 @@ export class CirculationService {
 
     if (book.id) {
       await this.booksService.adjustAvailability(book.id, -1);
+      await this.booksService.incrementBorrowCount(book.id);
     }
     CirculationService.showToast('success', `"${book.title}" borrowed successfully!`);
   }
 
   async returnBook(borrow: Borrow, returnDate: Date = new Date()): Promise<void> {
     if (!borrow.id || !borrow.bookId) {
-      return;
-    }
-
-    if (this.useLocalStore) {
-      const due = borrow.dueAt instanceof Date ? borrow.dueAt : new Date(borrow.dueAt as any);
-      const fineAmount = calculateFine(due, returnDate, this.FINE_PER_DAY);
-      const status: BorrowStatus = 'returned';
-
-      const updated = this.localBorrowsSubject.value.map((b) =>
-        b.id === borrow.id
-          ? {
-            ...b,
-            returnedAt: new Date(returnDate),
-            status,
-            fineAmount,
-          }
-          : b
-      );
-
-      this.persistLocalBorrows(updated);
-      this.localBorrowsSubject.next(updated);
-
-      await this.booksService.adjustAvailability(borrow.bookId, 1);
-      await this.reservationService.autoFulfillNextInQueue(borrow.bookId);
-
-      // Sync to JSON Server (best-effort)
-      if (isPlatformBrowser(this.platformId)) {
-        this.http.patch(`${JSON_SERVER_URL}/borrows/${borrow.id}`, {
-          returnedAt: returnDate.toISOString(),
-          status,
-          fineAmount,
-        }).subscribe({ error: () => { } });
-      }
-
-      const msg = fineAmount > 0
-        ? `Book returned with a fine of ₱${fineAmount}.`
-        : `"${borrow.bookTitle}" returned successfully!`;
-      CirculationService.showToast(fineAmount > 0 ? 'warning' : 'success', msg);
       return;
     }
 
@@ -321,47 +158,12 @@ export class CirculationService {
       return;
     }
 
-    const finePaidAt = new Date().toISOString();
-
-    if (this.useLocalStore) {
-      const updated = this.localBorrowsSubject.value.map((b) =>
-        b.id === borrow.id
-          ? { ...b, finePaid: true, finePaidAt: new Date().toISOString() }
-          : b
-      );
-      this.persistLocalBorrows(updated);
-      this.localBorrowsSubject.next(updated);
-
-      if (isPlatformBrowser(this.platformId)) {
-        this.http.patch(`${JSON_SERVER_URL}/borrows/${borrow.id}`, {
-          finePaid: true, finePaidAt: new Date().toISOString()
-        }).subscribe({ error: () => { } });
-      }
-      CirculationService.showToast('success', `Fine of ₱${borrow.fineAmount} paid successfully!`);
-      return;
-    }
-
     const ref = doc(this.firestore, 'borrows', borrow.id);
     await updateDoc(ref, { finePaid: true, finePaidAt: new Date().toISOString() });
     CirculationService.showToast('success', `Fine of ₱${borrow.fineAmount} paid successfully!`);
   }
 
   async submitReview(borrowId: string, rating: number, review?: string): Promise<void> {
-    if (this.useLocalStore) {
-      const updated = this.localBorrowsSubject.value.map((b) =>
-        b.id === borrowId ? { ...b, rating, review } : b
-      );
-      this.persistLocalBorrows(updated);
-      this.localBorrowsSubject.next(updated);
-
-      if (isPlatformBrowser(this.platformId)) {
-        this.http.patch(`${JSON_SERVER_URL}/borrows/${borrowId}`, { rating, review })
-          .subscribe({ error: () => { } });
-      }
-      CirculationService.showToast('success', 'Review submitted successfully!');
-      return;
-    }
-
     const ref = doc(this.firestore, 'borrows', borrowId);
     await updateDoc(ref, { rating, review });
     CirculationService.showToast('success', 'Review submitted successfully!');
@@ -375,42 +177,5 @@ export class CirculationService {
       timer: 3500,
       timerProgressBar: true,
     }).fire({ icon, title });
-  }
-
-  private static isFirebasePlaceholderConfig(): boolean {
-    const fb = environment.firebase as any;
-    const apiKey = String(fb?.apiKey ?? '');
-    const projectId = String(fb?.projectId ?? '');
-    return (
-      apiKey.startsWith('YOUR_') ||
-      projectId.startsWith('YOUR_') ||
-      apiKey.length < 10 ||
-      projectId.length < 2
-    );
-  }
-
-  private static generateId(prefix: string): string {
-    const rand = Math.random().toString(36).slice(2);
-    return `${prefix}-${Date.now()}-${rand}`;
-  }
-
-  private loadLocalBorrows(): Borrow[] {
-    if (typeof window === 'undefined') {
-      return [];
-    }
-
-    try {
-      const raw = window.localStorage.getItem(this.storageKey);
-      return raw ? (JSON.parse(raw) as Borrow[]) : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private persistLocalBorrows(items: Borrow[]): void {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    window.localStorage.setItem(this.storageKey, JSON.stringify(items));
   }
 }

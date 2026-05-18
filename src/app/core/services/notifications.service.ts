@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { combineLatest, map, Observable } from 'rxjs';
+import { combineLatest, map, Observable, switchMap, of } from 'rxjs';
 import { CirculationService } from '../../features/circulation/circulation.service';
 import { ReservationService } from '../../features/reservations/reservation.service';
 import { AuthService } from './auth.service';
@@ -45,13 +45,30 @@ export class NotificationsService {
         }
     }
 
-    readonly notifications$: Observable<AppNotification[]> = combineLatest([
-        this.auth.currentUser$,
-        this.circulation.getAllBorrows$(),
-        this.reservations.getAllReservations$(),
-        this.bookRequests.getAll$(),
-        this.announcementService.announcements$,
-    ]).pipe(
+    readonly notifications$: Observable<AppNotification[]> = this.auth.currentUser$.pipe(
+        switchMap((user) => {
+            const isAdminOrLibrarian = user?.role === 'admin' || user?.role === 'librarian';
+
+            const borrows$ = isAdminOrLibrarian 
+                ? this.circulation.getAllBorrows$() 
+                : user ? this.circulation.getBorrowsForUser$(user.uid) : of([]);
+
+            const reservations$ = isAdminOrLibrarian
+                ? this.reservations.getAllReservations$()
+                : user ? this.reservations.getUserReservations$(user.uid) : of([]);
+
+            const requests$ = isAdminOrLibrarian
+                ? this.bookRequests.getAll$()
+                : user ? this.bookRequests.getForUser$(user.uid) : of([]);
+
+            return combineLatest([
+                of(user),
+                borrows$,
+                reservations$,
+                requests$,
+                this.announcementService.announcements$,
+            ]);
+        }),
         map(([user, borrows, reservations, requests, announcements]) => {
             const alerts: AppNotification[] = [];
             const now = new Date();
@@ -60,9 +77,7 @@ export class NotificationsService {
             const isAdminOrLibrarian = user?.role === 'admin' || user?.role === 'librarian';
 
             // ── Borrow alerts ────────────────────────────────────────────────
-            const relevantBorrows = isAdminOrLibrarian
-                ? borrows
-                : borrows.filter((b) => b.userId === user?.uid);
+            const relevantBorrows = borrows;
 
             for (const b of relevantBorrows) {
                 if (b.status === 'returned' || b.finePaid) continue;

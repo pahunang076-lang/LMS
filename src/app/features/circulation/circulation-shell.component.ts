@@ -27,6 +27,7 @@ export class CirculationShellComponent {
 
   readonly user$ = this.authService.currentUser$;
   readonly allBooks$ = this.booksService.getAllBooks$();
+  readonly allUsers$ = this.authService.getAllUsers();
 
   readonly borrows$ = this.user$.pipe(
     filter((u): u is NonNullable<typeof u> => !!u),
@@ -55,11 +56,15 @@ export class CirculationShellComponent {
 
       if (search) {
         const s = search.toLowerCase();
-        result = result.filter((b) =>
-          b.bookTitle?.toLowerCase().includes(s) ||
-          b.userName?.toLowerCase().includes(s) ||
-          b.studentId?.toLowerCase().includes(s)
-        );
+        result = result.filter((b) => {
+          const matchText = b.bookTitle?.toLowerCase().includes(s) ||
+                            b.userName?.toLowerCase().includes(s) ||
+                            b.studentId?.toLowerCase().includes(s);
+          const borrowedDate = this.asDate(b.borrowedAt)?.toLocaleDateString().toLowerCase();
+          const dueDate = this.asDate(b.dueAt)?.toLocaleDateString().toLowerCase();
+          
+          return matchText || (borrowedDate && borrowedDate.includes(s)) || (dueDate && dueDate.includes(s));
+        });
       }
 
       if (filterStr === 'Overdue') {
@@ -85,15 +90,20 @@ export class CirculationShellComponent {
     map(([returned, search]) => {
       if (!search) return returned;
       const s = search.toLowerCase();
-      return returned.filter((b) =>
-        b.bookTitle?.toLowerCase().includes(s) ||
-        b.userName?.toLowerCase().includes(s) ||
-        b.studentId?.toLowerCase().includes(s)
-      );
+      return returned.filter((b) => {
+        const matchText = b.bookTitle?.toLowerCase().includes(s) ||
+                          b.userName?.toLowerCase().includes(s) ||
+                          b.studentId?.toLowerCase().includes(s);
+        const borrowedDate = this.asDate(b.borrowedAt)?.toLocaleDateString().toLowerCase();
+        const returnedDate = this.asDate(b.returnedAt)?.toLocaleDateString().toLowerCase();
+        
+        return matchText || (borrowedDate && borrowedDate.includes(s)) || (returnedDate && returnedDate.includes(s));
+      });
     })
   );
 
   readonly borrowForm = this.fb.group({
+    userId: ['', Validators.required],
     bookId: ['', Validators.required],
     dueDate: ['', Validators.required],
   });
@@ -103,6 +113,30 @@ export class CirculationShellComponent {
   });
 
   mode: 'manual' | 'qrBorrow' | 'qrReturn' = 'manual';
+
+  // ── Date limit helpers ──────────────────────────────────────────────────────
+  /** Today's date as yyyy-mm-dd (used as [min] on due date inputs) */
+  readonly todayStr = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1); // minimum is tomorrow
+    return d.toISOString().split('T')[0];
+  })();
+
+  /** Max date: students get 7 days from today; staff get 30 days */
+  getMaxDueDate(role: string | undefined): string {
+    const limit = (role === 'student') ? 7 : 30;
+    const d = new Date();
+    d.setDate(d.getDate() + limit);
+    return d.toISOString().split('T')[0];
+  }
+
+  /** Default due date: 7 days from today (for student borrowing form) */
+  getDefaultDueDate(role: string | undefined): string {
+    const days = (role === 'student') ? 7 : 14;
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split('T')[0];
+  }
 
   scannedStudentId: string | null = null;
   scannedBook: Book | null = null;
@@ -126,16 +160,18 @@ export class CirculationShellComponent {
     this.historyBorrows$,
     this.searchSubject,
     this.filterSubject,
-    this.rawActiveBorrows$
+    this.rawActiveBorrows$,
+    this.allUsers$
   ]).pipe(
-    map(([user, books, active, history, search, filterStr, rawActive]) => ({
+    map(([user, books, active, history, search, filterStr, rawActive, allUsers]) => ({
       user,
       books,
       active,
       history,
       search,
       filterStr,
-      rawActiveCount: rawActive.length
+      rawActiveCount: rawActive.length,
+      allUsers
     }))
   );
 
@@ -162,21 +198,22 @@ export class CirculationShellComponent {
   }
 
   async createBorrow(
-    userId: string | undefined | null,
     books: Book[],
-    activeBorrows: Borrow[]
+    activeBorrows: Borrow[],
+    allUsers: any[]
   ): Promise<void> {
-    if (!userId || this.borrowForm.invalid) {
-      console.error('Invalid form or missing user', { userId, invalid: this.borrowForm.invalid });
+    if (this.borrowForm.invalid) {
+      console.error('Invalid form', { invalid: this.borrowForm.invalid });
       this.borrowForm.markAllAsTouched();
       return;
     }
 
-    const { bookId, dueDate } = this.borrowForm.getRawValue();
+    const { userId, bookId, dueDate } = this.borrowForm.getRawValue();
     const book = books.find((b) => String(b.id) === String(bookId));
+    const targetUser = allUsers.find(u => String(u.uid || u.id) === String(userId));
 
-    if (!book || !book.id || !dueDate) {
-      console.error('Missing book or dueDate', { book, bookId, dueDate });
+    if (!userId || !book || !book.id || !dueDate) {
+      console.error('Missing required fields', { userId, book, bookId, dueDate });
       return;
     }
 
@@ -185,13 +222,28 @@ export class CirculationShellComponent {
       return;
     }
 
-
     const due = new Date(dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Enforce 7-day limit for students
+    if (targetUser?.role === 'student') {
+      const maxDue = new Date(today);
+      maxDue.setDate(today.getDate() + 7);
+      if (due > maxDue) {
+        due.setTime(maxDue.getTime());
+        import('./circulation.service').then(m =>
+          m.CirculationService.showToast('warning', 'Due date capped to 7 days for students.')
+        );
+      }
+    }
+
     await this.circulationService.borrowBook(
       userId,
       book,
       due,
-      this.scannedStudentId
+      targetUser?.studentId,
+      targetUser?.name || targetUser?.email
     );
     this.borrowForm.reset();
     // Force a state refresh to ensure the UI catches the update immediately
@@ -313,18 +365,33 @@ export class CirculationShellComponent {
   }
 
   onStudentQrScanned(raw: string): void {
-    let finalCode = raw.trim();
+    const trimmed = raw.trim();
+    this.qrError = null;
+
+    // Store the raw QR for later use (auth service will resolve the user)
+    // But we also need the student's UID or email to associate the borrow.
+    // Try to parse QR as JSON
+    let resolvedCode: string | null = null;
+    let resolvedEmail: string | null = null;
     try {
-      const parsed = JSON.parse(raw);
-      if (parsed.type === 'user' && parsed.value) {
-        finalCode = parsed.value;
+      const parsed = JSON.parse(trimmed) as { type?: string; value?: string; email?: string };
+      if (parsed.type === 'login' && parsed.email) {
+        // New format: {"type":"login","email":"...","password":"..."}
+        resolvedEmail = parsed.email;
+      } else if (parsed.type === 'user' && parsed.value) {
+        // Old format: {"type":"user","value":"<uid>"}
+        resolvedCode = parsed.value;
       } else if (parsed.type) {
         this.qrError = 'Invalid QR code type. Expected a Student/User QR code.';
         return;
       }
-    } catch {}
+    } catch {
+      // Not JSON — treat as raw uid or qrCode
+      resolvedCode = trimmed;
+    }
 
-    this.scannedStudentId = finalCode;
+    // Store the resolved identifier so borrowBook can use it
+    this.scannedStudentId = resolvedEmail ?? resolvedCode;
     this.qrError = null;
   }
 

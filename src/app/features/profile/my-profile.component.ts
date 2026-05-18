@@ -5,6 +5,7 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { CirculationService } from '../circulation/circulation.service';
 import { map, switchMap, combineLatest } from 'rxjs';
+import { calculateFine } from '../../shared/fines.util';
 
 @Component({
     selector: 'app-my-profile',
@@ -30,8 +31,17 @@ export class MyProfileComponent {
             const total = borrows.length;
             const returned = borrows.filter(b => b.status === 'returned').length;
             const active = borrows.filter(b => b.status === 'borrowed').length;
-            const overdue = borrows.filter(b => b.status === 'overdue').length;
-            const totalFines = borrows.reduce((s, b) => s + (b.fineAmount ?? 0), 0);
+            const overdue = borrows.filter(b => b.status === 'overdue' || (b.status === 'borrowed' && this.asDate(b.dueAt) && new Date() > this.asDate(b.dueAt)!)).length;
+            const totalFines = borrows.reduce((s, b) => {
+                let fine = b.fineAmount ?? 0;
+                if (!b.finePaid && (b.status === 'borrowed' || b.status === 'overdue')) {
+                    const due = this.asDate(b.dueAt);
+                    if (due) {
+                        fine = calculateFine(due, new Date(), 5); // Assuming 5 per day
+                    }
+                }
+                return s + fine;
+            }, 0);
             const paidFines = borrows.filter(b => b.finePaid).reduce((s, b) => s + (b.fineAmount ?? 0), 0);
             const reviews = borrows.filter(b => b.rating && b.rating > 0).length;
             const avgRating = reviews > 0

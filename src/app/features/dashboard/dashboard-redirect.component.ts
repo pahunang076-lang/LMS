@@ -1,5 +1,6 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { take } from 'rxjs/operators';
 import { AuthService } from '../../core/services/auth.service';
 
 /**
@@ -16,7 +17,7 @@ export class DashboardRedirectComponent implements OnInit {
     private readonly router = inject(Router);
 
     ngOnInit() {
-        this.auth.currentUser$.subscribe(user => {
+        this.auth.currentUser$.pipe(take(1)).subscribe(user => {
             if (user?.role === 'admin' || user?.role === 'librarian') {
                 this.router.navigate(['/dashboard'], { replaceUrl: true });
             } else {

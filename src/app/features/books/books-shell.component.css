@@ -496,6 +496,22 @@
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
+.isbn-hint {
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  font-style: italic;
+  margin-top: 0.1rem;
+}
+
+.isbn-error {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin-top: 0.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
 .form-textarea {
   resize: vertical;
   min-height: 90px;

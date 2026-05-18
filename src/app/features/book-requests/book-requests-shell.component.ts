@@ -50,20 +50,26 @@ export class BookRequestsShellComponent {
         if (this.form.invalid) { this.form.markAllAsTouched(); return; }
         this.submitting = true;
         const v = this.form.getRawValue();
-        await this.requestService.create({
-            userId: user.uid,
-            userName: user.name ?? user.uid,
-            title: v.title ?? '',
-            author: v.author ?? '',
-            isbn: v.isbn ?? '',
-            notes: v.notes ?? '',
-            status: 'pending',
-            requestedAt: new Date().toISOString(),
-        });
-        this.form.reset();
-        this.submitting = false;
-        this.submitSuccess = true;
-        setTimeout(() => { this.submitSuccess = false; }, 4000);
+        try {
+            await this.requestService.create({
+                userId: user.uid,
+                userName: user.name ?? user.uid,
+                title: v.title ?? '',
+                author: v.author ?? '',
+                isbn: v.isbn ?? '',
+                notes: v.notes ?? '',
+                status: 'pending',
+                requestedAt: new Date().toISOString(),
+            });
+            this.form.reset();
+            this.submitSuccess = true;
+            setTimeout(() => { this.submitSuccess = false; }, 4000);
+        } catch (error) {
+            console.error('Failed to submit request:', error);
+            alert('An error occurred while submitting your request. Please try again.');
+        } finally {
+            this.submitting = false;
+        }
     }
 
     async updateStatus(req: BookRequest, status: BookRequestStatus): Promise<void> {

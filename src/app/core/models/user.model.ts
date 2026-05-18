@@ -11,6 +11,5 @@ export interface AppUser {
   createdAt?: unknown;
   lastLoginAt?: unknown;
   isActive?: boolean;
+  profilePicture?: string | null;
 }
-
-

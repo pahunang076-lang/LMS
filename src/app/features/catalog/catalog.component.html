@@ -71,6 +71,7 @@
       <div class="premium-table-container">
         @if (books$ | async; as books) {
           <p-table [value]="books | filterBooks: searchTerm():statusFilter():categoryFilter()"
+            sortField="title" [sortOrder]="1"
             [paginator]="!showAll"
             [rows]="showAll ? books.length : 10"
             [showCurrentPageReport]="true" currentPageReportTemplate="Showing {first} to {last} of {totalRecords} books"
@@ -107,8 +108,8 @@
               </td>
               <td>
                 <span class="badge-status"
-                  [ngClass]="{'status-available': book.status === 'available', 'status-unavailable': book.status === 'unavailable'}">
-                  {{ book.status | titlecase }}
+                  [ngClass]="{'status-available': book.status === 'available' && book.quantityAvailable > 0, 'status-unavailable': book.status === 'unavailable' || book.quantityAvailable <= 0}">
+                  {{ book.quantityAvailable <= 0 ? 'Unavailable' : (book.status | titlecase) }}
                 </span>
                 <div class="availability-text">
                   {{ book.quantityAvailable }} / {{ book.quantityTotal }} copies

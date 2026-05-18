@@ -3,21 +3,19 @@
 
   <aside class="sidebar" [class.open]="sidebarOpen" [class.collapsed]="sidebarCollapsed">
     <div class="sidebar-header">
-      @if (!sidebarCollapsed) {
-        <div class="sidebar-greeting-wrapper">
-          @if (currentUser$ | async; as user) {
-            <div class="sidebar-greeting">
-              <div class="sidebar-greeting-subtitle">Welcome back,</div>
-              <div class="sidebar-greeting-name">{{ user.name || user.email }}</div>
-            </div>
-          } @else {
-            <div class="sidebar-greeting">
-              <div class="sidebar-greeting-subtitle">Welcome to</div>
-              <div class="sidebar-greeting-name">Library Management System</div>
-            </div>
-          }
-        </div>
-      }
+      <div class="sidebar-greeting-wrapper">
+        @if (currentUser$ | async; as user) {
+          <div class="sidebar-greeting">
+            <div class="sidebar-greeting-subtitle">Welcome back,</div>
+            <div class="sidebar-greeting-name">{{ user.name || user.email }}</div>
+          </div>
+        } @else {
+          <div class="sidebar-greeting">
+            <div class="sidebar-greeting-subtitle">Welcome to</div>
+            <div class="sidebar-greeting-name">Library Management System</div>
+          </div>
+        }
+      </div>
 
       <div class="sidebar-actions">
         <button type="button" class="btn-icon collapse-only-desktop" (click)="toggleSidebarCollapsed()"
@@ -80,6 +78,15 @@
 
       <div class="nav-section">
         <div class="nav-section-title">Library</div>
+
+        @if (isStudent$ | async) {
+          <a routerLink="/student-home" routerLinkActive="active" class="nav-link" title="My Dashboard">
+            <span class="nav-link-inner">
+              <span class="nav-icon">🏠</span>
+              <span class="nav-label">My Dashboard</span>
+            </span>
+          </a>
+        }
 
         <a routerLink="/catalog" routerLinkActive="active" class="nav-link" title="Book Catalog">
           <span class="nav-link-inner">
@@ -169,9 +176,16 @@
             <div class="user-role">{{ user.role | titlecase }}</div>
           </div>
           <div class="user-menu" #userMenuRef>
-            <button type="button" class="btn-icon user-menu-trigger" (click)="toggleUserMenu()"
-              [attr.aria-expanded]="userMenuOpen" aria-haspopup="true" aria-label="Account settings">
-              ⚙
+            <button type="button" class="user-menu-trigger" (click)="toggleUserMenu()"
+              [attr.aria-expanded]="userMenuOpen" aria-haspopup="true" aria-label="Account settings"
+              [class.has-avatar]="true">
+              @if (user.profilePicture) {
+                <img [src]="user.profilePicture" alt="Profile" class="user-avatar" />
+              } @else {
+                <div class="user-avatar-placeholder">
+                  {{ user.name ? user.name.charAt(0).toUpperCase() : 'U' }}
+                </div>
+              }
             </button>
             @if (userMenuOpen) {
               <div class="user-menu-panel">

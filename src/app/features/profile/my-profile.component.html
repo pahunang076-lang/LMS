@@ -4,7 +4,11 @@
     <header class="profile-hero">
       <div class="avatar" [class.avatar-student]="user.role === 'student'"
         [class.avatar-admin]="user.role === 'admin'" [class.avatar-librarian]="user.role === 'librarian'">
-        {{ getInitials(user.name) }}
+        @if (user.profilePicture) {
+          <img [src]="user.profilePicture" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit;" />
+        } @else {
+          {{ getInitials(user.name) }}
+        }
       </div>
       <div class="profile-info">
         <h1 class="profile-name">{{ user.name }}</h1>

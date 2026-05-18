@@ -16,63 +16,88 @@
         </div>
       </div>
     </header>
-    <div class="mode-toggle">
-      <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'manual'" (click)="setMode('manual')">
-        ✏️ Manual Form
-      </button>
-      <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'qrBorrow'" (click)="setMode('qrBorrow')">
-        📷 Borrow via QR
-      </button>
-      <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'qrReturn'" (click)="setMode('qrReturn')">
-        🔄 Return via QR
-      </button>
-    </div>
+    @if (vm.user?.role !== 'student') {
+      <div class="mode-toggle">
+        <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'manual'" (click)="setMode('manual')">
+          ✏️ Manual Form
+        </button>
+        <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'qrBorrow'" (click)="setMode('qrBorrow')">
+          📷 Borrow via QR
+        </button>
+        <button type="button" class="mode-btn" [class.mode-btn--active]="mode === 'qrReturn'" (click)="setMode('qrReturn')">
+          🔄 Return via QR
+        </button>
+      </div>
+    }
     @if (mode === 'manual') {
       <div class="columns main-layout">
         <!-- ===== NEW BORROWING FORM ===== -->
-        <section class="column form-column">
-          <div class="column-header">
-            <div class="column-icon">➕</div>
-            <div>
-              <h3>New Borrowing</h3>
-              <p class="section-subtitle">Create a borrowing record for the current user.</p>
-            </div>
-          </div>
-          <form [formGroup]="borrowForm" (ngSubmit)="createBorrow(vm.user?.uid, vm.books, vm.active)" class="form">
-            <div class="form-field">
-              <label class="form-label" for="book-select">
-                <span class="label-icon">📖</span> Book
-              </label>
-              <div class="select-wrapper">
-                <select id="book-select" formControlName="bookId" class="form-select">
-                  <option value="" disabled>Choose a book…</option>
-                  @for (book of vm.books; track $index) {
-                    <option [value]="book.id" [disabled]="book.quantityAvailable <= 0">
-                      {{ book.title }} {{ book.quantityAvailable <= 0 ? '— Out of stock' : '(' + book.quantityAvailable
-                    + ' left)' }} </option>
-                  }
-                </select>
-                <span class="select-arrow">▾</span>
+        @if (vm.user?.role !== 'student') {
+          <section class="column form-column">
+            <div class="column-header">
+              <div class="column-icon">➕</div>
+              <div>
+                <h3>New Borrowing</h3>
+                <p class="section-subtitle">Create a borrowing record for the current user.</p>
               </div>
-              <!-- Book preview chip if selected -->
-              @if (borrowForm.get('bookId')?.value) {
-                <div class="book-preview-chip">
-                  <span class="chip-cover">📗</span>
-                  <span class="chip-title">{{ getBookTitle(borrowForm.get('bookId')?.value, vm.books) }}</span>
+            </div>
+            <form [formGroup]="borrowForm" (ngSubmit)="createBorrow(vm.books, vm.active, vm.allUsers)" class="form">
+              <div class="form-field">
+                <label class="form-label" for="user-select">
+                  <span class="label-icon">👤</span> Student / User
+                </label>
+                <div class="select-wrapper">
+                  <select id="user-select" formControlName="userId" class="form-select">
+                    <option value="" disabled>Choose a user…</option>
+                    @for (u of vm.allUsers; track u.uid) {
+                      <option [value]="u.uid">{{ u.name || u.email }} ({{ u.role }})</option>
+                    }
+                  </select>
+                  <span class="select-arrow">▾</span>
                 </div>
-              }
-            </div>
-            <div class="form-field">
-              <label class="form-label" for="due-date-input">
-                <span class="label-icon">📅</span> Due Date
-              </label>
-              <input id="due-date-input" type="date" formControlName="dueDate" class="form-input" />
-            </div>
-            <button type="submit" class="btn btn-primary btn-submit" [disabled]="borrowForm.invalid">
-              <span class="btn-icon">✓</span> Create Borrowing
-            </button>
-          </form>
-        </section>
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="book-select">
+                  <span class="label-icon">📖</span> Book
+                </label>
+                <div class="select-wrapper">
+                  <select id="book-select" formControlName="bookId" class="form-select">
+                    <option value="" disabled>Choose a book…</option>
+                    @for (book of vm.books; track $index) {
+                      <option [value]="book.id" [disabled]="book.quantityAvailable <= 0">
+                        {{ book.title }} {{ book.quantityAvailable <= 0 ? '— Out of stock' : '(' + book.quantityAvailable
+                      + ' left)' }} </option>
+                    }
+                  </select>
+                  <span class="select-arrow">▾</span>
+                </div>
+                <!-- Book preview chip if selected -->
+                @if (borrowForm.get('bookId')?.value) {
+                  <div class="book-preview-chip">
+                    <span class="chip-cover">📗</span>
+                    <span class="chip-title">{{ getBookTitle(borrowForm.get('bookId')?.value, vm.books) }}</span>
+                  </div>
+                }
+              </div>
+              <div class="form-field">
+                <label class="form-label" for="due-date-input">
+                  <span class="label-icon">📅</span> Due Date
+                </label>
+                <input id="due-date-input" type="date" formControlName="dueDate" class="form-input"
+                  [min]="todayStr"
+                  [max]="getMaxDueDate(vm.user?.role)" />
+                @if (vm.user?.role === 'student') {
+                  <span class="field-hint">📌 Students may borrow for up to <strong>7 days</strong>.</span>
+                } @else {
+                  <span class="field-hint">📌 Maximum borrow period is <strong>30 days</strong>.</span>
+                }
+              </div>
+              <button type="submit" class="btn btn-primary btn-submit" [disabled]="borrowForm.invalid">
+                <span class="btn-icon">✓</span> Create Borrowing
+              </button>
+            </form>
+          </section>
+        }
         <!-- ===== LISTS CONTAINER ===== -->
         <div class="lists-container">
           <!-- ===== CURRENT BORROWINGS ===== -->
@@ -148,9 +173,11 @@
                         </div>
                         <!-- Col 4: Actions -->
                         <div class="borrow-card-actions">
-                          <button type="button" class="btn btn-small btn-success action-btn inline-btn" (click)="markReturned(borrow)">
-                            ✅ Return
-                          </button>
+                          @if (vm.user?.role !== 'student') {
+                            <button type="button" class="btn btn-small btn-success action-btn inline-btn" (click)="markReturned(borrow)">
+                              ✅ Return
+                            </button>
+                          }
                         </div>
                       </div>
                       <!-- Edge-to-edge Progress Bar -->
@@ -275,7 +302,7 @@
       </div>
     }
     <!-- ===== BORROW VIA QR ===== -->
-    @if (mode === 'qrBorrow') {
+    @if (mode === 'qrBorrow' && vm.user?.role !== 'student') {
       <section class="qr-section">
         <div class="qr-layout">
           <div class="qr-column">
@@ -313,7 +340,14 @@
                 <label class="form-label" for="qr-due-date">
                   <span class="label-icon">📅</span> Due date
                 </label>
-                <input id="qr-due-date" type="date" formControlName="dueDate" class="form-input" />
+                <input id="qr-due-date" type="date" formControlName="dueDate" class="form-input"
+                  [min]="todayStr"
+                  [max]="getMaxDueDate(vm.user?.role)" />
+                @if (vm.user?.role === 'student') {
+                  <span class="field-hint">📌 Students may borrow for up to <strong>7 days</strong>.</span>
+                } @else {
+                  <span class="field-hint">📌 Maximum borrow period is <strong>30 days</strong>.</span>
+                }
               </div>
               <button type="submit" class="btn btn-primary btn-submit" [disabled]="!scannedBook">
                 <span class="btn-icon">🔍</span> Review &amp; Confirm Borrow
@@ -324,7 +358,7 @@
       </section>
     }
     <!-- ===== RETURN VIA QR ===== -->
-    @if (mode === 'qrReturn') {
+    @if (mode === 'qrReturn' && vm.user?.role !== 'student') {
       <section class="qr-section">
         <h3>🔄 Return via QR</h3>
         <p class="section-subtitle">Scan a book QR to look up the active borrowing and confirm its return.</p>
